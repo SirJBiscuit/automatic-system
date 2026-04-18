@@ -93,10 +93,12 @@ backup_to_gdrive() {
     echo ""
     
     # Check if gdrive remote already exists and has valid token
+    GDRIVE_CONFIGURED=false
     if rclone listremotes | grep -q "gdrive:"; then
         # Test if the remote actually works
         if rclone lsd gdrive: &>/dev/null; then
             log_success "Google Drive already configured and working!"
+            GDRIVE_CONFIGURED=true
         else
             log_warning "Google Drive configured but token is invalid/expired"
             log_info "Deleting old configuration..."
@@ -106,7 +108,7 @@ backup_to_gdrive() {
     fi
     
     # If gdrive doesn't exist or was deleted, configure it
-    if ! rclone listremotes | grep -q "gdrive:"; then
+    if [ "$GDRIVE_CONFIGURED" = false ]; then
         echo ""
         log_info "╔════════════════════════════════════════════════════════════════════════╗"
         log_info "║            GOOGLE DRIVE AUTHENTICATION REQUIRED                        ║"
@@ -124,14 +126,6 @@ backup_to_gdrive() {
             backup_to_backblaze
             return
         fi
-    else
-        # gdrive exists, skip to backup
-        log_success "Google Drive already configured!"
-        echo ""
-    fi
-    
-    # Only show config instructions if gdrive doesn't exist
-    if ! rclone listremotes | grep -q "gdrive:"; then
         
         echo ""
         log_info "╔════════════════════════════════════════════════════════════════════╗"
