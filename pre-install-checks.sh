@@ -50,6 +50,81 @@ show_pre_install_banner() {
 EOF
 }
 
+setup_discord_webhook() {
+    echo ""
+    log_info "╔════════════════════════════════════════════════════════════════════════╗"
+    log_info "║                  DISCORD WEBHOOK SETUP (Optional)                      ║"
+    log_info "╚════════════════════════════════════════════════════════════════════════╝"
+    echo ""
+    log_info "Get notified about installation progress and server status via Discord!"
+    echo ""
+    log_info "To get a Discord webhook URL:"
+    echo "  1. Open Discord and go to your server"
+    echo "  2. Right-click a channel → Edit Channel"
+    echo "  3. Go to Integrations → Webhooks → New Webhook"
+    echo "  4. Copy the Webhook URL"
+    echo ""
+    
+    if prompt_yes_no "Would you like to set up Discord notifications?"; then
+        echo ""
+        read -p "Enter your Discord Webhook URL: " DISCORD_WEBHOOK
+        
+        if [[ -z "$DISCORD_WEBHOOK" ]]; then
+            log_warning "No webhook URL provided. Skipping Discord notifications."
+            DISCORD_WEBHOOK=""
+        elif [[ ! "$DISCORD_WEBHOOK" =~ ^https://discord(app)?.com/api/webhooks/ ]]; then
+            log_warning "Invalid Discord webhook URL format. Skipping."
+            DISCORD_WEBHOOK=""
+        else
+            # Test the webhook
+            log_info "Testing webhook..."
+            TEST_RESULT=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$DISCORD_WEBHOOK" \
+                -H "Content-Type: application/json" \
+                -d '{
+                    "embeds": [{
+                        "title": "🚀 Pterodactyl Installation Started",
+                        "description": "Pre-installation checks are running...",
+                        "color": 3447003,
+                        "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+                    }]
+                }' 2>/dev/null)
+            
+            if [ "$TEST_RESULT" = "204" ] || [ "$TEST_RESULT" = "200" ]; then
+                log_success "✓ Discord webhook configured and tested successfully!"
+                echo "$DISCORD_WEBHOOK" > /tmp/.ptero_discord_webhook
+            else
+                log_error "Failed to send test message to Discord (HTTP $TEST_RESULT)"
+                log_warning "Continuing without Discord notifications..."
+                DISCORD_WEBHOOK=""
+            fi
+        fi
+    else
+        log_info "Skipping Discord notifications"
+        DISCORD_WEBHOOK=""
+    fi
+    echo ""
+}
+
+send_discord_notification() {
+    local title="$1"
+    local description="$2"
+    local color="${3:-3447003}"  # Default blue
+    
+    if [ -f "/tmp/.ptero_discord_webhook" ]; then
+        WEBHOOK_URL=$(cat /tmp/.ptero_discord_webhook)
+        curl -s -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+                "embeds": [{
+                    "title": "'"$title"'",
+                    "description": "'"$description"'",
+                    "color": '"$color"',
+                    "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+                }]
+            }' &>/dev/null &
+    fi
+}
+
 check_existing_pterodactyl() {
     log_info "Checking for existing Pterodactyl installation..."
     
@@ -1024,6 +1099,12 @@ EOF
 main() {
     show_pre_install_banner
     
+    # Setup Discord webhook for notifications (optional)
+    setup_discord_webhook
+    
+    # Send initial notification if webhook is configured
+    send_discord_notification "🔍 Pre-Installation Checks Started" "Running system checks and configuration validation..." "3447003"
+    
     check_existing_pterodactyl
     check_cloudflare_setup
     check_dns_setup
@@ -1032,6 +1113,9 @@ main() {
     echo ""
     log_success "Pre-installation checks complete!"
     echo ""
+    
+    # Send completion notification
+    send_discord_notification "✅ Pre-Installation Checks Complete" "System is ready for Pterodactyl installation!" "3066993"
     
     generate_pre_install_report
     
