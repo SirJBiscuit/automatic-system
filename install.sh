@@ -38,6 +38,7 @@ curl -sSL "$REPO_URL/prism-upgrade.sh" -o prism-upgrade.sh
 curl -sSL "$REPO_URL/prism-enhanced.py" -o prism-enhanced.py
 curl -sSL "$REPO_URL/prism-cli.sh" -o prism-cli.sh
 curl -sSL "$REPO_URL/node-installer.sh" -o node-installer.sh
+curl -sSL "$REPO_URL/cloud-backup.sh" -o cloud-backup.sh
 
 # Make executable
 chmod +x pteroanyinstall.sh
@@ -51,6 +52,7 @@ chmod +x prism-upgrade.sh
 chmod +x prism-enhanced.py
 chmod +x prism-cli.sh
 chmod +x node-installer.sh
+chmod +x cloud-backup.sh
 
 echo "[SUCCESS] Scripts downloaded successfully!"
 echo ""
@@ -73,6 +75,12 @@ echo "  ./pteroanyinstall.sh health-check       # Check system status"
 echo "  ./pteroanyinstall.sh scan               # Scan and fix issues"
 echo "  ./pteroanyinstall.sh backup             # Run backup"
 echo "  ./pteroanyinstall.sh clean              # Clean cache and logs"
+echo ""
+echo "☁️  CLOUD BACKUPS:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  ./cloud-backup.sh                       # Backup menu (Google Drive/Mega)"
+echo "  ./cloud-backup.sh gdrive                # Backup to Google Drive"
+echo "  ./cloud-backup.sh mega                  # Backup to Mega.nz"
 echo ""
 echo "🎨 CUSTOMIZATION:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

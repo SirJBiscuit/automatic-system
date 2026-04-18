@@ -459,6 +459,10 @@ EOF
         echo "  2) Backup to USB drive (move to external storage)"
         echo "  3) Delete everything (fresh start)"
         echo ""
+        log_info "💡 TIP: For cloud backups (Google Drive/Mega), use:"
+        log_info "   ./pteroanyinstall.sh backup-gdrive"
+        log_info "   ./pteroanyinstall.sh backup-mega"
+        echo ""
         
         read -p "Select option [1-3]: " game_server_choice
         
