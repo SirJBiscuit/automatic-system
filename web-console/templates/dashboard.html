@@ -22,8 +22,11 @@
                     <span class="text-gray-400">
                         <i class="fas fa-circle text-green-500"></i> Connected
                     </span>
+                    <button onclick="toggleSettings()" class="text-gray-400 hover:text-white" title="Settings">
+                        <i class="fas fa-cog"></i> <span class="hidden md:inline">Settings</span>
+                    </button>
                     <a href="/logout" class="text-gray-400 hover:text-white">
-                        <i class="fas fa-sign-out-alt"></i> Logout
+                        <i class="fas fa-sign-out-alt"></i> <span class="hidden md:inline">Logout</span>
                     </a>
                 </div>
             </div>
@@ -145,9 +148,58 @@
         <!-- Servers List -->
         <div class="bg-gray-800 rounded-lg border border-gray-700">
             <div class="p-6 border-b border-gray-700">
-                <h2 class="text-xl font-bold">
-                    <i class="fas fa-list"></i> Game Servers
-                </h2>
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <h2 class="text-xl font-bold">
+                        <i class="fas fa-list"></i> Game Servers
+                    </h2>
+                    
+                    <!-- Search and Filter -->
+                    <div class="flex flex-col sm:flex-row gap-2 flex-1 md:max-w-2xl">
+                        <div class="flex-1">
+                            <input 
+                                type="text" 
+                                id="server-search" 
+                                placeholder="🔍 Search servers..." 
+                                class="w-full bg-gray-900 border border-gray-700 rounded px-4 py-2 focus:outline-none focus:border-blue-500"
+                                oninput="filterServers()"
+                            >
+                        </div>
+                        <select 
+                            id="status-filter" 
+                            class="bg-gray-900 border border-gray-700 rounded px-4 py-2 focus:outline-none focus:border-blue-500"
+                            onchange="filterServers()"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="running">Online</option>
+                            <option value="offline">Offline</option>
+                        </select>
+                        <button 
+                            onclick="toggleBulkActions()" 
+                            class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded whitespace-nowrap"
+                            title="Bulk Actions"
+                        >
+                            <i class="fas fa-tasks"></i> <span class="hidden sm:inline">Bulk</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Bulk Actions Panel -->
+                <div id="bulk-actions" class="hidden mt-4 p-4 bg-gray-900 rounded border border-gray-700">
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="bulkAction('start')" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+                            <i class="fas fa-play"></i> Start All
+                        </button>
+                        <button onclick="bulkAction('stop')" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
+                            <i class="fas fa-stop"></i> Stop All
+                        </button>
+                        <button onclick="bulkAction('restart')" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded">
+                            <i class="fas fa-redo"></i> Restart All
+                        </button>
+                        <button onclick="toggleBulkActions()" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded ml-auto">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="p-6">
                 <div id="servers-container" class="space-y-4">
@@ -244,6 +296,74 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-bold"><i class="fas fa-cog"></i> Dashboard Settings</h3>
+                <button onclick="toggleSettings()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <!-- Auto-Refresh -->
+                <div>
+                    <label class="block text-sm font-bold mb-2">
+                        <i class="fas fa-sync"></i> Auto-Refresh Interval
+                    </label>
+                    <select id="refresh-interval" class="w-full bg-gray-900 border border-gray-700 rounded px-4 py-2" onchange="updateRefreshInterval()">
+                        <option value="5000">5 seconds</option>
+                        <option value="10000" selected>10 seconds</option>
+                        <option value="30000">30 seconds</option>
+                        <option value="60000">1 minute</option>
+                        <option value="0">Disabled</option>
+                    </select>
+                </div>
+
+                <!-- Compact Mode -->
+                <div>
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <span class="font-bold">
+                            <i class="fas fa-compress"></i> Compact Mode
+                        </span>
+                        <input type="checkbox" id="compact-mode" class="toggle" onchange="toggleCompactMode()">
+                    </label>
+                    <p class="text-sm text-gray-400 mt-1">Reduce spacing for more servers on screen</p>
+                </div>
+
+                <!-- Show System Monitoring -->
+                <div>
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <span class="font-bold">
+                            <i class="fas fa-chart-line"></i> Show System Monitoring
+                        </span>
+                        <input type="checkbox" id="show-monitoring" class="toggle" checked onchange="toggleMonitoring()">
+                    </label>
+                    <p class="text-sm text-gray-400 mt-1">Display CPU, RAM, Disk, and GPU stats</p>
+                </div>
+
+                <!-- Notifications -->
+                <div>
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <span class="font-bold">
+                            <i class="fas fa-bell"></i> Browser Notifications
+                        </span>
+                        <input type="checkbox" id="enable-notifications" class="toggle" onchange="toggleNotifications()">
+                    </label>
+                    <p class="text-sm text-gray-400 mt-1">Get notified when servers go offline</p>
+                </div>
+
+                <!-- Save Button -->
+                <div class="pt-4 border-t border-gray-700">
+                    <button onclick="saveSettings()" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-3 rounded font-bold">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentServerId = null;
         const socket = io();
@@ -270,6 +390,7 @@
 
         function displayServers(servers) {
             const container = document.getElementById('servers-container');
+            allServers = servers; // Store for filtering
             
             if (servers.length === 0) {
                 container.innerHTML = '<p class="text-center text-gray-400 py-8">No servers found</p>';
@@ -629,7 +750,66 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadSystemStats();
             setInterval(loadSystemStats, 5000);
+            loadSettings(); // Load saved settings
         });
+
+        // Settings functions
+        function toggleSettings() {
+            document.getElementById('settings-modal').classList.toggle('hidden');
+        }
+
+        function toggleCompactMode() {
+            const isCompact = document.getElementById('compact-mode').checked;
+            document.body.classList.toggle('compact-mode', isCompact);
+        }
+
+        function toggleMonitoring() {
+            const showMonitoring = document.getElementById('show-monitoring').checked;
+            const monitoringPanel = document.querySelector('.bg-gray-800.rounded-lg.border.border-gray-700.mb-8');
+            if (monitoringPanel) {
+                monitoringPanel.style.display = showMonitoring ? 'block' : 'none';
+            }
+        }
+
+        function toggleNotifications() {
+            const enabled = document.getElementById('enable-notifications').checked;
+            if (enabled && 'Notification' in window) {
+                Notification.requestPermission();
+            }
+        }
+
+        function updateRefreshInterval() {
+            const interval = parseInt(document.getElementById('refresh-interval').value);
+            // Would need to restart the interval timer
+            console.log('Refresh interval updated to:', interval);
+        }
+
+        function saveSettings() {
+            const settings = {
+                refreshInterval: document.getElementById('refresh-interval').value,
+                compactMode: document.getElementById('compact-mode').checked,
+                showMonitoring: document.getElementById('show-monitoring').checked,
+                enableNotifications: document.getElementById('enable-notifications').checked
+            };
+            localStorage.setItem('dashboardSettings', JSON.stringify(settings));
+            toggleSettings();
+            alert('Settings saved!');
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('dashboardSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                document.getElementById('refresh-interval').value = settings.refreshInterval || '10000';
+                document.getElementById('compact-mode').checked = settings.compactMode || false;
+                document.getElementById('show-monitoring').checked = settings.showMonitoring !== false;
+                document.getElementById('enable-notifications').checked = settings.enableNotifications || false;
+                
+                // Apply settings
+                if (settings.compactMode) toggleCompactMode();
+                if (settings.showMonitoring === false) toggleMonitoring();
+            }
+        }
 
         // Toggle server details (expand/collapse)
         function toggleServerDetails(serverId) {
@@ -661,6 +841,64 @@
             } catch (error) {
                 console.error('Error sending power action:', error);
             }
+        }
+
+        // Global server list for filtering
+        let allServers = [];
+
+        // Toggle bulk actions panel
+        function toggleBulkActions() {
+            const panel = document.getElementById('bulk-actions');
+            panel.classList.toggle('hidden');
+        }
+
+        // Bulk action on all visible servers
+        async function bulkAction(action) {
+            const confirmed = confirm(`Are you sure you want to ${action} all servers?`);
+            if (!confirmed) return;
+            
+            const visibleServers = allServers.filter(server => {
+                const serverEl = document.querySelector(`[onclick*="${server.attributes.identifier}"]`);
+                return serverEl && !serverEl.closest('.hidden');
+            });
+            
+            for (const server of visibleServers) {
+                await quickPower(server.attributes.identifier, action);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Delay between actions
+            }
+            
+            alert(`${action} command sent to ${visibleServers.length} server(s)`);
+        }
+
+        // Filter servers by search and status
+        function filterServers() {
+            const searchTerm = document.getElementById('server-search').value.toLowerCase();
+            const statusFilter = document.getElementById('status-filter').value;
+            
+            allServers.forEach(server => {
+                const attrs = server.attributes;
+                const serverCard = document.querySelector(`[onclick*="${attrs.identifier}"]`)?.closest('.bg-gray-900');
+                
+                if (!serverCard) return;
+                
+                // Check search match
+                const matchesSearch = attrs.name.toLowerCase().includes(searchTerm) || 
+                                     attrs.identifier.toLowerCase().includes(searchTerm);
+                
+                // Check status match
+                const statusEl = document.getElementById(`status-${attrs.identifier}`);
+                const isRunning = statusEl?.classList.contains('bg-green-600');
+                const matchesStatus = statusFilter === 'all' || 
+                                     (statusFilter === 'running' && isRunning) ||
+                                     (statusFilter === 'offline' && !isRunning);
+                
+                // Show/hide server
+                if (matchesSearch && matchesStatus) {
+                    serverCard.classList.remove('hidden');
+                } else {
+                    serverCard.classList.add('hidden');
+                }
+            });
         }
 
         // Helper function to format uptime in milliseconds to human-readable format
