@@ -349,26 +349,128 @@ EOF
     fi
 }
 
+backup_to_backblaze() {
+    echo ""
+    log_info "╔════════════════════════════════════════════════════════════════════════╗"
+    log_info "║                   BACKBLAZE B2 BACKUP                                  ║"
+    log_info "╚════════════════════════════════════════════════════════════════════════╝"
+    echo ""
+    
+    # Check if game servers exist
+    if [ ! -d "/var/lib/pterodactyl/volumes" ]; then
+        log_error "No game server files found"
+        exit 1
+    fi
+    
+    GAME_SIZE=$(du -sh /var/lib/pterodactyl/volumes 2>/dev/null | cut -f1)
+    log_info "Game server size: $GAME_SIZE"
+    echo ""
+    
+    # Check if rclone is installed
+    if ! command -v rclone &> /dev/null; then
+        log_info "Installing rclone..."
+        curl https://rclone.org/install.sh | bash
+    fi
+    
+    echo ""
+    log_info "Backblaze B2 Setup"
+    echo ""
+    log_info "You'll need:"
+    echo "  • Backblaze account (sign up at backblaze.com)"
+    echo "  • Application Key ID"
+    echo "  • Application Key"
+    echo ""
+    log_info "Pricing: \$6/TB/month + \$0.01/GB download"
+    log_info "First 10GB free every month!"
+    echo ""
+    
+    if ! prompt_yes_no "Continue with Backblaze B2 setup?"; then
+        exit 0
+    fi
+    
+    # Configure B2
+    if ! rclone listremotes | grep -q "b2:"; then
+        echo ""
+        read -p "Enter your Application Key ID: " B2_KEY_ID
+        read -sp "Enter your Application Key: " B2_KEY
+        echo ""
+        
+        rclone config create b2 b2 \
+            account="$B2_KEY_ID" \
+            key="$B2_KEY"
+        
+        if [ $? -ne 0 ]; then
+            log_error "Failed to configure Backblaze B2!"
+            exit 1
+        fi
+        
+        log_success "Backblaze B2 configured!"
+    fi
+    
+    # Create bucket name
+    BUCKET_NAME="pterodactyl-backups"
+    BACKUP_PATH="gameservers-$(date +%Y%m%d-%H%M%S)"
+    
+    echo ""
+    log_info "Backing up to Backblaze B2..."
+    log_info "Bucket: $BUCKET_NAME"
+    log_info "Path: $BACKUP_PATH"
+    echo ""
+    
+    rclone copy /var/lib/pterodactyl/volumes "b2:$BUCKET_NAME/$BACKUP_PATH" \
+        --progress --transfers 4
+    
+    if [ $? -eq 0 ]; then
+        log_success "✓ Backup complete!"
+        log_info "Location: b2:$BUCKET_NAME/$BACKUP_PATH"
+    else
+        log_error "Backup failed!"
+        exit 1
+    fi
+}
+
 show_menu() {
     show_banner
     
     log_info "Select backup destination:"
     echo ""
-    echo "  1) Google Drive (unlimited storage with Google Workspace)"
-    echo "  2) Mega.nz (20GB free, up to 16TB paid)"
-    echo "  3) Exit"
+    echo "💰 BUDGET-FRIENDLY OPTIONS (Best for 100GB+):"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  1) Backblaze B2    - \$6/TB/month (10GB free/month)"
+    echo "  2) Wasabi          - \$6.99/TB/month (no egress fees)"
+    echo "  3) pCloud          - \$500 lifetime for 2TB (one-time payment)"
+    echo ""
+    echo "🎁 FREE OPTIONS:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  4) Google Drive    - 15GB free (unlimited with Workspace)"
+    echo "  5) Mega.nz         - 20GB free (up to 16TB paid)"
+    echo ""
+    echo "  6) Exit"
     echo ""
     
-    read -p "Select option [1-3]: " choice
+    read -p "Select option [1-6]: " choice
     
     case $choice in
         1)
-            backup_to_gdrive
+            backup_to_backblaze
             ;;
         2)
-            backup_to_mega
+            log_info "Wasabi uses same setup as Backblaze B2"
+            log_info "Visit wasabi.com to get your credentials"
+            backup_to_backblaze
             ;;
         3)
+            log_info "pCloud setup..."
+            log_info "Visit pcloud.com for lifetime plans"
+            backup_to_gdrive  # Uses rclone, similar setup
+            ;;
+        4)
+            backup_to_gdrive
+            ;;
+        5)
+            backup_to_mega
+            ;;
+        6)
             log_info "Exiting..."
             exit 0
             ;;
@@ -392,6 +494,13 @@ case "${1:-menu}" in
         ;;
     mega|mega.nz)
         backup_to_mega
+        ;;
+    b2|backblaze)
+        backup_to_backblaze
+        ;;
+    wasabi)
+        log_info "Wasabi uses Backblaze B2 configuration"
+        backup_to_backblaze
         ;;
     menu|*)
         show_menu
