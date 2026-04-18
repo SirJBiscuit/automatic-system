@@ -116,16 +116,34 @@ backup_to_gdrive() {
         
         echo ""
         log_info "Configuring Google Drive remote..."
+        echo ""
+        log_info "Follow these steps:"
+        echo "  1. When prompted for 'name', enter: gdrive"
+        echo "  2. For 'Storage', choose: drive (Google Drive)"
+        echo "  3. For 'client_id' and 'client_secret', press Enter (use defaults)"
+        echo "  4. For 'scope', choose: 1 (Full access)"
+        echo "  5. For 'root_folder_id', press Enter"
+        echo "  6. For 'service_account_file', press Enter"
+        echo "  7. For 'Edit advanced config', choose: n"
+        echo "  8. For 'Use auto config', choose: n (we're on a remote server)"
+        echo "  9. Copy the URL and open it in your browser"
+        echo "  10. Authorize and paste the code back"
+        echo ""
+        read -p "Press Enter to start rclone config..."
         
-        # Auto-configure Google Drive
-        rclone config create gdrive drive \
-            config_is_local=false \
-            scope=drive
+        # Run interactive config
+        rclone config
         
-        if [ $? -ne 0 ]; then
+        # Verify gdrive remote was created
+        if ! rclone listremotes | grep -q "gdrive:"; then
             log_error "Failed to configure Google Drive!"
-            log_info "You can manually configure with: rclone config"
-            exit 1
+            log_info "Please try again or use: rclone config"
+            echo ""
+            if prompt_yes_no "Return to menu?"; then
+                show_menu
+            else
+                exit 1
+            fi
         fi
         
         log_success "Google Drive configured!"
