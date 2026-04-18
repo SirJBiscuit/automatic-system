@@ -124,6 +124,14 @@ backup_to_gdrive() {
             backup_to_backblaze
             return
         fi
+    else
+        # gdrive exists, skip to backup
+        log_success "Google Drive already configured!"
+        echo ""
+    fi
+    
+    # Only show config instructions if gdrive doesn't exist
+    if ! rclone listremotes | grep -q "gdrive:"; then
         
         echo ""
         log_info "╔════════════════════════════════════════════════════════════════════╗"
@@ -217,7 +225,7 @@ backup_to_gdrive() {
             log_info "Then run this script again"
             exit 0
         fi
-    fi
+    fi  # End of config check
     
     # Create backup directory name
     BACKUP_DIR="Pterodactyl-Backups/gameservers-$(date +%Y%m%d-%H%M%S)"
