@@ -73,23 +73,28 @@ check_existing_pterodactyl() {
         log_warning "EXISTING PTERODACTYL INSTALLATION FOUND!"
         echo ""
         log_info "You have the following options:"
-        echo "  1) Backup and migrate to pteroanyinstall (RECOMMENDED)"
-        echo "  2) Continue and update existing installation"
-        echo "  3) Exit and manually backup first"
+        echo "  1) Clean wipe and fresh install (saves ports/configs only)"
+        echo "  2) Backup everything and migrate (keeps all data)"
+        echo "  3) Continue and update existing installation"
+        echo "  4) Exit and manually backup first"
         echo ""
         
-        read -p "Select option [1-3]: " migration_choice
+        read -p "Select option [1-4]: " migration_choice
         
         case $migration_choice in
             1)
-                backup_and_migrate
+                clean_wipe_and_install
                 return 0
                 ;;
             2)
-                log_info "Continuing with existing installation..."
+                backup_and_migrate
                 return 0
                 ;;
             3)
+                log_info "Continuing with existing installation..."
+                return 0
+                ;;
+            4)
                 log_info "Please backup your installation manually, then run this script again."
                 exit 0
                 ;;
@@ -100,6 +105,226 @@ check_existing_pterodactyl() {
         esac
     else
         log_success "No existing Pterodactyl installation found - fresh install!"
+    fi
+}
+
+clean_wipe_and_install() {
+    echo ""
+    log_warning "╔════════════════════════════════════════════════════════════════════════╗"
+    log_warning "║                    CLEAN WIPE & FRESH INSTALL                          ║"
+    log_warning "╚════════════════════════════════════════════════════════════════════════╝"
+    echo ""
+    log_warning "This will:"
+    echo "  ✓ Save your ports and network configurations"
+    echo "  ✓ Save your domain names"
+    echo "  ✓ Save your SSL certificates"
+    echo "  ✗ DELETE all Panel data (users, servers, databases)"
+    echo "  ✗ DELETE all game server files"
+    echo "  ✗ DELETE all Wings data"
+    echo ""
+    log_error "THIS CANNOT BE UNDONE!"
+    echo ""
+    
+    if ! prompt_yes_no "Are you ABSOLUTELY SURE you want to wipe everything?"; then
+        log_info "Cancelled. Returning to menu..."
+        check_existing_pterodactyl
+        return 0
+    fi
+    
+    echo ""
+    log_info "Creating config backup directory..."
+    CONFIG_BACKUP="/root/pterodactyl-config-backup-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$CONFIG_BACKUP"
+    
+    # Save ports and network config
+    log_info "Saving network configuration..."
+    
+    # Save Panel domain/URL
+    if [ -f "/var/www/pterodactyl/.env" ]; then
+        PANEL_URL=$(grep APP_URL /var/www/pterodactyl/.env | cut -d '=' -f2)
+        echo "PANEL_URL=$PANEL_URL" > "$CONFIG_BACKUP/saved_config.txt"
+        log_success "Panel URL saved: $PANEL_URL"
+    fi
+    
+    # Save Wings config (ports, domain)
+    if [ -f "/etc/pterodactyl/config.yml" ]; then
+        cp /etc/pterodactyl/config.yml "$CONFIG_BACKUP/wings_config.yml"
+        
+        # Extract important info
+        WINGS_PORT=$(grep -A 5 "api:" /etc/pterodactyl/config.yml | grep "port:" | awk '{print $2}')
+        WINGS_SFTP_PORT=$(grep -A 5 "sftp:" /etc/pterodactyl/config.yml | grep "bind_port:" | awk '{print $2}')
+        
+        echo "WINGS_PORT=$WINGS_PORT" >> "$CONFIG_BACKUP/saved_config.txt"
+        echo "WINGS_SFTP_PORT=$WINGS_SFTP_PORT" >> "$CONFIG_BACKUP/saved_config.txt"
+        log_success "Wings ports saved: API=$WINGS_PORT, SFTP=$WINGS_SFTP_PORT"
+    fi
+    
+    # Save SSL certificates
+    if [ -d "/etc/letsencrypt" ]; then
+        log_info "Backing up SSL certificates..."
+        tar -czf "$CONFIG_BACKUP/ssl_certificates.tar.gz" /etc/letsencrypt 2>/dev/null
+        log_success "SSL certificates backed up"
+    fi
+    
+    # Save Nginx config
+    if [ -f "/etc/nginx/sites-available/pterodactyl.conf" ]; then
+        cp /etc/nginx/sites-available/pterodactyl.conf "$CONFIG_BACKUP/nginx_pterodactyl.conf"
+        log_success "Nginx config saved"
+    fi
+    
+    # Save firewall rules
+    if command -v ufw &> /dev/null; then
+        ufw status numbered > "$CONFIG_BACKUP/ufw_rules.txt"
+        log_success "Firewall rules saved"
+    fi
+    
+    # Create restore script
+    cat > "$CONFIG_BACKUP/RESTORE_CONFIG.sh" <<'EOF'
+#!/bin/bash
+# Auto-generated config restore script
+# Run this after fresh installation to restore your saved settings
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo -e "${YELLOW}Restoring saved configuration...${NC}"
+
+# Source saved config
+source saved_config.txt
+
+echo "Panel URL: $PANEL_URL"
+echo "Wings Port: $WINGS_PORT"
+echo "SFTP Port: $WINGS_SFTP_PORT"
+
+# Restore SSL certificates
+if [ -f "ssl_certificates.tar.gz" ]; then
+    echo -e "${GREEN}Restoring SSL certificates...${NC}"
+    tar -xzf ssl_certificates.tar.gz -C /
+fi
+
+echo ""
+echo -e "${GREEN}Configuration restored!${NC}"
+echo ""
+echo "Next steps:"
+echo "  1. Update Panel .env with: APP_URL=$PANEL_URL"
+echo "  2. Update Wings config with ports: $WINGS_PORT, $WINGS_SFTP_PORT"
+echo "  3. Restart services"
+EOF
+    
+    chmod +x "$CONFIG_BACKUP/RESTORE_CONFIG.sh"
+    
+    # Create summary
+    cat > "$CONFIG_BACKUP/README.txt" <<EOF
+Pterodactyl Configuration Backup
+=================================
+Created: $(date)
+Location: $CONFIG_BACKUP
+
+Saved Items:
+  - Panel URL and domain
+  - Wings ports (API and SFTP)
+  - SSL certificates
+  - Nginx configuration
+  - Firewall rules
+
+To restore after fresh install:
+  1. Run: ./RESTORE_CONFIG.sh
+  2. Or manually apply settings from saved_config.txt
+
+Saved Configuration:
+$(cat saved_config.txt)
+EOF
+    
+    log_success "Configuration backup complete!"
+    echo ""
+    cat "$CONFIG_BACKUP/README.txt"
+    echo ""
+    
+    # Now wipe everything
+    log_warning "Starting clean wipe in 5 seconds... (Ctrl+C to cancel)"
+    sleep 5
+    
+    echo ""
+    log_info "Stopping services..."
+    systemctl stop wings 2>/dev/null || true
+    systemctl stop pteroctl 2>/dev/null || true
+    systemctl stop nginx 2>/dev/null || true
+    
+    # Remove Panel
+    if [ "$EXISTING_PANEL" = true ]; then
+        log_info "Removing Panel..."
+        
+        # Drop database
+        if [ -f "/var/www/pterodactyl/.env" ]; then
+            DB_NAME=$(grep DB_DATABASE /var/www/pterodactyl/.env | cut -d '=' -f2)
+            if [ -n "$DB_NAME" ]; then
+                mysql -u root -e "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
+                log_success "Database dropped"
+            fi
+        fi
+        
+        # Remove Panel files
+        rm -rf /var/www/pterodactyl
+        log_success "Panel files removed"
+    fi
+    
+    # Remove Wings
+    if [ "$EXISTING_WINGS" = true ]; then
+        log_info "Removing Wings..."
+        
+        # Stop and disable Wings
+        systemctl disable wings 2>/dev/null || true
+        rm -f /etc/systemd/system/wings.service
+        systemctl daemon-reload
+        
+        # Remove Wings binary
+        rm -f /usr/local/bin/wings
+        
+        # Remove Wings config
+        rm -rf /etc/pterodactyl
+        
+        # Remove Wings data (game servers)
+        log_warning "Removing all game server files..."
+        rm -rf /var/lib/pterodactyl
+        
+        log_success "Wings removed"
+    fi
+    
+    # Clean up Docker
+    if command -v docker &> /dev/null; then
+        log_info "Cleaning up Docker..."
+        docker system prune -af --volumes 2>/dev/null || true
+        log_success "Docker cleaned"
+    fi
+    
+    # Remove Nginx config
+    rm -f /etc/nginx/sites-available/pterodactyl.conf
+    rm -f /etc/nginx/sites-enabled/pterodactyl.conf
+    
+    echo ""
+    log_success "╔════════════════════════════════════════════════════════════════════════╗"
+    log_success "║                    CLEAN WIPE COMPLETE!                                ║"
+    log_success "╚════════════════════════════════════════════════════════════════════════╝"
+    echo ""
+    log_info "Your configuration has been saved to:"
+    log_info "  $CONFIG_BACKUP"
+    echo ""
+    log_info "You can now proceed with a fresh installation!"
+    echo ""
+    
+    if prompt_yes_no "Would you like to start the fresh installation now?"; then
+        echo ""
+        log_info "Starting fresh installation..."
+        # The main script will continue
+        return 0
+    else
+        log_info "You can run the installation later with:"
+        log_info "  cd /opt/ptero && ./pteroanyinstall.sh install-full"
+        echo ""
+        log_info "To restore your saved configuration:"
+        log_info "  cd $CONFIG_BACKUP && ./RESTORE_CONFIG.sh"
+        exit 0
     fi
 }
 
