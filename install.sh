@@ -30,102 +30,142 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-echo "[INFO] Creating installation directory..."
+echo "  ⏳ Creating installation directory..."
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
 # Check for existing installation
 if [ -f "$INSTALL_DIR/pteroanyinstall.sh" ]; then
-    echo "[INFO] Existing installation detected!"
+    echo ""
+    echo "  ℹ️  Existing installation detected!"
     echo ""
     
     # Check for updates
     if [ -f "$VERSION_FILE" ]; then
-        LOCAL_VERSION=$(cat "$VERSION_FILE")
-        REMOTE_VERSION=$(curl -sSL "$REMOTE_VERSION_URL" 2>/dev/null || echo "unknown")
+        LOCAL_VERSION=$(cat "$VERSION_FILE" | tr -d '\n\r')
+        REMOTE_VERSION=$(curl -sSL "$REMOTE_VERSION_URL" 2>/dev/null | tr -d '\n\r' || echo "unknown")
         
-        echo "[INFO] Local version: $LOCAL_VERSION"
-        echo "[INFO] Remote version: $REMOTE_VERSION"
+        echo "  📌 Local version:  $LOCAL_VERSION"
+        echo "  🌐 Remote version: $REMOTE_VERSION"
         echo ""
         
         if [ "$LOCAL_VERSION" != "$REMOTE_VERSION" ] && [ "$REMOTE_VERSION" != "unknown" ]; then
-            echo "[UPDATE] New version available!"
+            echo "  🆕 New version available!"
             echo ""
-            read -p "Update to version $REMOTE_VERSION? (y/n): " update_choice
+            read -p "  ▸ Update to version $REMOTE_VERSION? (y/n): " update_choice
             
             if [[ $update_choice =~ ^[Yy]$ ]]; then
-                echo "[INFO] Updating scripts..."
-            else
-                echo "[INFO] Skipping update. Using existing installation."
                 echo ""
-                echo "To update later, run: sudo bash $INSTALL_DIR/install.sh"
+                echo "  ⏳ Updating scripts..."
+            else
+                echo ""
+                echo "  ℹ️  Skipping update. Using existing installation."
+                echo ""
+                echo "  💡 To update later, run: sudo bash $INSTALL_DIR/install.sh"
                 exit 0
             fi
         else
-            echo "[INFO] Scripts are up to date!"
+            echo "  ✅ Scripts are up to date!"
             echo ""
-            read -p "Re-download scripts anyway? (y/n): " redownload_choice
+            read -p "  ▸ Re-download scripts anyway? (y/n): " redownload_choice
             
             if [[ ! $redownload_choice =~ ^[Yy]$ ]]; then
-                echo "[INFO] Using existing installation."
+                echo ""
+                echo "  ℹ️  Using existing installation."
                 exit 0
             fi
         fi
     else
-        echo "[INFO] Version file not found. Updating scripts..."
+        echo "  ⚠️  Version file not found. Updating scripts..."
     fi
     echo ""
 fi
 
-echo "[INFO] Downloading scripts from GitHub..."
+echo "  📥 Downloading scripts from GitHub..."
+echo ""
 
-# Download main scripts
-curl -sSL "$REPO_URL/pteroanyinstall.sh" -o pteroanyinstall.sh
-curl -sSL "$REPO_URL/pre-install-checks.sh" -o pre-install-checks.sh
-curl -sSL "$REPO_URL/billing-setup.sh" -o billing-setup.sh
-curl -sSL "$REPO_URL/panel-customizer.sh" -o panel-customizer.sh
-curl -sSL "$REPO_URL/quick-setup.sh" -o quick-setup.sh
-curl -sSL "$REPO_URL/ptero-admin.sh" -o ptero-admin.sh
-curl -sSL "$REPO_URL/ai-assistant-setup.sh" -o ai-assistant-setup.sh
-curl -sSL "$REPO_URL/prism-upgrade.sh" -o prism-upgrade.sh
-curl -sSL "$REPO_URL/prism-enhanced.py" -o prism-enhanced.py
-curl -sSL "$REPO_URL/prism-cli.sh" -o prism-cli.sh
-curl -sSL "$REPO_URL/node-installer.sh" -o node-installer.sh
-curl -sSL "$REPO_URL/cloud-backup.sh" -o cloud-backup.sh
+# Progress indicator function
+show_progress() {
+    local current=$1
+    local total=$2
+    local name=$3
+    local percent=$((current * 100 / total))
+    local filled=$((percent / 2))
+    local empty=$((50 - filled))
+    
+    printf "\r  [%-50s] %3d%% - %s" \
+        "$(printf '#%.0s' $(seq 1 $filled))$(printf ' %.0s' $(seq 1 $empty))" \
+        "$percent" \
+        "$name"
+}
+
+# Download main scripts with progress
+TOTAL_FILES=12
+CURRENT=0
+
+download_file() {
+    local url=$1
+    local output=$2
+    local name=$3
+    CURRENT=$((CURRENT + 1))
+    show_progress $CURRENT $TOTAL_FILES "$name"
+    curl -sSL "$url" -o "$output" 2>/dev/null
+}
+
+download_file "$REPO_URL/pteroanyinstall.sh" "pteroanyinstall.sh" "Main installer"
+download_file "$REPO_URL/pre-install-checks.sh" "pre-install-checks.sh" "Pre-checks"
+download_file "$REPO_URL/billing-setup.sh" "billing-setup.sh" "Billing setup"
+download_file "$REPO_URL/panel-customizer.sh" "panel-customizer.sh" "Customizer"
+download_file "$REPO_URL/quick-setup.sh" "quick-setup.sh" "Quick setup"
+download_file "$REPO_URL/ptero-admin.sh" "ptero-admin.sh" "Admin tools"
+download_file "$REPO_URL/ai-assistant-setup.sh" "ai-assistant-setup.sh" "AI assistant"
+download_file "$REPO_URL/prism-upgrade.sh" "prism-upgrade.sh" "PRISM upgrade"
+download_file "$REPO_URL/prism-enhanced.py" "prism-enhanced.py" "PRISM core"
+download_file "$REPO_URL/prism-cli.sh" "prism-cli.sh" "PRISM CLI"
+download_file "$REPO_URL/node-installer.sh" "node-installer.sh" "Node installer"
+download_file "$REPO_URL/cloud-backup.sh" "cloud-backup.sh" "Cloud backup"
+
+echo ""
+echo ""
+echo "  ⏳ Setting permissions..."
 
 # Make executable
-chmod +x pteroanyinstall.sh
-chmod +x pre-install-checks.sh
-chmod +x billing-setup.sh
-chmod +x panel-customizer.sh
-chmod +x quick-setup.sh
-chmod +x ptero-admin.sh
-chmod +x ai-assistant-setup.sh
-chmod +x prism-upgrade.sh
-chmod +x prism-enhanced.py
-chmod +x prism-cli.sh
-chmod +x node-installer.sh
-chmod +x cloud-backup.sh
+chmod +x pteroanyinstall.sh pre-install-checks.sh billing-setup.sh panel-customizer.sh \
+         quick-setup.sh ptero-admin.sh ai-assistant-setup.sh prism-upgrade.sh \
+         prism-enhanced.py prism-cli.sh node-installer.sh cloud-backup.sh
 
-# Download and save version
-curl -sSL "$REMOTE_VERSION_URL" -o "$VERSION_FILE" 2>/dev/null || echo "1.0.0" > "$VERSION_FILE"
+echo "  ⏳ Downloading version file..."
 
-clear
-echo ""
-echo "╔══════════════════════════════════════════════════════════════════════════╗"
-echo "║                                                                          ║"
-echo "║                    ✅ INSTALLATION SUCCESSFUL! ✅                        ║"
-echo "║                                                                          ║"
-echo "╚══════════════════════════════════════════════════════════════════════════╝"
-echo ""
-if [ -f "$VERSION_FILE" ]; then
-    echo "  📌 Version: $(cat $VERSION_FILE)"
-    echo "  📂 Location: $INSTALL_DIR"
-    echo ""
+# Download and save version - ensure it's saved correctly
+if curl -sSL "$REMOTE_VERSION_URL" -o "$VERSION_FILE" 2>/dev/null; then
+    # Clean up the version file (remove any whitespace/newlines)
+    VERSION_CONTENT=$(cat "$VERSION_FILE" | tr -d '\n\r\t ' | head -c 10)
+    echo "$VERSION_CONTENT" > "$VERSION_FILE"
+else
+    echo "1.2.0" > "$VERSION_FILE"
 fi
-echo "╔══════════════════════════════════════════════════════════════════════════╗"
-echo "║                         AVAILABLE COMMANDS                               ║"
-echo "╚══════════════════════════════════════════════════════════════════════════╝"
+
+show_commands() {
+    cat << 'EOF'
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║                    ✅ INSTALLATION SUCCESSFUL! ✅                        ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+EOF
+    if [ -f "$VERSION_FILE" ]; then
+        echo "  📌 Version: $(cat $VERSION_FILE)"
+        echo "  📂 Location: $INSTALL_DIR"
+        echo ""
+    fi
+    cat << 'EOF'
+╔══════════════════════════════════════════════════════════════════════════╗
+║                         AVAILABLE COMMANDS                               ║
+╚══════════════════════════════════════════════════════════════════════════╝
+EOF
+}
 echo ""
 echo "┌──────────────────────────────────────────────────────────────────────────┐"
 echo "│ 📦 INSTALLATION                                                          │"
@@ -216,3 +256,6 @@ echo "║  💡 Need help? Run: ./pteroanyinstall.sh help                       
 echo "║                                                                          ║"
 echo "╚══════════════════════════════════════════════════════════════════════════╝"
 echo ""
+echo "  Press any key to continue..."
+read -n 1 -s
+clear
