@@ -3,7 +3,7 @@
 set -e
 
 VERSION="2.0.0"
-SCRIPT_NAME="pteroanyinstall"
+SCRIPT_NAME="automatic-system"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -14,7 +14,7 @@ NC='\033[0m'
 PANEL_VERSION="1.11.5"
 WINGS_VERSION="1.11.5"
 
-CONFIG_DIR="/etc/pteroanyinstall"
+CONFIG_DIR="/etc/automatic-system"
 CONFIG_FILE="$CONFIG_DIR/config.conf"
 
 log_info() {
@@ -601,7 +601,7 @@ install_billing_system() {
             
             if [ ! -f "$(dirname $0)/billing-setup.sh" ]; then
                 log_info "Downloading billing setup script..."
-                curl -sSL -o /tmp/billing-setup.sh https://raw.githubusercontent.com/yourusername/pteroanyinstall/main/billing-setup.sh
+                curl -sSL -o /tmp/billing-setup.sh https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/billing-setup.sh
                 chmod +x /tmp/billing-setup.sh
                 /tmp/billing-setup.sh
             else
@@ -681,8 +681,8 @@ EOF
 LOG_FILE="/var/log/pterodactyl-startup.log"
 echo "$(date): Ptero startup initiated" >> $LOG_FILE
 
-if [ -f /etc/pteroanyinstall/config.conf ]; then
-    source /etc/pteroanyinstall/config.conf
+if [ -f /etc/automatic-system/config.conf ]; then
+    source /etc/automatic-system/config.conf
     echo "$(date): Loaded configuration" >> $LOG_FILE
 fi
 
@@ -863,7 +863,7 @@ customize_panel_appearance() {
     if prompt_yes_no "Do you want to customize your panel's appearance?"; then
         if [ ! -f "$(dirname $0)/panel-customizer.sh" ]; then
             log_info "Downloading panel customizer..."
-            curl -sSL -o /tmp/panel-customizer.sh https://raw.githubusercontent.com/yourusername/pteroanyinstall/main/panel-customizer.sh
+            curl -sSL -o /tmp/panel-customizer.sh https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/panel-customizer.sh
             chmod +x /tmp/panel-customizer.sh
             /tmp/panel-customizer.sh
         else
@@ -1523,7 +1523,7 @@ main() {
                 bash "$(dirname $0)/pre-install-checks.sh"
             else
                 log_info "Downloading pre-install checks script..."
-                curl -sSL -o /tmp/pre-install-checks.sh https://raw.githubusercontent.com/yourusername/pteroanyinstall/main/pre-install-checks.sh
+                curl -sSL -o /tmp/pre-install-checks.sh https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/pre-install-checks.sh
                 chmod +x /tmp/pre-install-checks.sh
                 bash /tmp/pre-install-checks.sh
             fi
@@ -1535,7 +1535,7 @@ main() {
                 bash "$(dirname $0)/quick-setup.sh"
             else
                 log_info "Downloading quick setup script..."
-                curl -sSL -o /tmp/quick-setup.sh https://raw.githubusercontent.com/yourusername/pteroanyinstall/main/quick-setup.sh
+                curl -sSL -o /tmp/quick-setup.sh https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/quick-setup.sh
                 chmod +x /tmp/quick-setup.sh
                 bash /tmp/quick-setup.sh
             fi
@@ -1547,7 +1547,7 @@ main() {
                 bash "$(dirname $0)/ptero-admin.sh"
             else
                 log_info "Downloading admin panel..."
-                curl -sSL -o /tmp/ptero-admin.sh https://raw.githubusercontent.com/yourusername/pteroanyinstall/main/ptero-admin.sh
+                curl -sSL -o /tmp/ptero-admin.sh https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ptero-admin.sh
                 chmod +x /tmp/ptero-admin.sh
                 bash /tmp/ptero-admin.sh
             fi
@@ -1559,7 +1559,7 @@ main() {
                 bash "$(dirname $0)/ai-assistant-setup.sh"
             else
                 log_info "Downloading AI assistant setup..."
-                curl -sSL -o /tmp/ai-assistant-setup.sh https://raw.githubusercontent.com/yourusername/pteroanyinstall/main/ai-assistant-setup.sh
+                curl -sSL -o /tmp/ai-assistant-setup.sh https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ai-assistant-setup.sh
                 chmod +x /tmp/ai-assistant-setup.sh
                 bash /tmp/ai-assistant-setup.sh
             fi
@@ -1571,9 +1571,9 @@ main() {
                 bash "$(dirname $0)/prism-upgrade.sh"
             else
                 log_info "Downloading P.R.I.S.M Enhanced upgrade..."
-                curl -sSL -o /tmp/prism-upgrade.sh https://raw.githubusercontent.com/yourusername/pteroanyinstall/main/prism-upgrade.sh
-                curl -sSL -o /tmp/prism-enhanced.py https://raw.githubusercontent.com/yourusername/pteroanyinstall/main/prism-enhanced.py
-                curl -sSL -o /tmp/prism-cli.sh https://raw.githubusercontent.com/yourusername/pteroanyinstall/main/prism-cli.sh
+                curl -sSL -o /tmp/prism-upgrade.sh https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/prism-upgrade.sh
+                curl -sSL -o /tmp/prism-enhanced.py https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/prism-enhanced.py
+                curl -sSL -o /tmp/prism-cli.sh https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/prism-cli.sh
                 chmod +x /tmp/prism-upgrade.sh
                 bash /tmp/prism-upgrade.sh
             fi
