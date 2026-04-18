@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Pterodactyl Web Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full mx-4">
+        <div class="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-8">
+            <div class="text-center mb-8">
+                <i class="fas fa-server text-6xl text-blue-500 mb-4"></i>
+                <h1 class="text-3xl font-bold mb-2">Pterodactyl Console</h1>
+                <p class="text-gray-400">Web-based Server Management</p>
+            </div>
+
+            {% if error %}
+            <div class="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded mb-4">
+                <i class="fas fa-exclamation-circle"></i> {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST" action="/login">
+                <div class="mb-4">
+                    <label class="block text-gray-400 text-sm mb-2" for="username">
+                        <i class="fas fa-user"></i> Username
+                    </label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        class="w-full bg-gray-900 border border-gray-700 rounded px-4 py-3 focus:outline-none focus:border-blue-500"
+                        required
+                        autofocus
+                    >
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-gray-400 text-sm mb-2" for="password">
+                        <i class="fas fa-lock"></i> Password
+                    </label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="w-full bg-gray-900 border border-gray-700 rounded px-4 py-3 focus:outline-none focus:border-blue-500"
+                        required
+                    >
+                </div>
+
+                <button 
+                    type="submit" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded transition"
+                >
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+            </form>
+
+            <div class="mt-6 text-center text-gray-500 text-sm">
+                <p>Powered by Pterodactyl Panel</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
