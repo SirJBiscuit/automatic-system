@@ -14,11 +14,12 @@ import json
 import anthropic
 
 # Configuration
-DISCORD_TOKEN = os.getenv('DISCORD_BOT_TOKEN', '')
+DISCORD_TOKEN = os.getenv('DISCORD_TOKEN', '')
 PTERODACTYL_URL = os.getenv('PTERODACTYL_URL', 'https://panel.yourdomain.com')
 PTERODACTYL_API_KEY = os.getenv('PTERODACTYL_API_KEY', '')
 ADMIN_ROLE_ID = int(os.getenv('ADMIN_ROLE_ID', '0'))
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
+ENABLE_VOICE = os.getenv('ENABLE_VOICE', 'true').lower() == 'true'
 
 # P.R.I.S.M AI Client
 prism_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
@@ -27,8 +28,20 @@ prism_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_K
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.voice_states = True  # Enable voice state tracking
 
 bot = commands.Bot(command_prefix='!', intents=intents)
+
+# Import voice handler
+if ENABLE_VOICE:
+    try:
+        from voice_handler import setup_voice_commands
+        VOICE_AVAILABLE = True
+    except ImportError:
+        VOICE_AVAILABLE = False
+        print("⚠️  Voice handler not available")
+else:
+    VOICE_AVAILABLE = False
 
 # API Headers
 headers = {
@@ -103,6 +116,12 @@ def is_admin():
 async def on_ready():
     print(f'✅ Bot logged in as {bot.user}')
     print(f'📊 Connected to {len(bot.guilds)} server(s)')
+    
+    # Setup voice commands
+    if VOICE_AVAILABLE:
+        setup_voice_commands(bot, prism_client)
+        print(f'🎤 Voice commands enabled')
+    
     monitor_servers.start()
     await bot.change_presence(activity=discord.Game(name="!help for commands"))
 

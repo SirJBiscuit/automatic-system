@@ -19,6 +19,13 @@ Full-featured Discord bot for managing Pterodactyl game servers with integrated 
 - **!analyze** - Get AI analysis of server performance
 - **@Bot <message>** - Natural language interaction
 
+### 🎤 Voice Commands
+- **!join** - Bot joins your voice channel
+- **!leave** - Bot leaves voice channel
+- **!say <text>** - Make bot speak text
+- **!voiceask <question>** - Ask P.R.I.S.M and get voice response
+- **!listen [seconds]** - Listen for voice command (experimental)
+
 ### 📊 Monitoring
 - Automatic server status monitoring (every 5 minutes)
 - Alerts for server state changes
