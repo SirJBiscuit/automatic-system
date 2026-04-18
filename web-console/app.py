@@ -296,6 +296,147 @@ def get_server_metrics(server_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/servers/<server_id>/files')
+def list_files(server_id):
+    """List files in server directory"""
+    if not check_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    path = request.args.get('path', '/')
+    
+    try:
+        response = requests.get(
+            f'{PTERODACTYL_URL}/api/client/servers/{server_id}/files/list',
+            headers=headers,
+            params={'directory': path}
+        )
+        
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            return jsonify({'error': 'Failed to list files'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/servers/<server_id>/files/content')
+def get_file_content(server_id):
+    """Get file content"""
+    if not check_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    file_path = request.args.get('file')
+    
+    try:
+        response = requests.get(
+            f'{PTERODACTYL_URL}/api/client/servers/{server_id}/files/contents',
+            headers=headers,
+            params={'file': file_path}
+        )
+        
+        if response.status_code == 200:
+            return response.text
+        else:
+            return jsonify({'error': 'Failed to read file'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/servers/<server_id>/files/save', methods=['POST'])
+def save_file(server_id):
+    """Save file content"""
+    if not check_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    file_path = request.json.get('file')
+    content = request.json.get('content')
+    
+    try:
+        response = requests.post(
+            f'{PTERODACTYL_URL}/api/client/servers/{server_id}/files/write',
+            headers=headers,
+            params={'file': file_path},
+            data=content
+        )
+        
+        if response.status_code == 204:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Failed to save file'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/schedules', methods=['GET'])
+def get_schedules():
+    """Get all scheduled tasks"""
+    if not check_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    # For now, return from a simple JSON file or database
+    # This would need to be implemented with actual storage
+    try:
+        import json
+        import os
+        schedule_file = 'schedules.json'
+        if os.path.exists(schedule_file):
+            with open(schedule_file, 'r') as f:
+                schedules = json.load(f)
+            return jsonify(schedules)
+        else:
+            return jsonify([])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/schedules', methods=['POST'])
+def create_schedule():
+    """Create a new scheduled task"""
+    if not check_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    schedule_data = request.json
+    
+    try:
+        import json
+        import os
+        schedule_file = 'schedules.json'
+        
+        schedules = []
+        if os.path.exists(schedule_file):
+            with open(schedule_file, 'r') as f:
+                schedules = json.load(f)
+        
+        schedule_data['id'] = len(schedules) + 1
+        schedules.append(schedule_data)
+        
+        with open(schedule_file, 'w') as f:
+            json.dump(schedules, f, indent=2)
+        
+        return jsonify({'success': True, 'schedule': schedule_data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/schedules/<int:schedule_id>', methods=['DELETE'])
+def delete_schedule(schedule_id):
+    """Delete a scheduled task"""
+    if not check_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        import json
+        import os
+        schedule_file = 'schedules.json'
+        
+        if os.path.exists(schedule_file):
+            with open(schedule_file, 'r') as f:
+                schedules = json.load(f)
+            
+            schedules = [s for s in schedules if s.get('id') != schedule_id]
+            
+            with open(schedule_file, 'w') as f:
+                json.dump(schedules, f, indent=2)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @socketio.on('connect')
 def handle_connect():
     """Handle WebSocket connection"""

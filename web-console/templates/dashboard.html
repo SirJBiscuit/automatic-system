@@ -247,7 +247,7 @@
                 </div>
 
                 <!-- Power Controls -->
-                <div class="flex space-x-2 mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
                     <button onclick="sendPower('start')" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
                         <i class="fas fa-play"></i> Start
                     </button>
@@ -259,6 +259,16 @@
                     </button>
                     <button onclick="sendPower('kill')" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded">
                         <i class="fas fa-skull"></i> Kill
+                    </button>
+                </div>
+
+                <!-- Additional Actions -->
+                <div class="grid grid-cols-2 gap-2 mb-6">
+                    <button onclick="openFileManager()" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded">
+                        <i class="fas fa-folder"></i> File Manager
+                    </button>
+                    <button onclick="openScheduler()" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded">
+                        <i class="fas fa-clock"></i> Schedules
                     </button>
                 </div>
 
@@ -359,6 +369,112 @@
                     <button onclick="saveSettings()" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-3 rounded font-bold">
                         <i class="fas fa-save"></i> Save Settings
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Manager Modal -->
+    <div id="file-manager-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg max-w-5xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-bold"><i class="fas fa-folder-open"></i> File Manager</h3>
+                <button onclick="closeFileManager()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <!-- Breadcrumb -->
+                <div class="mb-4 flex items-center space-x-2 text-sm">
+                    <i class="fas fa-home"></i>
+                    <span id="file-path" class="text-gray-400">/</span>
+                </div>
+
+                <!-- File List -->
+                <div class="bg-gray-900 rounded border border-gray-700 mb-4">
+                    <div id="file-list" class="divide-y divide-gray-700 max-h-96 overflow-y-auto">
+                        <div class="p-4 text-center text-gray-400">
+                            <i class="fas fa-spinner fa-spin"></i> Loading files...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Editor (hidden by default) -->
+                <div id="file-editor" class="hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-bold"><i class="fas fa-edit"></i> Editing: <span id="editing-file"></span></h4>
+                        <div class="space-x-2">
+                            <button onclick="saveFileContent()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+                                <i class="fas fa-save"></i> Save
+                            </button>
+                            <button onclick="closeEditor()" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded">
+                                <i class="fas fa-times"></i> Close
+                            </button>
+                        </div>
+                    </div>
+                    <textarea 
+                        id="file-content" 
+                        class="w-full h-96 bg-gray-900 border border-gray-700 rounded p-4 font-mono text-sm focus:outline-none focus:border-blue-500"
+                    ></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scheduler Modal -->
+    <div id="scheduler-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-bold"><i class="fas fa-calendar-alt"></i> Scheduled Tasks</h3>
+                <button onclick="closeScheduler()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <!-- Add Schedule Form -->
+                <div class="bg-gray-900 rounded p-4 mb-6">
+                    <h4 class="font-bold mb-4"><i class="fas fa-plus"></i> Create New Schedule</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm mb-2">Action</label>
+                            <select id="schedule-action" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2">
+                                <option value="start">Start Server</option>
+                                <option value="stop">Stop Server</option>
+                                <option value="restart">Restart Server</option>
+                                <option value="command">Run Command</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-2">Time (24h format)</label>
+                            <input type="time" id="schedule-time" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-2">Days</label>
+                            <select id="schedule-days" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2">
+                                <option value="daily">Every Day</option>
+                                <option value="weekdays">Weekdays</option>
+                                <option value="weekends">Weekends</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-2">Command (if applicable)</label>
+                            <input type="text" id="schedule-command" placeholder="save-all" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2">
+                        </div>
+                    </div>
+                    <button onclick="createSchedule()" class="mt-4 bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded w-full">
+                        <i class="fas fa-plus"></i> Add Schedule
+                    </button>
+                </div>
+
+                <!-- Schedule List -->
+                <div>
+                    <h4 class="font-bold mb-4"><i class="fas fa-list"></i> Active Schedules</h4>
+                    <div id="schedule-list" class="space-y-2">
+                        <p class="text-gray-400 text-center py-4">No schedules created yet</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -652,8 +768,208 @@
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeModal();
+                closeFileManager();
+                closeScheduler();
             }
         });
+
+        // File Manager Functions
+        let currentPath = '/';
+        let currentEditingFile = '';
+
+        function openFileManager() {
+            document.getElementById('file-manager-modal').classList.remove('hidden');
+            loadFiles('/');
+        }
+
+        function closeFileManager() {
+            document.getElementById('file-manager-modal').classList.add('hidden');
+            closeEditor();
+        }
+
+        async function loadFiles(path) {
+            currentPath = path;
+            document.getElementById('file-path').textContent = path;
+            
+            try {
+                const response = await fetch(`/api/servers/${currentServerId}/files?path=${encodeURIComponent(path)}`);
+                const data = await response.json();
+                
+                const fileList = document.getElementById('file-list');
+                
+                if (data.data && data.data.length > 0) {
+                    fileList.innerHTML = data.data.map(file => {
+                        const attrs = file.attributes;
+                        const isDir = attrs.is_file === false;
+                        const icon = isDir ? 'fa-folder' : 'fa-file';
+                        const color = isDir ? 'text-blue-500' : 'text-gray-400';
+                        
+                        return `
+                            <div class="p-3 hover:bg-gray-800 cursor-pointer flex items-center justify-between"
+                                 onclick="${isDir ? `loadFiles('${path}/${attrs.name}')` : `editFile('${path}/${attrs.name}')`}">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas ${icon} ${color}"></i>
+                                    <span>${attrs.name}</span>
+                                </div>
+                                <span class="text-gray-500 text-sm">${isDir ? 'Folder' : formatBytes(attrs.size)}</span>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    fileList.innerHTML = '<div class="p-4 text-center text-gray-400">Empty directory</div>';
+                }
+            } catch (error) {
+                console.error('Error loading files:', error);
+            }
+        }
+
+        async function editFile(filePath) {
+            try {
+                const response = await fetch(`/api/servers/${currentServerId}/files/content?file=${encodeURIComponent(filePath)}`);
+                const content = await response.text();
+                
+                currentEditingFile = filePath;
+                document.getElementById('editing-file').textContent = filePath;
+                document.getElementById('file-content').value = content;
+                document.getElementById('file-editor').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading file:', error);
+                alert('Failed to load file');
+            }
+        }
+
+        async function saveFileContent() {
+            const content = document.getElementById('file-content').value;
+            
+            try {
+                const response = await fetch(`/api/servers/${currentServerId}/files/save`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        file: currentEditingFile,
+                        content: content
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('File saved successfully!');
+                } else {
+                    alert('Failed to save file');
+                }
+            } catch (error) {
+                console.error('Error saving file:', error);
+                alert('Failed to save file');
+            }
+        }
+
+        function closeEditor() {
+            document.getElementById('file-editor').classList.add('hidden');
+            currentEditingFile = '';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Scheduler Functions
+        function openScheduler() {
+            document.getElementById('scheduler-modal').classList.remove('hidden');
+            loadSchedules();
+        }
+
+        function closeScheduler() {
+            document.getElementById('scheduler-modal').classList.add('hidden');
+        }
+
+        async function loadSchedules() {
+            try {
+                const response = await fetch('/api/schedules');
+                const schedules = await response.json();
+                
+                const scheduleList = document.getElementById('schedule-list');
+                
+                if (schedules.length > 0) {
+                    scheduleList.innerHTML = schedules.map(schedule => `
+                        <div class="bg-gray-900 rounded p-4 flex items-center justify-between">
+                            <div>
+                                <div class="font-bold">
+                                    <i class="fas fa-${schedule.action === 'start' ? 'play' : schedule.action === 'stop' ? 'stop' : 'redo'}"></i>
+                                    ${schedule.action.toUpperCase()} - ${schedule.time}
+                                </div>
+                                <div class="text-sm text-gray-400">
+                                    ${schedule.days} ${schedule.command ? `- Command: ${schedule.command}` : ''}
+                                </div>
+                            </div>
+                            <button onclick="deleteSchedule(${schedule.id})" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    scheduleList.innerHTML = '<p class="text-gray-400 text-center py-4">No schedules created yet</p>';
+                }
+            } catch (error) {
+                console.error('Error loading schedules:', error);
+            }
+        }
+
+        async function createSchedule() {
+            const scheduleData = {
+                server_id: currentServerId,
+                action: document.getElementById('schedule-action').value,
+                time: document.getElementById('schedule-time').value,
+                days: document.getElementById('schedule-days').value,
+                command: document.getElementById('schedule-command').value
+            };
+            
+            if (!scheduleData.time) {
+                alert('Please select a time');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/schedules', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(scheduleData)
+                });
+                
+                if (response.ok) {
+                    alert('Schedule created successfully!');
+                    loadSchedules();
+                    // Clear form
+                    document.getElementById('schedule-time').value = '';
+                    document.getElementById('schedule-command').value = '';
+                } else {
+                    alert('Failed to create schedule');
+                }
+            } catch (error) {
+                console.error('Error creating schedule:', error);
+                alert('Failed to create schedule');
+            }
+        }
+
+        async function deleteSchedule(scheduleId) {
+            if (!confirm('Delete this schedule?')) return;
+            
+            try {
+                const response = await fetch(`/api/schedules/${scheduleId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadSchedules();
+                } else {
+                    alert('Failed to delete schedule');
+                }
+            } catch (error) {
+                console.error('Error deleting schedule:', error);
+            }
+        }
 
         // System Monitoring Functions
         async function loadSystemStats() {
