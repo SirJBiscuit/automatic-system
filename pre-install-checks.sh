@@ -457,14 +457,14 @@ EOF
         log_info "What would you like to do with your game server files?"
         echo "  1) Keep them (preserve player data, worlds, configs)"
         echo "  2) Backup to USB drive (move to external storage)"
-        echo "  3) Delete everything (fresh start)"
+        echo "  3) Delete without backup (already backed up / don't care)"
+        echo "  4) Exit to backup manually first"
         echo ""
-        log_info "💡 TIP: For cloud backups (Google Drive/Mega), use:"
-        log_info "   ./pteroanyinstall.sh backup-gdrive"
-        log_info "   ./pteroanyinstall.sh backup-mega"
+        log_info "💡 TIP: For cloud backups, exit and run:"
+        log_info "   ./cloud-backup.sh    # Google Drive, Mega, Backblaze B2, etc."
         echo ""
         
-        read -p "Select option [1-3]: " game_server_choice
+        read -p "Select option [1-4]: " game_server_choice
         
         case $game_server_choice in
             1)
@@ -476,8 +476,33 @@ EOF
                 KEEP_GAME_SERVERS=false
                 ;;
             3)
-                log_warning "Game server files will be DELETED"
-                KEEP_GAME_SERVERS=false
+                echo ""
+                log_warning "⚠️  WARNING: Game server files will be PERMANENTLY DELETED!"
+                echo ""
+                if prompt_yes_no "Are you sure? This cannot be undone"; then
+                    log_warning "Game server files will be DELETED"
+                    KEEP_GAME_SERVERS=false
+                else
+                    log_info "Cancelled. Keeping game servers."
+                    KEEP_GAME_SERVERS=true
+                fi
+                ;;
+            4)
+                log_info "Exiting to allow manual backup..."
+                echo ""
+                log_info "To backup your game servers:"
+                echo "  cd /opt/ptero"
+                echo "  sudo ./cloud-backup.sh    # Interactive menu"
+                echo ""
+                log_info "Or use specific provider:"
+                echo "  sudo ./cloud-backup.sh gdrive      # Google Drive"
+                echo "  sudo ./cloud-backup.sh b2          # Backblaze B2"
+                echo "  sudo ./cloud-backup.sh mega        # Mega.nz"
+                echo ""
+                log_info "After backup, run installation again:"
+                echo "  sudo ./pteroanyinstall.sh install-full"
+                echo ""
+                exit 0
                 ;;
             *)
                 log_warning "Invalid choice, defaulting to keep game servers"
