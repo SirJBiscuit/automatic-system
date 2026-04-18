@@ -173,7 +173,7 @@
             
             <div class="p-6">
                 <!-- Server Stats -->
-                <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div class="bg-gray-900 rounded p-4">
                         <p class="text-gray-400 text-sm">CPU</p>
                         <p class="text-2xl font-bold" id="modal-cpu">0%</p>
@@ -185,6 +185,12 @@
                     <div class="bg-gray-900 rounded p-4">
                         <p class="text-gray-400 text-sm">Status</p>
                         <p class="text-2xl font-bold" id="modal-status">Unknown</p>
+                    </div>
+                    <div class="bg-gray-900 rounded p-4">
+                        <p class="text-gray-400 text-sm">
+                            <i class="fas fa-clock"></i> Uptime
+                        </p>
+                        <p class="text-2xl font-bold" id="modal-uptime">--</p>
                     </div>
                 </div>
 
@@ -283,6 +289,9 @@
                                 <div>
                                     <h3 class="text-lg font-bold">${attrs.name}</h3>
                                     <p class="text-gray-400 text-sm">${attrs.identifier}</p>
+                                    <p class="text-gray-500 text-xs mt-1" id="uptime-${attrs.identifier}">
+                                        <i class="fas fa-clock"></i> Checking...
+                                    </p>
                                 </div>
                             </div>
                             <div class="text-right">
@@ -308,13 +317,25 @@
                 
                 if (data.attributes) {
                     const state = data.attributes.current_state;
+                    const resources = data.attributes.resources;
+                    const uptime = resources.uptime || 0;
+                    
                     const statusEl = document.getElementById(`status-${serverId}`);
+                    const uptimeEl = document.getElementById(`uptime-${serverId}`);
                     
                     if (statusEl) {
                         const statusClass = state === 'running' ? 'bg-green-600' : 'bg-red-600';
                         const icon = state === 'running' ? 'check-circle' : 'times-circle';
                         statusEl.className = `px-3 py-1 rounded-full text-sm ${statusClass}`;
                         statusEl.innerHTML = `<i class="fas fa-${icon}"></i> ${state}`;
+                    }
+                    
+                    if (uptimeEl) {
+                        if (state === 'running' && uptime > 0) {
+                            uptimeEl.innerHTML = `<i class="fas fa-clock"></i> ${formatUptime(uptime)}`;
+                        } else {
+                            uptimeEl.innerHTML = `<i class="fas fa-clock"></i> Offline`;
+                        }
                     }
                 }
             } catch (error) {
@@ -360,12 +381,24 @@
                 
                 if (data.attributes) {
                     const resources = data.attributes.resources;
+                    const uptime = resources.uptime || 0;
+                    
                     document.getElementById('modal-cpu').textContent = 
                         (resources.cpu_absolute || 0).toFixed(1) + '%';
                     document.getElementById('modal-ram').textContent = 
                         ((resources.memory_bytes || 0) / (1024 * 1024)).toFixed(0) + ' MB';
                     document.getElementById('modal-status').textContent = 
                         data.attributes.current_state;
+                    
+                    // Update uptime
+                    const uptimeEl = document.getElementById('modal-uptime');
+                    if (uptimeEl) {
+                        if (data.attributes.current_state === 'running' && uptime > 0) {
+                            uptimeEl.textContent = formatUptime(uptime);
+                        } else {
+                            uptimeEl.textContent = 'Offline';
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Error updating modal stats:', error);
@@ -534,6 +567,27 @@
             loadSystemStats();
             setInterval(loadSystemStats, 5000);
         });
+
+        // Helper function to format uptime in milliseconds to human-readable format
+        function formatUptime(milliseconds) {
+            const seconds = Math.floor(milliseconds / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 0) {
+                const remainingHours = hours % 24;
+                return `${days}d ${remainingHours}h`;
+            } else if (hours > 0) {
+                const remainingMinutes = minutes % 60;
+                return `${hours}h ${remainingMinutes}m`;
+            } else if (minutes > 0) {
+                const remainingSeconds = seconds % 60;
+                return `${minutes}m ${remainingSeconds}s`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
     </script>
 </body>
 </html>
