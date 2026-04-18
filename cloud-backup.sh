@@ -232,11 +232,14 @@ backup_to_gdrive() {
     log_warning "This may take a while depending on your upload speed..."
     echo ""
     
-    # Upload with progress
+    # Upload with progress (optimized settings)
+    log_info "Using optimized transfer settings for faster uploads..."
     rclone copy /var/lib/pterodactyl/volumes "gdrive:/$BACKUP_DIR" \
         --progress \
-        --transfers 4 \
-        --checkers 8 \
+        --transfers 8 \
+        --checkers 16 \
+        --buffer-size 256M \
+        --drive-chunk-size 256M \
         --stats 10s \
         --stats-one-line
     
