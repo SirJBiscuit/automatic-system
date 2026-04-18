@@ -101,7 +101,12 @@ backup_to_gdrive() {
         
         if ! prompt_yes_no "Continue with Google Drive setup?"; then
             log_info "Setup cancelled"
-            exit 0
+            echo ""
+            if prompt_yes_no "Return to menu?"; then
+                show_menu
+            else
+                exit 0
+            fi
         fi
         
         echo ""
@@ -186,10 +191,20 @@ EOF
         log_info "Restore instructions uploaded to Google Drive"
         echo ""
         log_success "✓ Backup complete! Check your Google Drive."
+        echo ""
+        
+        if prompt_yes_no "Backup another copy to different provider?"; then
+            show_menu
+        fi
         
     else
         log_error "Backup failed!"
-        exit 1
+        echo ""
+        if prompt_yes_no "Return to menu to try another provider?"; then
+            show_menu
+        else
+            exit 1
+        fi
     fi
 }
 
@@ -254,7 +269,12 @@ backup_to_mega() {
         if [ $? -ne 0 ]; then
             log_error "Failed to login to Mega.nz!"
             log_info "Please check your credentials and try again"
-            exit 1
+            echo ""
+            if prompt_yes_no "Return to menu to try another provider?"; then
+                show_menu
+            else
+                exit 1
+            fi
         fi
         
         log_success "Logged in to Mega.nz!"
@@ -341,11 +361,21 @@ EOF
         log_info "Restore instructions uploaded to Mega.nz"
         echo ""
         log_success "✓ Backup complete! Check your Mega.nz account."
+        echo ""
+        
+        if prompt_yes_no "Backup another copy to different provider?"; then
+            show_menu
+        fi
         
     else
         log_error "Backup failed!"
         rm "$TEMP_ARCHIVE"
-        exit 1
+        echo ""
+        if prompt_yes_no "Return to menu to try another provider?"; then
+            show_menu
+        else
+            exit 1
+        fi
     fi
 }
 
@@ -385,7 +415,12 @@ backup_to_backblaze() {
     echo ""
     
     if ! prompt_yes_no "Continue with Backblaze B2 setup?"; then
-        exit 0
+        echo ""
+        if prompt_yes_no "Return to menu?"; then
+            show_menu
+        else
+            exit 0
+        fi
     fi
     
     # Configure B2
@@ -401,7 +436,12 @@ backup_to_backblaze() {
         
         if [ $? -ne 0 ]; then
             log_error "Failed to configure Backblaze B2!"
-            exit 1
+            echo ""
+            if prompt_yes_no "Return to menu to try another provider?"; then
+                show_menu
+            else
+                exit 1
+            fi
         fi
         
         log_success "Backblaze B2 configured!"
@@ -423,9 +463,19 @@ backup_to_backblaze() {
     if [ $? -eq 0 ]; then
         log_success "✓ Backup complete!"
         log_info "Location: b2:$BUCKET_NAME/$BACKUP_PATH"
+        echo ""
+        
+        if prompt_yes_no "Backup another copy to different provider?"; then
+            show_menu
+        fi
     else
         log_error "Backup failed!"
-        exit 1
+        echo ""
+        if prompt_yes_no "Return to menu to try another provider?"; then
+            show_menu
+        else
+            exit 1
+        fi
     fi
 }
 
