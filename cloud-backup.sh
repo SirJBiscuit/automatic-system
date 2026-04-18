@@ -43,12 +43,17 @@ prompt_yes_no() {
 }
 
 show_banner() {
+    clear
     cat <<'EOF'
 
-╔════════════════════════════════════════════════════════════════════════╗
-║              PTERODACTYL CLOUD BACKUP TOOL                             ║
-║           Backup game servers to Google Drive or Mega.nz               ║
-╚════════════════════════════════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║                  ☁️  PTERODACTYL CLOUD BACKUP TOOL ☁️                   ║
+║                                                                          ║
+║              Backup your game servers to cloud storage                   ║
+║              Multiple providers | Fast & Secure | Easy restore           ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
 
 EOF
 }
@@ -482,23 +487,51 @@ backup_to_backblaze() {
 show_menu() {
     show_banner
     
-    log_info "Select backup destination:"
+    echo "┌──────────────────────────────────────────────────────────────────────────┐"
+    echo "│                    SELECT BACKUP DESTINATION                             │"
+    echo "└──────────────────────────────────────────────────────────────────────────┘"
     echo ""
-    echo "💰 BUDGET-FRIENDLY OPTIONS (Best for 100GB+):"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  1) Backblaze B2    - \$6/TB/month (10GB free/month)"
-    echo "  2) Wasabi          - \$6.99/TB/month (no egress fees)"
-    echo "  3) pCloud          - \$500 lifetime for 2TB (one-time payment)"
+    echo "┌──────────────────────────────────────────────────────────────────────────┐"
+    echo "│ 💰 BUDGET-FRIENDLY OPTIONS (Best for 100GB+)                            │"
+    echo "└──────────────────────────────────────────────────────────────────────────┘"
     echo ""
-    echo "🎁 FREE OPTIONS:"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  4) Google Drive    - 15GB free (unlimited with Workspace)"
-    echo "  5) Mega.nz         - 20GB free (up to 16TB paid)"
+    echo "  [1] Backblaze B2"
+    echo "      ├─ Cost: \$6/TB/month"
+    echo "      ├─ Free: 10GB/month"
+    echo "      └─ Best for: Large backups, frequent access"
     echo ""
-    echo "  6) Exit"
+    echo "  [2] Wasabi"
+    echo "      ├─ Cost: \$6.99/TB/month"
+    echo "      ├─ Free: No egress fees"
+    echo "      └─ Best for: Frequent downloads, no surprise costs"
+    echo ""
+    echo "  [3] pCloud"
+    echo "      ├─ Cost: \$500 lifetime (2TB)"
+    echo "      ├─ Free: One-time payment"
+    echo "      └─ Best for: Long-term storage, no monthly fees"
+    echo ""
+    echo "┌──────────────────────────────────────────────────────────────────────────┐"
+    echo "│ 🎁 FREE OPTIONS                                                          │"
+    echo "└──────────────────────────────────────────────────────────────────────────┘"
+    echo ""
+    echo "  [4] Google Drive"
+    echo "      ├─ Free: 15GB"
+    echo "      ├─ Paid: Unlimited (Google Workspace)"
+    echo "      └─ Best for: Easy setup, familiar interface"
+    echo ""
+    echo "  [5] Mega.nz"
+    echo "      ├─ Free: 20GB"
+    echo "      ├─ Paid: Up to 16TB"
+    echo "      └─ Best for: Privacy-focused, generous free tier"
+    echo ""
+    echo "┌──────────────────────────────────────────────────────────────────────────┐"
+    echo ""
+    echo "  [6] Exit"
+    echo ""
+    echo "└──────────────────────────────────────────────────────────────────────────┘"
     echo ""
     
-    read -p "Select option [1-6]: " choice
+    read -p "  ▸ Select option [1-6]: " choice
     
     case $choice in
         1)
