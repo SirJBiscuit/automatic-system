@@ -92,61 +92,101 @@ backup_to_gdrive() {
     log_info "Setting up Google Drive connection..."
     echo ""
     
-    # Check if gdrive remote already exists
+    # Check if gdrive remote already exists and has valid token
     if rclone listremotes | grep -q "gdrive:"; then
-        log_success "Google Drive already configured!"
-    else
-        log_info "First-time setup required!"
-        echo ""
-        log_info "This will:"
-        echo "  1. Open your browser for Google authentication"
-        echo "  2. Ask you to grant rclone access to Google Drive"
-        echo "  3. Save the credentials for future use"
-        echo ""
-        
-        if ! prompt_yes_no "Continue with Google Drive setup?"; then
-            log_info "Setup cancelled"
-            echo ""
-            if prompt_yes_no "Return to menu?"; then
-                show_menu
-            else
-                exit 0
-            fi
+        # Test if the remote actually works
+        if rclone lsd gdrive: &>/dev/null; then
+            log_success "Google Drive already configured and working!"
+        else
+            log_warning "Google Drive configured but token is invalid/expired"
+            log_info "Deleting old configuration..."
+            rclone config delete gdrive &>/dev/null
+            log_info "Please reconfigure Google Drive"
         fi
-        
+    fi
+    
+    # If gdrive doesn't exist or was deleted, configure it
+    if ! rclone listremotes | grep -q "gdrive:"; then
         echo ""
-        log_info "Configuring Google Drive remote..."
+        log_info "╔════════════════════════════════════════════════════════════════════════╗"
+        log_info "║            GOOGLE DRIVE AUTHENTICATION REQUIRED                        ║"
+        log_info "╚════════════════════════════════════════════════════════════════════════╝"
         echo ""
-        log_info "Follow these steps:"
-        echo "  1. When prompted for 'name', enter: gdrive"
-        echo "  2. For 'Storage', choose: drive (Google Drive)"
-        echo "  3. For 'client_id' and 'client_secret', press Enter (use defaults)"
-        echo "  4. For 'scope', choose: 1 (Full access)"
-        echo "  5. For 'root_folder_id', press Enter"
-        echo "  6. For 'service_account_file', press Enter"
-        echo "  7. For 'Edit advanced config', choose: n"
-        echo "  8. For 'Use auto config', choose: n (we're on a remote server)"
-        echo "  9. Copy the URL and open it in your browser"
-        echo "  10. Authorize and paste the code back"
+        log_warning "Google Drive requires interactive OAuth authentication."
+        log_warning "This MUST be done manually through rclone config."
         echo ""
-        read -p "Press Enter to start rclone config..."
+        log_info "Steps to configure (for remote/headless server):"
+        echo ""
+        echo "  ╔════════════════════════════════════════════════════════════════════╗"
+        echo "  ║  IMPORTANT: You're on a remote server without a browser           ║"
+        echo "  ║  Follow these steps carefully:                                    ║"
+        echo "  ╚════════════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "  1. When rclone config opens, choose: n (New remote)"
+        echo "  2. Name: gdrive"
+        echo "  3. Storage: 18 (or type 'drive' for Google Drive)"
+        echo "  4. Client ID: [Press Enter to use default]"
+        echo "  5. Client Secret: [Press Enter to use default]"
+        echo "  6. Scope: 1 (Full access)"
+        echo "  7. Root folder ID: [Press Enter]"
+        echo "  8. Service account file: [Press Enter]"
+        echo "  9. Advanced config: n"
+        echo "  10. Auto config: n ⚠️  CRITICAL - Choose 'n' for remote server!"
+        echo ""
+        echo "  11. rclone will show a URL like:"
+        echo "      https://accounts.google.com/o/oauth2/auth?client_id=..."
+        echo ""
+        echo "  12. ⚠️  COPY THIS ENTIRE URL"
+        echo "  13. Open it in a browser ON YOUR LOCAL COMPUTER"
+        echo "  14. Sign in to Google and authorize rclone"
+        echo "  15. Google will show you a verification code"
+        echo "  16. COPY the verification code"
+        echo "  17. PASTE it back in this SSH terminal"
+        echo "  18. Team drive: n"
+        echo "  19. Confirm: y"
+        echo ""
+        log_warning "Make sure you're ready to copy/paste between your local browser and SSH!"
+        echo ""
         
-        # Run interactive config
-        rclone config
-        
-        # Verify gdrive remote was created
-        if ! rclone listremotes | grep -q "gdrive:"; then
-            log_error "Failed to configure Google Drive!"
-            log_info "Please try again or use: rclone config"
+        if prompt_yes_no "Ready to start rclone config?"; then
             echo ""
-            if prompt_yes_no "Return to menu?"; then
-                show_menu
+            log_info "Starting rclone config..."
+            log_info "Remember: Choose 'n' for auto config (step 10)!"
+            echo ""
+            sleep 2
+            rclone config
+            echo ""
+            
+            # Check if gdrive was created
+            if rclone listremotes | grep -q "gdrive:"; then
+                # Test if it works
+                if rclone lsd gdrive: &>/dev/null; then
+                    log_success "✓ Google Drive configured successfully!"
+                else
+                    log_error "Google Drive configured but authentication failed"
+                    log_info "Please run: rclone config"
+                    log_info "And reconfigure the gdrive remote"
+                    echo ""
+                    if prompt_yes_no "Return to menu?"; then
+                        show_menu
+                    else
+                        exit 1
+                    fi
+                fi
             else
-                exit 1
+                log_error "Google Drive remote not created"
+                echo ""
+                if prompt_yes_no "Return to menu?"; then
+                    show_menu
+                else
+                    exit 1
+                fi
             fi
+        else
+            log_info "Please run: rclone config"
+            log_info "Then run this script again"
+            exit 0
         fi
-        
-        log_success "Google Drive configured!"
     fi
     
     # Create backup directory name
