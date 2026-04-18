@@ -37,6 +37,7 @@ curl -sSL "$REPO_URL/ai-assistant-setup.sh" -o ai-assistant-setup.sh
 curl -sSL "$REPO_URL/prism-upgrade.sh" -o prism-upgrade.sh
 curl -sSL "$REPO_URL/prism-enhanced.py" -o prism-enhanced.py
 curl -sSL "$REPO_URL/prism-cli.sh" -o prism-cli.sh
+curl -sSL "$REPO_URL/node-installer.sh" -o node-installer.sh
 
 # Make executable
 chmod +x automatic-system.sh
@@ -49,6 +50,7 @@ chmod +x ai-assistant-setup.sh
 chmod +x prism-upgrade.sh
 chmod +x prism-enhanced.py
 chmod +x prism-cli.sh
+chmod +x node-installer.sh
 
 echo "[SUCCESS] Scripts downloaded successfully!"
 echo ""
@@ -96,7 +98,11 @@ echo "  ./automatic-system.sh pre-check          # Run pre-checks"
 echo "  ./automatic-system.sh quick-setup        # Post-install essentials"
 echo "  ./automatic-system.sh admin              # Launch admin panel"
 echo ""
-echo "📚 HELP:"
+echo "�️  ADDITIONAL NODES:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  ./node-installer.sh                      # Install Wings on extra servers"
+echo ""
+echo "�📚 HELP:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  ./automatic-system.sh help               # Show all commands"
 echo ""
