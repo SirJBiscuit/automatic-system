@@ -2,6 +2,7 @@
 
 # Quick installer script - downloads and runs automatic-system from GitHub
 # Usage: curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash
+# Force update: curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash -s -- --force
 
 set -e
 
@@ -9,6 +10,12 @@ REPO_URL="https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main"
 INSTALL_DIR="/opt/ptero"
 VERSION_FILE="$INSTALL_DIR/.version"
 REMOTE_VERSION_URL="$REPO_URL/VERSION"
+FORCE_UPDATE=false
+
+# Check for force flag
+if [[ "$1" == "--force" ]] || [[ "$1" == "-f" ]]; then
+    FORCE_UPDATE=true
+fi
 
 clear
 echo ""
@@ -35,7 +42,7 @@ mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
 # Check for existing installation
-if [ -f "$INSTALL_DIR/pteroanyinstall.sh" ]; then
+if [ -f "$INSTALL_DIR/pteroanyinstall.sh" ] && [ "$FORCE_UPDATE" = false ]; then
     echo ""
     echo "  ℹ️  Existing installation detected!"
     echo ""
@@ -61,7 +68,7 @@ if [ -f "$INSTALL_DIR/pteroanyinstall.sh" ]; then
                 echo ""
                 echo "  ℹ️  Skipping update. Using existing installation."
                 echo ""
-                echo "  💡 To update later, run: sudo bash $INSTALL_DIR/install.sh"
+                echo "  💡 To force update, run: curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash -s -- --force"
                 exit 0
             fi
         else
@@ -72,12 +79,18 @@ if [ -f "$INSTALL_DIR/pteroanyinstall.sh" ]; then
             if [[ ! $redownload_choice =~ ^[Yy]$ ]]; then
                 echo ""
                 echo "  ℹ️  Using existing installation."
+                echo ""
+                echo "  💡 To force update, run: curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash -s -- --force"
                 exit 0
             fi
         fi
     else
         echo "  ⚠️  Version file not found. Updating scripts..."
     fi
+    echo ""
+elif [ -f "$INSTALL_DIR/pteroanyinstall.sh" ] && [ "$FORCE_UPDATE" = true ]; then
+    echo ""
+    echo "  🔄 Force update mode - skipping version check"
     echo ""
 fi
 

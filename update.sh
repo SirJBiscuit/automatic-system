@@ -48,12 +48,12 @@ if [ ! -d "$INSTALL_DIR" ]; then
     fi
 fi
 
-# Run the installer (which will check for updates)
-echo "  🔄 Running update check..."
+# Run the installer with force flag (always update)
+echo "  🔄 Forcing update from GitHub..."
 echo ""
 
 cd "$INSTALL_DIR"
-curl -sSL "$REPO_URL/install.sh" | bash
+curl -sSL "$REPO_URL/install.sh" | bash -s -- --force
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════════════════════╗"
