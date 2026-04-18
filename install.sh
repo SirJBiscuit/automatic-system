@@ -100,7 +100,7 @@ show_progress() {
 }
 
 # Download main scripts with progress
-TOTAL_FILES=12
+TOTAL_FILES=13
 CURRENT=0
 
 download_file() {
@@ -124,6 +124,7 @@ download_file "$REPO_URL/prism-enhanced.py" "prism-enhanced.py" "PRISM core"
 download_file "$REPO_URL/prism-cli.sh" "prism-cli.sh" "PRISM CLI"
 download_file "$REPO_URL/node-installer.sh" "node-installer.sh" "Node installer"
 download_file "$REPO_URL/cloud-backup.sh" "cloud-backup.sh" "Cloud backup"
+download_file "$REPO_URL/update.sh" "update.sh" "Update script"
 
 echo ""
 echo ""
@@ -132,7 +133,7 @@ echo "  ⏳ Setting permissions..."
 # Make executable
 chmod +x pteroanyinstall.sh pre-install-checks.sh billing-setup.sh panel-customizer.sh \
          quick-setup.sh ptero-admin.sh ai-assistant-setup.sh prism-upgrade.sh \
-         prism-enhanced.py prism-cli.sh node-installer.sh cloud-backup.sh
+         prism-enhanced.py prism-cli.sh node-installer.sh cloud-backup.sh update.sh
 
 echo "  ⏳ Downloading version file..."
 
@@ -182,7 +183,8 @@ echo "┌───────────────────────�
 echo "│ ⚙️  MANAGEMENT & MAINTENANCE                                             │"
 echo "└──────────────────────────────────────────────────────────────────────────┘"
 echo ""
-echo "  ▸ ./pteroanyinstall.sh update           Update all components"
+echo "  ▸ ./update.sh                           Update installer scripts"
+echo "  ▸ ./pteroanyinstall.sh update           Update Pterodactyl components"
 echo "  ▸ ./pteroanyinstall.sh health-check     Check system status"
 echo "  ▸ ./pteroanyinstall.sh scan             Scan and fix issues"
 echo "  ▸ ./pteroanyinstall.sh backup           Run backup"
