@@ -1,0 +1,163 @@
+<!-- System Monitoring Panel (to be included in dashboard) -->
+<div class="bg-gray-800 rounded-lg border border-gray-700 mb-8">
+    <div class="p-6 border-b border-gray-700">
+        <h2 class="text-xl font-bold">
+            <i class="fas fa-chart-line"></i> System Monitoring
+        </h2>
+    </div>
+    <div class="p-6">
+        <!-- System Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <!-- CPU -->
+            <div class="bg-gray-900 rounded p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm">CPU Usage</span>
+                    <i class="fas fa-microchip text-blue-500"></i>
+                </div>
+                <div class="text-2xl font-bold" id="system-cpu">0%</div>
+                <div class="text-xs text-gray-500" id="cpu-cores">0 cores</div>
+            </div>
+
+            <!-- Memory -->
+            <div class="bg-gray-900 rounded p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm">Memory</span>
+                    <i class="fas fa-memory text-green-500"></i>
+                </div>
+                <div class="text-2xl font-bold" id="system-memory">0%</div>
+                <div class="text-xs text-gray-500" id="memory-used">0 / 0 GB</div>
+            </div>
+
+            <!-- Disk -->
+            <div class="bg-gray-900 rounded p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm">Disk</span>
+                    <i class="fas fa-hdd text-yellow-500"></i>
+                </div>
+                <div class="text-2xl font-bold" id="system-disk">0%</div>
+                <div class="text-xs text-gray-500" id="disk-used">0 / 0 GB</div>
+            </div>
+
+            <!-- Network -->
+            <div class="bg-gray-900 rounded p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm">Network</span>
+                    <i class="fas fa-network-wired text-purple-500"></i>
+                </div>
+                <div class="text-sm font-bold">
+                    <div class="text-green-400">↓ <span id="net-rx">0 MB</span></div>
+                    <div class="text-blue-400">↑ <span id="net-tx">0 MB</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GPU Section -->
+        <div id="gpu-section" class="hidden">
+            <div class="border-t border-gray-700 pt-6">
+                <h3 class="text-lg font-bold mb-4">
+                    <i class="fas fa-desktop text-red-500"></i> GPU Monitoring
+                </h3>
+                <div id="gpu-cards" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- GPU cards will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load system stats
+async function loadSystemStats() {
+    try {
+        const response = await fetch('/api/system/stats');
+        const data = await response.json();
+        
+        // CPU
+        document.getElementById('system-cpu').textContent = data.cpu.percent + '%';
+        document.getElementById('cpu-cores').textContent = data.cpu.count + ' cores @ ' + data.cpu.frequency + ' MHz';
+        
+        // Memory
+        const memUsedGB = (data.memory.used / (1024**3)).toFixed(1);
+        const memTotalGB = (data.memory.total / (1024**3)).toFixed(1);
+        document.getElementById('system-memory').textContent = data.memory.percent.toFixed(1) + '%';
+        document.getElementById('memory-used').textContent = `${memUsedGB} / ${memTotalGB} GB`;
+        
+        // Disk
+        const diskUsedGB = (data.disk.used / (1024**3)).toFixed(1);
+        const diskTotalGB = (data.disk.total / (1024**3)).toFixed(1);
+        document.getElementById('system-disk').textContent = data.disk.percent.toFixed(1) + '%';
+        document.getElementById('disk-used').textContent = `${diskUsedGB} / ${diskTotalGB} GB`;
+        
+        // Network
+        const rxMB = (data.network.bytes_recv / (1024**2)).toFixed(1);
+        const txMB = (data.network.bytes_sent / (1024**2)).toFixed(1);
+        document.getElementById('net-rx').textContent = rxMB + ' MB';
+        document.getElementById('net-tx').textContent = txMB + ' MB';
+        
+        // GPU
+        if (data.gpu.available && data.gpu.count > 0) {
+            document.getElementById('gpu-section').classList.remove('hidden');
+            displayGPUs(data.gpu.devices);
+        }
+    } catch (error) {
+        console.error('Error loading system stats:', error);
+    }
+}
+
+function displayGPUs(gpus) {
+    const container = document.getElementById('gpu-cards');
+    
+    container.innerHTML = gpus.map((gpu, index) => {
+        const memPercent = ((gpu.memory_used / gpu.memory_total) * 100).toFixed(1);
+        const tempClass = gpu.temperature > 80 ? 'text-red-500' : gpu.temperature > 60 ? 'text-yellow-500' : 'text-green-500';
+        
+        return `
+            <div class="bg-gray-900 rounded p-4 border border-gray-700">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <div class="font-bold">${gpu.name}</div>
+                        <div class="text-xs text-gray-500">GPU ${gpu.index}</div>
+                    </div>
+                    <i class="fas fa-desktop text-2xl text-red-500"></i>
+                </div>
+                
+                <div class="space-y-2">
+                    <!-- GPU Usage -->
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-400">Usage</span>
+                            <span class="font-bold">${gpu.utilization}%</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: ${gpu.utilization}%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- GPU Memory -->
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-400">Memory</span>
+                            <span class="font-bold">${gpu.memory_used} / ${gpu.memory_total} MB</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: ${memPercent}%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Temperature -->
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-400">Temperature</span>
+                        <span class="font-bold ${tempClass}">
+                            <i class="fas fa-thermometer-half"></i> ${gpu.temperature}°C
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Refresh system stats every 5 seconds
+setInterval(loadSystemStats, 5000);
+loadSystemStats();
+</script>
