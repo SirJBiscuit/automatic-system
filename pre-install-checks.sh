@@ -108,6 +108,208 @@ check_existing_pterodactyl() {
     fi
 }
 
+backup_to_usb() {
+    echo ""
+    log_info "╔════════════════════════════════════════════════════════════════════════╗"
+    log_info "║                    USB BACKUP WIZARD                                   ║"
+    log_info "╚════════════════════════════════════════════════════════════════════════╝"
+    echo ""
+    
+    log_info "Please insert your USB drive now..."
+    echo ""
+    read -p "Press Enter when USB drive is inserted..."
+    
+    # Wait a moment for system to detect
+    sleep 2
+    
+    # Detect USB drives
+    log_info "Detecting USB drives..."
+    echo ""
+    
+    # Show available drives
+    lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,LABEL | grep -E "disk|part"
+    
+    echo ""
+    log_info "Common USB device names: sdb, sdc, sdd, nvme0n1"
+    echo ""
+    read -p "Enter your USB device (e.g., sdb1, sdc1): " USB_DEVICE
+    
+    if [ -z "$USB_DEVICE" ]; then
+        log_error "No device specified!"
+        log_info "Falling back to keeping game servers..."
+        KEEP_GAME_SERVERS=true
+        return 1
+    fi
+    
+    # Check if device exists
+    if [ ! -b "/dev/$USB_DEVICE" ]; then
+        log_error "Device /dev/$USB_DEVICE not found!"
+        lsblk
+        log_info "Falling back to keeping game servers..."
+        KEEP_GAME_SERVERS=true
+        return 1
+    fi
+    
+    # Mount USB
+    USB_MOUNT="/mnt/usb-backup"
+    mkdir -p "$USB_MOUNT"
+    
+    log_info "Mounting /dev/$USB_DEVICE..."
+    
+    # Try different filesystem types
+    if mount -t ntfs-3g "/dev/$USB_DEVICE" "$USB_MOUNT" 2>/dev/null; then
+        log_success "Mounted as NTFS"
+    elif mount -t vfat "/dev/$USB_DEVICE" "$USB_MOUNT" 2>/dev/null; then
+        log_success "Mounted as FAT32"
+    elif mount -t exfat "/dev/$USB_DEVICE" "$USB_MOUNT" 2>/dev/null; then
+        log_success "Mounted as exFAT"
+    elif mount "/dev/$USB_DEVICE" "$USB_MOUNT" 2>/dev/null; then
+        log_success "Mounted successfully"
+    else
+        log_error "Failed to mount USB drive!"
+        log_info "Make sure the drive is formatted (NTFS, FAT32, exFAT, or ext4)"
+        log_info "Falling back to keeping game servers..."
+        KEEP_GAME_SERVERS=true
+        return 1
+    fi
+    
+    # Check available space
+    USB_AVAILABLE=$(df -h "$USB_MOUNT" | tail -1 | awk '{print $4}')
+    GAME_SIZE=$(du -sh /var/lib/pterodactyl/volumes | cut -f1)
+    
+    echo ""
+    log_info "USB Available Space: $USB_AVAILABLE"
+    log_info "Game Servers Size: $GAME_SIZE"
+    echo ""
+    
+    if ! prompt_yes_no "Continue with backup to USB?"; then
+        umount "$USB_MOUNT" 2>/dev/null
+        log_info "Backup cancelled. Keeping game servers..."
+        KEEP_GAME_SERVERS=true
+        return 1
+    fi
+    
+    # Create backup directory on USB
+    USB_BACKUP_DIR="$USB_MOUNT/pterodactyl-gameservers-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$USB_BACKUP_DIR"
+    
+    echo ""
+    log_info "Backing up game servers to USB..."
+    log_info "This may take a while depending on size..."
+    echo ""
+    
+    # Copy with progress
+    if command -v rsync &> /dev/null; then
+        rsync -avh --progress /var/lib/pterodactyl/volumes/ "$USB_BACKUP_DIR/" 2>&1 | \
+            grep -E "^(sending|sent|total)" || true
+        BACKUP_STATUS=$?
+    else
+        cp -rv /var/lib/pterodactyl/volumes/* "$USB_BACKUP_DIR/"
+        BACKUP_STATUS=$?
+    fi
+    
+    if [ $BACKUP_STATUS -eq 0 ]; then
+        echo ""
+        log_success "╔════════════════════════════════════════════════════════════════════════╗"
+        log_success "║                    BACKUP SUCCESSFUL!                                  ║"
+        log_success "╚════════════════════════════════════════════════════════════════════════╝"
+        echo ""
+        log_info "Game servers backed up to:"
+        log_info "  $USB_BACKUP_DIR"
+        echo ""
+        
+        # Create restore instructions
+        cat > "$USB_BACKUP_DIR/RESTORE_INSTRUCTIONS.txt" <<EOF
+Game Server Backup
+==================
+Backup Date: $(date)
+Original Location: /var/lib/pterodactyl/volumes
+Backup Location: $USB_BACKUP_DIR
+
+To Restore:
+-----------
+1. Mount this USB drive
+2. Copy files back:
+   sudo rsync -avh $USB_BACKUP_DIR/ /var/lib/pterodactyl/volumes/
+   
+3. Fix permissions:
+   sudo chown -R pterodactyl:pterodactyl /var/lib/pterodactyl/volumes
+   
+4. Restart Wings:
+   sudo systemctl restart wings
+
+Files Backed Up:
+$(ls -lh "$USB_BACKUP_DIR")
+EOF
+        
+        log_info "Restore instructions saved to:"
+        log_info "  $USB_BACKUP_DIR/RESTORE_INSTRUCTIONS.txt"
+        echo ""
+        
+        # Sync and unmount
+        log_info "Syncing data to USB (please wait)..."
+        sync
+        sleep 2
+        
+        log_info "Unmounting USB drive..."
+        if umount "$USB_MOUNT" 2>/dev/null; then
+            log_success "USB drive safely ejected!"
+            echo ""
+            log_success "✓ You can now safely remove the USB drive"
+            echo ""
+            read -p "Press Enter after removing USB drive..."
+        else
+            log_warning "Could not unmount USB drive automatically"
+            log_info "Please manually unmount: sudo umount $USB_MOUNT"
+        fi
+        
+        log_success "Game servers successfully backed up to USB!"
+        
+    else
+        echo ""
+        log_error "╔════════════════════════════════════════════════════════════════════════╗"
+        log_error "║                    BACKUP FAILED!                                      ║"
+        log_error "╚════════════════════════════════════════════════════════════════════════╝"
+        echo ""
+        log_error "Backup to USB failed!"
+        log_info "Error code: $BACKUP_STATUS"
+        echo ""
+        
+        # Unmount on failure
+        umount "$USB_MOUNT" 2>/dev/null
+        
+        log_info "What would you like to do?"
+        echo "  1) Try again with different USB drive"
+        echo "  2) Keep game servers on server"
+        echo "  3) Delete game servers anyway"
+        echo ""
+        
+        read -p "Select option [1-3]: " retry_choice
+        
+        case $retry_choice in
+            1)
+                backup_to_usb
+                return $?
+                ;;
+            2)
+                log_info "Keeping game servers..."
+                KEEP_GAME_SERVERS=true
+                return 1
+                ;;
+            3)
+                log_warning "Game servers will be deleted"
+                KEEP_GAME_SERVERS=false
+                return 0
+                ;;
+            *)
+                log_info "Defaulting to keep game servers"
+                KEEP_GAME_SERVERS=true
+                return 1
+                ;;
+        esac
+    fi
+}
+
 clean_wipe_and_install() {
     echo ""
     log_warning "╔════════════════════════════════════════════════════════════════════════╗"
@@ -241,7 +443,49 @@ EOF
     cat "$CONFIG_BACKUP/README.txt"
     echo ""
     
+    # Handle game server files
+    echo ""
+    log_warning "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    log_warning "  GAME SERVER FILES"
+    log_warning "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    
+    if [ -d "/var/lib/pterodactyl/volumes" ]; then
+        GAME_SERVER_SIZE=$(du -sh /var/lib/pterodactyl/volumes 2>/dev/null | cut -f1)
+        log_info "Game server files detected: $GAME_SERVER_SIZE"
+        echo ""
+        log_info "What would you like to do with your game server files?"
+        echo "  1) Keep them (preserve player data, worlds, configs)"
+        echo "  2) Backup to USB drive (move to external storage)"
+        echo "  3) Delete everything (fresh start)"
+        echo ""
+        
+        read -p "Select option [1-3]: " game_server_choice
+        
+        case $game_server_choice in
+            1)
+                log_info "Game server files will be preserved"
+                KEEP_GAME_SERVERS=true
+                ;;
+            2)
+                backup_to_usb
+                KEEP_GAME_SERVERS=false
+                ;;
+            3)
+                log_warning "Game server files will be DELETED"
+                KEEP_GAME_SERVERS=false
+                ;;
+            *)
+                log_warning "Invalid choice, defaulting to keep game servers"
+                KEEP_GAME_SERVERS=true
+                ;;
+        esac
+    else
+        KEEP_GAME_SERVERS=false
+    fi
+    
     # Now wipe everything
+    echo ""
     log_warning "Starting clean wipe in 5 seconds... (Ctrl+C to cancel)"
     sleep 5
     
@@ -284,9 +528,16 @@ EOF
         # Remove Wings config
         rm -rf /etc/pterodactyl
         
-        # Remove Wings data (game servers)
-        log_warning "Removing all game server files..."
-        rm -rf /var/lib/pterodactyl
+        # Handle game server files based on user choice
+        if [ "$KEEP_GAME_SERVERS" = true ]; then
+            log_info "Preserving game server files at /var/lib/pterodactyl/volumes"
+            # Only remove Wings-specific files, keep volumes
+            rm -rf /var/lib/pterodactyl/backup 2>/dev/null || true
+            rm -rf /var/lib/pterodactyl/tmp 2>/dev/null || true
+        else
+            log_warning "Removing all game server files..."
+            rm -rf /var/lib/pterodactyl
+        fi
         
         log_success "Wings removed"
     fi
