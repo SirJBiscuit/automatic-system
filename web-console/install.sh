@@ -310,9 +310,9 @@ read -p "Set up Cloudflare Tunnel now? (y/n): " -n 1 -r
 echo
 echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    bash "$WEB_DIR/../cloudflare-tunnel.sh"
+    bash "$SCRIPT_DIR/cloudflare-tunnel.sh"
 else
     echo -e "${CYAN}You can set this up later by running:${NC}"
-    echo -e "  ${GREEN}bash $WEB_DIR/../setup-access.sh${NC}"
+    echo -e "  ${GREEN}bash $SCRIPT_DIR/setup-access.sh${NC}"
     echo ""
 fi
