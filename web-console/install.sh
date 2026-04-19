@@ -12,6 +12,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
+GRAY='\033[0;90m'
 NC='\033[0m' # No Color
 
 clear
@@ -86,14 +87,67 @@ if [ ! -f .env ]; then
     sed -i "s/your_secret_key_here/$SECRET_KEY/" .env
     
     echo ""
-    echo -e "${YELLOW}⚠ Please configure the .env file with your credentials:${NC}"
-    echo ""
-    echo "  1. Pterodactyl URL and API Key"
-    echo "  2. Web console username and password"
+    echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║          Web Console Configuration Setup                  ║${NC}"
+    echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
-    read -p "Press Enter to edit .env file..."
-    nano .env
+    # Prompt for Pterodactyl URL
+    echo -e "${YELLOW}📍 Pterodactyl Panel Configuration${NC}"
+    echo ""
+    read -p "Enter your Pterodactyl Panel URL (e.g., https://panel.example.com): " PTERO_URL
+    while [[ -z "$PTERO_URL" ]]; do
+        echo -e "${RED}✗ URL cannot be empty!${NC}"
+        read -p "Enter your Pterodactyl Panel URL: " PTERO_URL
+    done
+    
+    # Remove trailing slash if present
+    PTERO_URL="${PTERO_URL%/}"
+    
+    echo ""
+    echo -e "${YELLOW}🔑 Pterodactyl API Key${NC}"
+    echo -e "${GRAY}You can get this from: ${PTERO_URL}/account/api${NC}"
+    echo ""
+    read -p "Enter your Pterodactyl API Key: " PTERO_API_KEY
+    while [[ -z "$PTERO_API_KEY" ]]; do
+        echo -e "${RED}✗ API Key cannot be empty!${NC}"
+        read -p "Enter your Pterodactyl API Key: " PTERO_API_KEY
+    done
+    
+    echo ""
+    echo -e "${YELLOW}👤 Web Console Admin Account${NC}"
+    echo ""
+    read -p "Enter admin username (default: admin): " WEB_USERNAME
+    WEB_USERNAME=${WEB_USERNAME:-admin}
+    
+    while true; do
+        read -s -p "Enter admin password: " WEB_PASSWORD
+        echo ""
+        if [[ ${#WEB_PASSWORD} -lt 8 ]]; then
+            echo -e "${RED}✗ Password must be at least 8 characters!${NC}"
+            continue
+        fi
+        read -s -p "Confirm admin password: " WEB_PASSWORD_CONFIRM
+        echo ""
+        if [[ "$WEB_PASSWORD" == "$WEB_PASSWORD_CONFIRM" ]]; then
+            break
+        else
+            echo -e "${RED}✗ Passwords do not match! Try again.${NC}"
+        fi
+    done
+    
+    echo ""
+    echo -e "${GREEN}✓ Configuration collected successfully!${NC}"
+    echo ""
+    
+    # Update .env file with collected values
+    sed -i "s|PTERODACTYL_URL=.*|PTERODACTYL_URL=$PTERO_URL|" .env
+    sed -i "s|PTERODACTYL_API_KEY=.*|PTERODACTYL_API_KEY=$PTERO_API_KEY|" .env
+    sed -i "s|WEB_USERNAME=.*|WEB_USERNAME=$WEB_USERNAME|" .env
+    sed -i "s|WEB_PASSWORD=.*|WEB_PASSWORD=$WEB_PASSWORD|" .env
+    
+    echo -e "${CYAN}Configuration saved to .env file${NC}"
+    echo ""
 else
     echo -e "${GREEN}✓ .env file already exists${NC}"
 fi
@@ -163,20 +217,48 @@ echo -e "${GREEN}╔════════════════════
 echo -e "${GREEN}║  ✅ Web Console installed successfully!                   ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${CYAN}Web Console Status:${NC}"
+
+# Get server IP
+SERVER_IP=$(hostname -I | awk '{print $1}')
+
+echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║                 Access Information                         ║${NC}"
+echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+echo -e "${YELLOW}🌐 Web Console URL:${NC}"
+echo -e "  ${GREEN}http://$SERVER_IP:8080${NC}"
+echo ""
+echo -e "${YELLOW}👤 Login Credentials:${NC}"
+if [[ -n "$WEB_USERNAME" ]]; then
+    echo -e "  Username: ${PURPLE}$WEB_USERNAME${NC}"
+    echo -e "  Password: ${PURPLE}********${NC} (set during installation)"
+else
+    echo -e "  Username: ${PURPLE}admin${NC}"
+    echo -e "  Password: ${PURPLE}changeme123${NC} ${RED}(change in .env!)${NC}"
+fi
+echo ""
+echo -e "${YELLOW}🔗 Connected to Pterodactyl:${NC}"
+if [[ -n "$PTERO_URL" ]]; then
+    echo -e "  ${GREEN}$PTERO_URL${NC}"
+else
+    echo -e "  ${GRAY}(configured in .env)${NC}"
+fi
+echo ""
+echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║                 Service Status                             ║${NC}"
+echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
+echo ""
 systemctl status pterodactyl-web-console --no-pager
 echo ""
-echo -e "${CYAN}Access your web console at:${NC}"
-echo -e "  ${GREEN}http://YOUR_SERVER_IP:8080${NC}"
+echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║                 Useful Commands                            ║${NC}"
+echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${YELLOW}Default credentials (change in .env):${NC}"
-echo -e "  Username: ${PURPLE}admin${NC}"
-echo -e "  Password: ${PURPLE}changeme123${NC}"
-echo ""
-echo -e "${CYAN}Useful commands:${NC}"
-echo "  • View logs: journalctl -u pterodactyl-web-console -f"
-echo "  • Restart: systemctl restart pterodactyl-web-console"
-echo "  • Edit config: nano $WEB_DIR/.env"
+echo -e "  ${YELLOW}View logs:${NC}      journalctl -u pterodactyl-web-console -f"
+echo -e "  ${YELLOW}Restart:${NC}        systemctl restart pterodactyl-web-console"
+echo -e "  ${YELLOW}Stop:${NC}           systemctl stop pterodactyl-web-console"
+echo -e "  ${YELLOW}Edit config:${NC}    nano $WEB_DIR/.env"
 echo ""
 echo -e "${GREEN}✅ Setup complete! 🎉${NC}"
+echo -e "${CYAN}Open ${GREEN}http://$SERVER_IP:8080${CYAN} in your browser to get started!${NC}"
 echo ""
