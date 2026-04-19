@@ -72,106 +72,63 @@ echo "  ⏳ Creating installation directory..."
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
-# Always download latest version
-if [ -f "$INSTALL_DIR/pteroanyinstall.sh" ]; then
-    echo ""
-    echo "  ℹ️  Existing installation detected!"
-    
-    # Check for updates
-    if [ -f "$VERSION_FILE" ]; then
-        LOCAL_VERSION=$(cat "$VERSION_FILE" | tr -d '\n\r')
-        REMOTE_VERSION=$(curl -sSL "$REMOTE_VERSION_URL" 2>/dev/null | tr -d '\n\r' || echo "unknown")
-        
-        echo "  📌 Local version:  $LOCAL_VERSION"
-        echo "  🌐 Remote version: $REMOTE_VERSION"
-        echo ""
-        
-        if [ "$LOCAL_VERSION" != "$REMOTE_VERSION" ] && [ "$REMOTE_VERSION" != "unknown" ]; then
-            echo "  🆕 New version available! Auto-updating..."
-        else
-            echo "  🔄 Re-downloading latest scripts..."
-        fi
-    else
-        echo "  🔄 Downloading latest scripts..."
-    fi
-    
-    echo ""
-    echo "  ⏳ Removing old files..."
-    rm -f pteroanyinstall.sh pre-install-checks.sh billing-setup.sh panel-customizer.sh \
-          quick-setup.sh ptero-admin.sh ai-assistant-setup.sh prism-upgrade.sh \
-          prism-enhanced.py prism-cli.sh node-installer.sh cloud-backup.sh update.sh \
-          ptero-update-checker.sh ptero-update-checker.service ptero-update-checker.timer \
-          .version .update-notification
-    echo "  ✅ Old files removed"
+# Check if git is installed
+if ! command -v git &> /dev/null; then
+    echo "  ⏳ Installing git..."
+    apt-get update -qq && apt-get install -y git >/dev/null 2>&1
 fi
 
-echo "  📥 Downloading scripts from GitHub..."
-echo ""
-
-# Progress indicator function
-show_progress() {
-    local current=$1
-    local total=$2
-    local name=$3
-    local percent=$((current * 100 / total))
-    local filled=$((percent / 2))
-    local empty=$((50 - filled))
+# Clone or update repository
+if [ -d "$INSTALL_DIR/.git" ]; then
+    echo ""
+    echo "  ℹ️  Existing installation detected!"
+    echo "  🔄 Updating from GitHub..."
+    echo ""
     
-    printf "\r  [%-50s] %3d%% - %s" \
-        "$(printf '#%.0s' $(seq 1 $filled))$(printf ' %.0s' $(seq 1 $empty))" \
-        "$percent" \
-        "$name"
-}
+    cd "$INSTALL_DIR"
+    git fetch origin >/dev/null 2>&1
+    
+    # Check for updates
+    LOCAL_COMMIT=$(git rev-parse HEAD 2>/dev/null)
+    REMOTE_COMMIT=$(git rev-parse origin/main 2>/dev/null)
+    
+    if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
+        echo "  🆕 New version available! Updating..."
+        git reset --hard origin/main >/dev/null 2>&1
+        git pull origin main >/dev/null 2>&1
+    else
+        echo "  ✅ Already up to date!"
+    fi
+else
+    echo "  📥 Cloning repository from GitHub..."
+    echo ""
+    
+    # Remove directory if it exists but isn't a git repo
+    if [ -d "$INSTALL_DIR" ]; then
+        rm -rf "$INSTALL_DIR"
+    fi
+    
+    # Clone the repository
+    git clone -q https://github.com/SirJBiscuit/automatic-system.git "$INSTALL_DIR" 2>&1 | grep -v "Cloning into"
+    cd "$INSTALL_DIR"
+fi
 
-# Download main scripts with progress
-TOTAL_FILES=16
-CURRENT=0
-
-download_file() {
-    local url=$1
-    local output=$2
-    local name=$3
-    CURRENT=$((CURRENT + 1))
-    show_progress $CURRENT $TOTAL_FILES "$name"
-    curl -sSL "$url" -o "$output" 2>/dev/null
-}
-
-download_file "$REPO_URL/pteroanyinstall.sh" "pteroanyinstall.sh" "Main installer"
-download_file "$REPO_URL/pre-install-checks.sh" "pre-install-checks.sh" "Pre-checks"
-download_file "$REPO_URL/billing-setup.sh" "billing-setup.sh" "Billing setup"
-download_file "$REPO_URL/panel-customizer.sh" "panel-customizer.sh" "Customizer"
-download_file "$REPO_URL/quick-setup.sh" "quick-setup.sh" "Quick setup"
-download_file "$REPO_URL/ptero-admin.sh" "ptero-admin.sh" "Admin tools"
-download_file "$REPO_URL/ai-assistant-setup.sh" "ai-assistant-setup.sh" "AI assistant"
-download_file "$REPO_URL/prism-upgrade.sh" "prism-upgrade.sh" "PRISM upgrade"
-download_file "$REPO_URL/prism-enhanced.py" "prism-enhanced.py" "PRISM core"
-download_file "$REPO_URL/prism-cli.sh" "prism-cli.sh" "PRISM CLI"
-download_file "$REPO_URL/node-installer.sh" "node-installer.sh" "Node installer"
-download_file "$REPO_URL/cloud-backup.sh" "cloud-backup.sh" "Cloud backup"
-download_file "$REPO_URL/update.sh" "update.sh" "Update script"
-download_file "$REPO_URL/ptero-update-checker.sh" "ptero-update-checker.sh" "Update checker"
-download_file "$REPO_URL/ptero-update-checker.service" "ptero-update-checker.service" "Update service"
-download_file "$REPO_URL/ptero-update-checker.timer" "ptero-update-checker.timer" "Update timer"
-
-echo ""
 echo ""
 echo "  ⏳ Setting permissions..."
 
-# Make executable
-chmod +x pteroanyinstall.sh pre-install-checks.sh billing-setup.sh panel-customizer.sh \
-         quick-setup.sh ptero-admin.sh ai-assistant-setup.sh prism-upgrade.sh \
-         prism-enhanced.py prism-cli.sh node-installer.sh cloud-backup.sh update.sh \
-         ptero-update-checker.sh
+# Make all shell scripts executable
+find "$INSTALL_DIR" -type f -name "*.sh" -exec chmod +x {} \;
 
-echo "  ⏳ Downloading version file..."
+# Make Python scripts executable
+find "$INSTALL_DIR" -type f -name "*.py" -exec chmod +x {} \;
 
-# Download and save version - ensure it's saved correctly
-if curl -sSL "$REMOTE_VERSION_URL" -o "$VERSION_FILE" 2>/dev/null; then
-    # Clean up the version file (remove any whitespace/newlines)
-    VERSION_CONTENT=$(cat "$VERSION_FILE" | tr -d '\n\r\t ' | head -c 10)
-    echo "$VERSION_CONTENT" > "$VERSION_FILE"
+echo "  ✅ Permissions set"
+
+# Save version info
+if [ -f "$INSTALL_DIR/VERSION" ]; then
+    cp "$INSTALL_DIR/VERSION" "$VERSION_FILE"
 else
-    echo "1.2.0" > "$VERSION_FILE"
+    git rev-parse --short HEAD > "$VERSION_FILE" 2>/dev/null || echo "1.3.2" > "$VERSION_FILE"
 fi
 
 show_commands() {
