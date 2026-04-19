@@ -754,19 +754,30 @@ Nginx Errors (last 24h): $(grep -c error /var/log/nginx/error.log 2>/dev/null ||
         echo ""
         
         # Build JSON payload with proper escaping using jq
-        PROMPT="You are a Pterodactyl server optimization expert. Analyze this system and provide specific, actionable optimization recommendations. Format your response as numbered items with clear categories (Performance, Security, Maintenance, Configuration). Be specific about what to change and why. Here's the system info:
+        PROMPT="Analyze this Pterodactyl server and suggest 3-5 specific optimizations. Keep it concise.
 
 $SYSTEM_INFO"
         
-        ANALYSIS=$(jq -n \
+        # Create JSON payload
+        JSON_PAYLOAD=$(jq -n \
             --arg model "$MODEL" \
             --arg prompt "$PROMPT" \
-            '{model: $model, prompt: $prompt, stream: false}' | \
-            curl -s --max-time 120 http://localhost:11434/api/generate -d @- | \
-            jq -r '.response')
+            '{model: $model, prompt: $prompt, stream: false}')
         
-        if [ -z "$ANALYSIS" ] || [ "$ANALYSIS" = "null" ]; then
-            echo "⚠️  AI analysis timed out or failed. Here's a basic system check instead:"
+        # Make API call and capture response
+        API_RESPONSE=$(echo "$JSON_PAYLOAD" | curl -s --max-time 120 http://localhost:11434/api/generate -d @-)
+        
+        # Extract response field
+        ANALYSIS=$(echo "$API_RESPONSE" | jq -r '.response // empty')
+        
+        if [ -z "$ANALYSIS" ]; then
+            echo "⚠️  AI analysis failed. Checking error..."
+            ERROR=$(echo "$API_RESPONSE" | jq -r '.error // "Unknown error"')
+            if [ "$ERROR" != "Unknown error" ]; then
+                echo "Error: $ERROR"
+            fi
+            echo ""
+            echo "Here's a basic system check instead:"
             echo ""
             echo "SYSTEM STATUS:"
             echo "$SYSTEM_INFO"
