@@ -1367,7 +1367,8 @@ main() {
         echo ""
         echo "Let's check if P.R.I.S.M is running:"
         echo ""
-        read -p "Press Enter to run: chatbot status"
+        read -p "Press Enter to run: chatbot status "
+        echo ""
         chatbot status
         
         echo ""
@@ -1377,7 +1378,8 @@ main() {
         echo ""
         echo "You can ask P.R.I.S.M anything about your server:"
         echo ""
-        read -p "Press Enter to run: chatbot ask \"Introduce yourself\""
+        read -p "Press Enter to run: chatbot ask \"Introduce yourself\" "
+        echo ""
         chatbot ask "Introduce yourself as P.R.I.S.M and briefly explain what you can do for this Pterodactyl server in 2-3 sentences"
         
         echo ""
@@ -1388,6 +1390,7 @@ main() {
         echo "P.R.I.S.M can analyze your entire system and suggest optimizations:"
         echo ""
         if prompt_yes_no "Run system analysis now? (This will take 1-2 minutes)"; then
+            echo ""
             chatbot detect
         else
             echo "You can run it anytime with: chatbot detect"
@@ -1401,6 +1404,7 @@ main() {
         echo "Get instant alerts on Discord when issues are detected!"
         echo ""
         if prompt_yes_no "Set up Discord notifications now?"; then
+            echo ""
             chatbot webhook setup
         else
             echo "You can set it up later with: chatbot webhook setup"
@@ -1414,6 +1418,7 @@ main() {
         echo "Monitor individual game servers with Pterodactyl API!"
         echo ""
         if prompt_yes_no "Set up API integration now?"; then
+            echo ""
             chatbot api setup
         else
             echo "You can set it up later with: chatbot api setup"
