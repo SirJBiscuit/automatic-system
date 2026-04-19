@@ -587,6 +587,10 @@ setup_network_wizard() {
         CURRENT_IP=$(ip -4 addr show $SELECTED_INTERFACE | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
         GATEWAY=$(ip route | grep default | awk '{print $3}' | head -1)
         
+        echo ""
+        log_info "💡 Tip: Press Enter to use the default values shown in brackets"
+        echo ""
+        
         STATIC_IP=$(prompt_input "Enter static IP for $SELECTED_INTERFACE" "$CURRENT_IP")
         GATEWAY_IP=$(prompt_input "Enter gateway IP" "$GATEWAY")
         DNS_IP=$(prompt_input "Enter DNS server" "8.8.8.8")
