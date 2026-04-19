@@ -573,6 +573,12 @@ EOFCFG
         read -e -p "Enter your Pterodactyl API Key: " API_KEY
         
         if [ -n "$PANEL_URL" ] && [ -n "$API_KEY" ]; then
+            # Add https:// if not present
+            if [[ ! "$PANEL_URL" =~ ^https?:// ]]; then
+                PANEL_URL="https://$PANEL_URL"
+                echo "  → Added https:// prefix: $PANEL_URL"
+            fi
+            
             # Save API config
             cat > /opt/ptero-assistant/pterodactyl-api.json <<EOFAPI
 {
@@ -1046,6 +1052,12 @@ WEBHOOKHELP
                 read -e -p "Enter your API Key: " API_KEY
                 
                 if [ -n "$PANEL_URL" ] && [ -n "$API_KEY" ]; then
+                    # Add https:// if not present
+                    if [[ ! "$PANEL_URL" =~ ^https?:// ]]; then
+                        PANEL_URL="https://$PANEL_URL"
+                        echo "  → Added https:// prefix: $PANEL_URL"
+                    fi
+                    
                     cat > /opt/ptero-assistant/pterodactyl-api.json <<EOFAPI
 {
   "panel_url": "$PANEL_URL",
@@ -1063,7 +1075,12 @@ EOFAPI
                     if echo "$API_TEST" | grep -q "email"; then
                         echo "✓ API configured successfully!"
                     else
-                        echo "✗ API connection failed. Check your credentials."
+                        echo "✗ API connection failed."
+                        ERROR_MSG=$(echo "$API_TEST" | jq -r '.errors[0].detail // .message // "Unknown error"' 2>/dev/null)
+                        if [ -n "$ERROR_MSG" ] && [ "$ERROR_MSG" != "Unknown error" ]; then
+                            echo "  Error: $ERROR_MSG"
+                        fi
+                        echo "  Check: URL is correct and API key has proper permissions"
                     fi
                 else
                     echo "✗ Missing Panel URL or API Key"
