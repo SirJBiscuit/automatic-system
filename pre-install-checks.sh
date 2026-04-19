@@ -848,7 +848,8 @@ check_cloudflare_setup() {
         log_info "Get your API token: https://dash.cloudflare.com/profile/api-tokens"
         echo ""
         
-        read -p "Press Enter when you have your API credentials ready..."
+        echo -ne "${CYAN}Press Enter when you have your API credentials ready...${NC} "
+        read -r
     else
         CLOUDFLARE_ENABLED=false
         log_info "No problem! You can add Cloudflare later if needed."
