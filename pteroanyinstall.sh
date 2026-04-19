@@ -40,6 +40,37 @@ check_root() {
     fi
 }
 
+check_for_updates() {
+    local version_file="/opt/ptero/.version"
+    local remote_version_url="https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/VERSION"
+    
+    if [ -f "$version_file" ]; then
+        local local_version=$(cat "$version_file" | tr -d '\n\r')
+        local remote_version=$(curl -sSL "$remote_version_url" 2>/dev/null | tr -d '\n\r' || echo "unknown")
+        
+        if [ "$remote_version" != "unknown" ] && [ "$local_version" != "$remote_version" ]; then
+            echo ""
+            log_warning "╔════════════════════════════════════════════════════════════╗"
+            log_warning "║              UPDATE AVAILABLE                              ║"
+            log_warning "╚════════════════════════════════════════════════════════════╝"
+            echo ""
+            log_info "Current version: $local_version"
+            log_info "Latest version:  $remote_version"
+            echo ""
+            log_info "To get the latest version with all fixes and features:"
+            echo ""
+            echo -e "${YELLOW}Run these commands:${NC}"
+            echo ""
+            echo "  cd /opt/ptero"
+            echo "  rm -rf *"
+            echo "  curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash"
+            echo ""
+            read -p "Press Enter to continue with current version, or Ctrl+C to update now..."
+            echo ""
+        fi
+    fi
+}
+
 detect_os() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -1460,6 +1491,7 @@ EOF
 
 main() {
     check_root
+    check_for_updates
     detect_os
     
     case "${1:-}" in
