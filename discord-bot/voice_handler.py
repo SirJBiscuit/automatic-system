@@ -46,6 +46,8 @@ class VoiceHandler:
         self.recognizer = sr.Recognizer() if SPEECH_RECOGNITION_AVAILABLE else None
         self.voice_clients = {}
         self.listening_channels = set()
+        self.always_listening = {}  # guild_id: True/False
+        self.wake_words = ['hey prism', 'ok prism', 'prism', 'hey bot']
         
     async def join_voice(self, ctx):
         """Join user's voice channel"""
@@ -183,6 +185,67 @@ class VoiceHandler:
             await ctx.send(f"❌ TTS error: {e}")
             return False
     
+    async def start_continuous_listening(self, ctx):
+        """Start always-on listening mode with wake word detection"""
+        guild_id = ctx.guild.id
+        
+        if guild_id in self.always_listening and self.always_listening[guild_id]:
+            await ctx.send("⚠️ Already listening continuously!")
+            return
+        
+        voice_client = self.voice_clients.get(guild_id)
+        if not voice_client:
+            await ctx.send("❌ Not in a voice channel! Use `!join` first.")
+            return
+        
+        self.always_listening[guild_id] = True
+        await ctx.send(f"👂 **Always-on listening activated!**\n\nSay one of these wake words:\n• `Hey PRISM`\n• `OK PRISM`\n• `PRISM`\n\nThen speak your command. Use `!stoplisten` to disable.")
+        
+        # Start continuous listening loop
+        asyncio.create_task(self._continuous_listen_loop(ctx))
+    
+    async def stop_continuous_listening(self, ctx):
+        """Stop always-on listening mode"""
+        guild_id = ctx.guild.id
+        self.always_listening[guild_id] = False
+        await ctx.send("🔇 Always-on listening disabled")
+    
+    async def _continuous_listen_loop(self, ctx):
+        """Background loop for continuous listening"""
+        guild_id = ctx.guild.id
+        
+        while self.always_listening.get(guild_id, False):
+            try:
+                # Listen for 3 seconds at a time
+                command_text = await self.listen_for_commands(ctx, duration=3)
+                
+                if command_text:
+                    # Check if wake word was said
+                    command_lower = command_text.lower()
+                    wake_word_detected = any(wake in command_lower for wake in self.wake_words)
+                    
+                    if wake_word_detected:
+                        # Remove wake word from command
+                        for wake in self.wake_words:
+                            command_lower = command_lower.replace(wake, '').strip()
+                        
+                        if command_lower:  # If there's a command after wake word
+                            await ctx.send(f"🎤 Heard: *{command_lower}*")
+                            await self.process_voice_command(ctx, command_lower)
+                        else:
+                            # Just wake word, listen for actual command
+                            await self.speak_response(ctx, "Yes?")
+                            command_text = await self.listen_for_commands(ctx, duration=5)
+                            if command_text:
+                                await self.process_voice_command(ctx, command_text)
+                
+                # Small delay before next listen cycle
+                await asyncio.sleep(0.5)
+                
+            except Exception as e:
+                print(f"Continuous listening error: {e}")
+                await asyncio.sleep(1)
+    
     async def process_voice_command(self, ctx, command_text):
         """Process voice command with P.R.I.S.M AI"""
         if not self.prism_client:
@@ -240,7 +303,7 @@ def setup_voice_commands(bot, prism_client=None):
         else:
             await ctx.send("❌ Not in a voice channel")
     
-    @bot.command(name='listen', help='Listen for voice command')
+    @bot.command(name='listen', help='Listen for voice command once')
     async def listen(ctx, duration: int = 5):
         """Listen for voice command"""
         if duration > 30:
@@ -251,6 +314,16 @@ def setup_voice_commands(bot, prism_client=None):
         
         if command_text:
             await voice_handler.process_voice_command(ctx, command_text)
+    
+    @bot.command(name='startlisten', help='Enable always-on listening with wake words')
+    async def start_listen(ctx):
+        """Start continuous listening mode"""
+        await voice_handler.start_continuous_listening(ctx)
+    
+    @bot.command(name='stoplisten', help='Disable always-on listening')
+    async def stop_listen(ctx):
+        """Stop continuous listening mode"""
+        await voice_handler.stop_continuous_listening(ctx)
     
     @bot.command(name='say', help='Make bot speak text')
     async def say(ctx, *, text: str):
