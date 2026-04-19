@@ -6,6 +6,7 @@
     <title>Pterodactyl Web Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* Professional Custom Styles */
@@ -472,33 +473,44 @@
                         <i class="fas fa-list"></i> Game Servers
                     </h2>
                     
-                    <!-- Search and Filter -->
-                    <div class="flex flex-col sm:flex-row gap-2 flex-1 md:max-w-2xl">
-                        <div class="flex-1">
-                            <input 
-                                type="text" 
-                                id="server-search" 
-                                placeholder="🔍 Search servers..." 
-                                class="w-full bg-gray-900 border border-gray-700 rounded px-4 py-2 focus:outline-none focus:border-blue-500"
-                                oninput="filterServers()"
-                            >
+                    <!-- Search and Filter Bar -->
+                    <div class="bg-gray-900 rounded-lg p-4 mb-4 border border-gray-700">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="md:col-span-2">
+                                <input 
+                                    type="text" 
+                                    id="server-search" 
+                                    placeholder="🔍 Search servers by name or ID..." 
+                                    class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 focus:outline-none focus:border-blue-500"
+                                    oninput="filterServers()"
+                                >
+                            </div>
+                            <div>
+                                <select 
+                                    id="status-filter" 
+                                    class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 focus:outline-none focus:border-blue-500"
+                                    onchange="filterServers()"
+                                >
+                                    <option value="all">All Status</option>
+                                    <option value="running">Online Only</option>
+                                    <option value="offline">Offline Only</option>
+                                </select>
+                            </div>
+                            <div>
+                                <select 
+                                    id="group-filter" 
+                                    class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-2 focus:outline-none focus:border-blue-500"
+                                    onchange="filterServers()"
+                                >
+                                    <option value="all">All Groups</option>
+                                    <option value="minecraft">🎮 Minecraft</option>
+                                    <option value="rust">🔫 Rust</option>
+                                    <option value="ark">🦖 ARK</option>
+                                    <option value="valheim">⚔️ Valheim</option>
+                                    <option value="other">📦 Other</option>
+                                </select>
+                            </div>
                         </div>
-                        <select 
-                            id="status-filter" 
-                            class="bg-gray-900 border border-gray-700 rounded px-4 py-2 focus:outline-none focus:border-blue-500"
-                            onchange="filterServers()"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="running">Online</option>
-                            <option value="offline">Offline</option>
-                        </select>
-                        <button 
-                            onclick="toggleBulkActions()" 
-                            class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded whitespace-nowrap"
-                            title="Bulk Actions"
-                        >
-                            <i class="fas fa-tasks"></i> <span class="hidden sm:inline">Bulk</span>
-                        </button>
                     </div>
                 </div>
                 
@@ -548,26 +560,24 @@
             <div id="performance-tab" class="tab-pane">
                 <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
                     <h2 class="text-2xl font-bold mb-6"><i class="fas fa-chart-line"></i> Performance Monitoring</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div class="bg-gray-900 rounded-lg p-6 border border-gray-700">
-                            <h3 class="font-bold mb-4"><i class="fas fa-microchip"></i> CPU Usage History</h3>
-                            <div class="h-64 flex items-center justify-center text-gray-500">
-                                <div class="text-center">
-                                    <i class="fas fa-chart-area text-4xl mb-4"></i>
-                                    <p>Performance graphs coming soon!</p>
-                                    <p class="text-sm mt-2">Will display real-time CPU usage charts</p>
-                                </div>
-                            </div>
+                            <h3 class="font-bold mb-4"><i class="fas fa-microchip text-purple-500"></i> CPU Usage History</h3>
+                            <canvas id="cpu-chart" height="200"></canvas>
                         </div>
                         <div class="bg-gray-900 rounded-lg p-6 border border-gray-700">
-                            <h3 class="font-bold mb-4"><i class="fas fa-memory"></i> RAM Usage History</h3>
-                            <div class="h-64 flex items-center justify-center text-gray-500">
-                                <div class="text-center">
-                                    <i class="fas fa-chart-line text-4xl mb-4"></i>
-                                    <p>Performance graphs coming soon!</p>
-                                    <p class="text-sm mt-2">Will display real-time RAM usage charts</p>
-                                </div>
-                            </div>
+                            <h3 class="font-bold mb-4"><i class="fas fa-memory text-blue-500"></i> RAM Usage History</h3>
+                            <canvas id="ram-chart" height="200"></canvas>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-900 rounded-lg p-6 border border-gray-700">
+                            <h3 class="font-bold mb-4"><i class="fas fa-network-wired text-green-500"></i> Network Traffic</h3>
+                            <canvas id="network-chart" height="200"></canvas>
+                        </div>
+                        <div class="bg-gray-900 rounded-lg p-6 border border-gray-700">
+                            <h3 class="font-bold mb-4"><i class="fas fa-server text-cyan-500"></i> Server Status Over Time</h3>
+                            <canvas id="server-status-chart" height="200"></canvas>
                         </div>
                     </div>
                 </div>
@@ -597,14 +607,14 @@
 
             <!-- Settings Tab -->
             <div id="settings-tab" class="tab-pane">
-                <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                    <h2 class="text-2xl font-bold mb-6"><i class="fas fa-cog"></i> Dashboard Settings</h2>
-                    
-                    <div class="space-y-6">
+                <div class="space-y-6">
+                    <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                        <h2 class="text-2xl font-bold mb-6"><i class="fas fa-cog"></i> Dashboard Settings</h2>
+                        
                         <!-- Auto-Refresh -->
-                        <div class="bg-gray-900 rounded-lg p-6 border border-gray-700">
+                        <div class="bg-gray-900 rounded-lg p-6 border border-gray-700 mb-6">
                             <label class="block text-sm font-bold mb-3">
-                                <i class="fas fa-sync"></i> Auto-Refresh Interval
+                                <i class="fas fa-sync text-blue-500"></i> Auto-Refresh Interval
                             </label>
                             <select id="settings-refresh-interval" class="w-full bg-gray-800 border border-gray-700 rounded px-4 py-3" onchange="updateRefreshInterval()">
                                 <option value="5000">5 seconds</option>
@@ -616,27 +626,99 @@
                         </div>
 
                         <!-- Display Options -->
-                        <div class="bg-gray-900 rounded-lg p-6 border border-gray-700">
-                            <h3 class="font-bold mb-4"><i class="fas fa-eye"></i> Display Options</h3>
+                        <div class="bg-gray-900 rounded-lg p-6 border border-gray-700 mb-6">
+                            <h3 class="font-bold mb-4"><i class="fas fa-eye text-purple-500"></i> Display Options</h3>
                             <div class="space-y-4">
-                                <label class="flex items-center justify-between cursor-pointer">
-                                    <span>Compact Mode</span>
+                                <label class="flex items-center justify-between cursor-pointer hover:bg-gray-800 p-2 rounded transition">
+                                    <span><i class="fas fa-compress mr-2"></i> Compact Mode</span>
                                     <input type="checkbox" id="settings-compact-mode" class="toggle" onchange="toggleCompactMode()">
                                 </label>
-                                <label class="flex items-center justify-between cursor-pointer">
-                                    <span>Show System Monitoring</span>
+                                <label class="flex items-center justify-between cursor-pointer hover:bg-gray-800 p-2 rounded transition">
+                                    <span><i class="fas fa-chart-bar mr-2"></i> Show System Monitoring</span>
                                     <input type="checkbox" id="settings-show-monitoring" class="toggle" checked onchange="toggleMonitoring()">
                                 </label>
-                                <label class="flex items-center justify-between cursor-pointer">
-                                    <span>Browser Notifications</span>
+                                <label class="flex items-center justify-between cursor-pointer hover:bg-gray-800 p-2 rounded transition">
+                                    <span><i class="fas fa-bell mr-2"></i> Browser Notifications</span>
                                     <input type="checkbox" id="settings-enable-notifications" class="toggle" onchange="toggleNotifications()">
                                 </label>
                             </div>
                         </div>
 
+                        <!-- Feature Toggles -->
+                        <div class="bg-gray-900 rounded-lg p-6 border border-gray-700 mb-6">
+                            <h3 class="font-bold mb-4"><i class="fas fa-toggle-on text-green-500"></i> Feature Toggles</h3>
+                            <div class="space-y-4">
+                                <label class="flex items-center justify-between cursor-pointer hover:bg-gray-800 p-2 rounded transition">
+                                    <div>
+                                        <span class="font-medium"><i class="fas fa-chart-line mr-2"></i> Performance Graphs</span>
+                                        <p class="text-sm text-gray-400">Show real-time performance charts</p>
+                                    </div>
+                                    <input type="checkbox" id="feature-graphs" class="toggle" checked onchange="toggleFeature('graphs')">
+                                </label>
+                                <label class="flex items-center justify-between cursor-pointer hover:bg-gray-800 p-2 rounded transition">
+                                    <div>
+                                        <span class="font-medium"><i class="fas fa-folder mr-2"></i> File Manager</span>
+                                        <p class="text-sm text-gray-400">Enable file browsing and editing</p>
+                                    </div>
+                                    <input type="checkbox" id="feature-files" class="toggle" checked onchange="toggleFeature('files')">
+                                </label>
+                                <label class="flex items-center justify-between cursor-pointer hover:bg-gray-800 p-2 rounded transition">
+                                    <div>
+                                        <span class="font-medium"><i class="fas fa-clock mr-2"></i> Scheduled Actions</span>
+                                        <p class="text-sm text-gray-400">Enable task scheduling</p>
+                                    </div>
+                                    <input type="checkbox" id="feature-schedules" class="toggle" checked onchange="toggleFeature('schedules')">
+                                </label>
+                                <label class="flex items-center justify-between cursor-pointer hover:bg-gray-800 p-2 rounded transition">
+                                    <div>
+                                        <span class="font-medium"><i class="fas fa-desktop mr-2"></i> GPU Monitoring</span>
+                                        <p class="text-sm text-gray-400">Show NVIDIA GPU stats</p>
+                                    </div>
+                                    <input type="checkbox" id="feature-gpu" class="toggle" checked onchange="toggleFeature('gpu')">
+                                </label>
+                                <label class="flex items-center justify-between cursor-pointer hover:bg-gray-800 p-2 rounded transition">
+                                    <div>
+                                        <span class="font-medium"><i class="fas fa-users mr-2"></i> Player Lists</span>
+                                        <p class="text-sm text-gray-400">Show online players per server</p>
+                                    </div>
+                                    <input type="checkbox" id="feature-players" class="toggle" checked onchange="toggleFeature('players')">
+                                </label>
+                                <label class="flex items-center justify-between cursor-pointer hover:bg-gray-800 p-2 rounded transition">
+                                    <div>
+                                        <span class="font-medium"><i class="fas fa-layer-group mr-2"></i> Server Groups</span>
+                                        <p class="text-sm text-gray-400">Enable server categorization</p>
+                                    </div>
+                                    <input type="checkbox" id="feature-groups" class="toggle" checked onchange="toggleFeature('groups')">
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Theme Options -->
+                        <div class="bg-gray-900 rounded-lg p-6 border border-gray-700 mb-6">
+                            <h3 class="font-bold mb-4"><i class="fas fa-palette text-pink-500"></i> Theme Options</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <button onclick="setTheme('default')" class="p-4 bg-gray-800 hover:bg-gray-700 rounded border-2 border-blue-500 transition">
+                                    <div class="w-full h-8 bg-gradient-to-r from-blue-600 to-blue-800 rounded mb-2"></div>
+                                    <span class="text-sm">Default</span>
+                                </button>
+                                <button onclick="setTheme('purple')" class="p-4 bg-gray-800 hover:bg-gray-700 rounded border-2 border-transparent hover:border-purple-500 transition">
+                                    <div class="w-full h-8 bg-gradient-to-r from-purple-600 to-purple-800 rounded mb-2"></div>
+                                    <span class="text-sm">Purple</span>
+                                </button>
+                                <button onclick="setTheme('green')" class="p-4 bg-gray-800 hover:bg-gray-700 rounded border-2 border-transparent hover:border-green-500 transition">
+                                    <div class="w-full h-8 bg-gradient-to-r from-green-600 to-green-800 rounded mb-2"></div>
+                                    <span class="text-sm">Green</span>
+                                </button>
+                                <button onclick="setTheme('red')" class="p-4 bg-gray-800 hover:bg-gray-700 rounded border-2 border-transparent hover:border-red-500 transition">
+                                    <div class="w-full h-8 bg-gradient-to-r from-red-600 to-red-800 rounded mb-2"></div>
+                                    <span class="text-sm">Red</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Save Button -->
                         <button onclick="saveSettings()" class="btn-primary w-full px-6 py-4 rounded-lg text-lg font-bold">
-                            <i class="fas fa-save"></i> Save Settings
+                            <i class="fas fa-save"></i> Save All Settings
                         </button>
                     </div>
                 </div>
@@ -1500,6 +1582,20 @@
             loadSettings(); // Load saved settings
             detectDevice(); // Detect device type
             loadActiveTab(); // Load last active tab
+            initCharts(); // Initialize performance charts
+            loadFeatureToggles(); // Load feature toggle states
+            
+            // Update charts every 5 seconds
+            setInterval(() => {
+                const onlineCount = document.getElementById('online-servers')?.textContent || 0;
+                updateCharts({
+                    cpu: parseFloat(document.getElementById('system-cpu')?.textContent) || 0,
+                    ram: parseFloat(document.getElementById('system-ram')?.textContent) || 0,
+                    networkRx: 0, // Would need to calculate from network stats
+                    networkTx: 0,
+                    serversOnline: parseInt(onlineCount)
+                });
+            }, 5000);
         });
 
         // Tab Switching
@@ -1556,6 +1652,176 @@
             
             // Log device info
             console.log('Device detected:', isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop');
+        }
+
+        // Performance Charts
+        let cpuChart, ramChart, networkChart, serverStatusChart;
+        let chartData = {
+            cpu: [],
+            ram: [],
+            networkRx: [],
+            networkTx: [],
+            serverOnline: [],
+            labels: []
+        };
+
+        function initCharts() {
+            const chartConfig = {
+                type: 'line',
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, labels: { color: '#9CA3AF' } }
+                    },
+                    scales: {
+                        y: { ticks: { color: '#9CA3AF' }, grid: { color: '#374151' } },
+                        x: { ticks: { color: '#9CA3AF' }, grid: { color: '#374151' } }
+                    }
+                }
+            };
+
+            // CPU Chart
+            cpuChart = new Chart(document.getElementById('cpu-chart'), {
+                ...chartConfig,
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'CPU Usage (%)',
+                        data: chartData.cpu,
+                        borderColor: '#8B5CF6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        tension: 0.4
+                    }]
+                }
+            });
+
+            // RAM Chart
+            ramChart = new Chart(document.getElementById('ram-chart'), {
+                ...chartConfig,
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'RAM Usage (%)',
+                        data: chartData.ram,
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4
+                    }]
+                }
+            });
+
+            // Network Chart
+            networkChart = new Chart(document.getElementById('network-chart'), {
+                ...chartConfig,
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'Download (MB/s)',
+                            data: chartData.networkRx,
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Upload (MB/s)',
+                            data: chartData.networkTx,
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                }
+            });
+
+            // Server Status Chart
+            serverStatusChart = new Chart(document.getElementById('server-status-chart'), {
+                ...chartConfig,
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Servers Online',
+                        data: chartData.serverOnline,
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                }
+            });
+        }
+
+        function updateCharts(stats) {
+            const now = new Date().toLocaleTimeString();
+            
+            // Keep last 20 data points
+            if (chartData.labels.length > 20) {
+                chartData.labels.shift();
+                chartData.cpu.shift();
+                chartData.ram.shift();
+                chartData.networkRx.shift();
+                chartData.networkTx.shift();
+                chartData.serverOnline.shift();
+            }
+
+            chartData.labels.push(now);
+            chartData.cpu.push(stats.cpu || 0);
+            chartData.ram.push(stats.ram || 0);
+            chartData.networkRx.push(stats.networkRx || 0);
+            chartData.networkTx.push(stats.networkTx || 0);
+            chartData.serverOnline.push(stats.serversOnline || 0);
+
+            if (cpuChart) {
+                cpuChart.update('none');
+                ramChart.update('none');
+                networkChart.update('none');
+                serverStatusChart.update('none');
+            }
+        }
+
+        // Feature Toggle Functions
+        function toggleFeature(feature) {
+            const enabled = document.getElementById(`feature-${feature}`).checked;
+            localStorage.setItem(`feature-${feature}`, enabled);
+            
+            // Apply feature toggle
+            switch(feature) {
+                case 'graphs':
+                    // Charts are always available in Performance tab
+                    break;
+                case 'gpu':
+                    const gpuSection = document.getElementById('gpu-section');
+                    if (gpuSection) {
+                        gpuSection.style.display = enabled ? 'block' : 'none';
+                    }
+                    break;
+                case 'groups':
+                    const groupFilter = document.getElementById('group-filter');
+                    if (groupFilter) {
+                        groupFilter.parentElement.style.display = enabled ? 'block' : 'none';
+                    }
+                    break;
+            }
+        }
+
+        function loadFeatureToggles() {
+            const features = ['graphs', 'files', 'schedules', 'gpu', 'players', 'groups'];
+            features.forEach(feature => {
+                const enabled = localStorage.getItem(`feature-${feature}`) !== 'false';
+                const checkbox = document.getElementById(`feature-${feature}`);
+                if (checkbox) {
+                    checkbox.checked = enabled;
+                    toggleFeature(feature);
+                }
+            });
+        }
+
+        // Theme Functions
+        function setTheme(theme) {
+            localStorage.setItem('theme', theme);
+            // Theme colors would be applied here
+            console.log('Theme set to:', theme);
         }
 
         // Settings functions
@@ -1675,30 +1941,52 @@
             alert(`${action} command sent to ${visibleServers.length} server(s)`);
         }
 
-        // Filter servers by search and status
+        // Search and filter functions
         function filterServers() {
             const searchTerm = document.getElementById('server-search').value.toLowerCase();
             const statusFilter = document.getElementById('status-filter').value;
+            const groupFilter = document.getElementById('group-filter').value;
             
             allServers.forEach(server => {
                 const attrs = server.attributes;
                 const serverCard = document.querySelector(`[onclick*="${attrs.identifier}"]`)?.closest('.bg-gray-900');
-                
                 if (!serverCard) return;
                 
-                // Check search match
                 const matchesSearch = attrs.name.toLowerCase().includes(searchTerm) || 
-                                     attrs.identifier.toLowerCase().includes(searchTerm);
+                                    attrs.identifier.toLowerCase().includes(searchTerm);
                 
-                // Check status match
                 const statusEl = document.getElementById(`status-${attrs.identifier}`);
                 const isRunning = statusEl?.classList.contains('bg-green-600');
                 const matchesStatus = statusFilter === 'all' || 
-                                     (statusFilter === 'running' && isRunning) ||
-                                     (statusFilter === 'offline' && !isRunning);
+                                    (statusFilter === 'running' && isRunning) || 
+                                    (statusFilter === 'offline' && !isRunning);
                 
-                // Show/hide server
-                if (matchesSearch && matchesStatus) {
+                // Group filtering based on server name
+                let matchesGroup = groupFilter === 'all';
+                if (!matchesGroup) {
+                    const serverName = attrs.name.toLowerCase();
+                    switch(groupFilter) {
+                        case 'minecraft':
+                            matchesGroup = serverName.includes('minecraft') || serverName.includes('mc');
+                            break;
+                        case 'rust':
+                            matchesGroup = serverName.includes('rust');
+                            break;
+                        case 'ark':
+                            matchesGroup = serverName.includes('ark');
+                            break;
+                        case 'valheim':
+                            matchesGroup = serverName.includes('valheim');
+                            break;
+                        case 'other':
+                            matchesGroup = !serverName.includes('minecraft') && !serverName.includes('mc') &&
+                                         !serverName.includes('rust') && !serverName.includes('ark') &&
+                                         !serverName.includes('valheim');
+                            break;
+                    }
+                }
+                
+                if (matchesSearch && matchesStatus && matchesGroup) {
                     serverCard.classList.remove('hidden');
                 } else {
                     serverCard.classList.add('hidden');
