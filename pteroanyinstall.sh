@@ -1924,6 +1924,16 @@ main() {
             log_info "Removing Panel installation..."
             rm -rf /var/www/pterodactyl
             
+            # Drop Panel database and users
+            log_info "Removing Panel database and users..."
+            mysql -u root <<EOF 2>/dev/null || true
+DROP DATABASE IF EXISTS panel;
+DROP DATABASE IF EXISTS pterodactyl;
+DROP USER IF EXISTS 'pterodactyl'@'127.0.0.1';
+DROP USER IF EXISTS 'pterodactyl'@'localhost';
+FLUSH PRIVILEGES;
+EOF
+            
             # Remove Wings installation and data
             log_info "Removing Wings nodes and data..."
             rm -rf /etc/pterodactyl
