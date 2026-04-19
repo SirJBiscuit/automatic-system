@@ -103,8 +103,8 @@ detect_network_interfaces() {
     
     # Get all interfaces except loopback, docker, and virtual interfaces
     for iface in $(ip -o link show 2>/dev/null | awk -F': ' '{print $2}'); do
-        # Skip loopback, docker, bridge, and veth interfaces
-        if [[ "$iface" == "lo" ]] || [[ "$iface" == docker* ]] || [[ "$iface" == br-* ]] || [[ "$iface" == veth* ]] || [[ "$iface" == *@* ]]; then
+        # Skip loopback, docker, bridge, and veth interfaces (veth includes @)
+        if [[ "$iface" == "lo" ]] || [[ "$iface" == docker* ]] || [[ "$iface" == br-* ]] || [[ "$iface" == veth* ]]; then
             continue
         fi
         
