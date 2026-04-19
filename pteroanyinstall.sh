@@ -1096,8 +1096,36 @@ install_panel() {
     
     configure_panel_nginx "$PANEL_FQDN"
     
+    echo ""
+    log_info "═══════════════════════════════════════════════════════════════"
+    log_info "                    SSL CERTIFICATE SETUP"
+    log_info "═══════════════════════════════════════════════════════════════"
+    echo ""
+    log_info "EXPLANATION: SSL certificates enable HTTPS for secure connections."
+    log_info "Let's Encrypt provides free SSL certificates that auto-renew."
+    echo ""
+    log_info "✓ Works with Cloudflare (orange cloud enabled)"
+    log_info "✓ Automatically configures Nginx"
+    log_info "✓ Certificates renew automatically every 90 days"
+    log_info "✓ Required for secure Panel access"
+    echo ""
+    log_info "💡 Tip: Answer 'y' to enable HTTPS for your Panel"
+    echo ""
+    
     if prompt_yes_no "Do you want to setup SSL with Let's Encrypt?"; then
+        log_info "Setting up SSL certificate for $PANEL_FQDN..."
         certbot --nginx -d "$PANEL_FQDN" --non-interactive --agree-tos -m "$USER_EMAIL"
+        
+        if [ $? -eq 0 ]; then
+            log_success "SSL certificate installed successfully!"
+            log_info "Your Panel is now accessible at: https://$PANEL_FQDN"
+        else
+            log_warning "SSL setup failed. You can set it up manually later."
+            log_info "Panel is accessible at: http://$PANEL_FQDN"
+        fi
+    else
+        log_info "Skipping SSL setup. Panel will use HTTP only."
+        log_warning "⚠️  Your Panel will not be secure without SSL!"
     fi
     
     systemctl restart nginx
@@ -1235,8 +1263,36 @@ install_wings() {
         log_info "Please paste the configuration (press Ctrl+D when done):"
         cat > /etc/pterodactyl/config.yml
         
+        echo ""
+        log_info "═══════════════════════════════════════════════════════════════"
+        log_info "                 WINGS SSL CERTIFICATE SETUP"
+        log_info "═══════════════════════════════════════════════════════════════"
+        echo ""
+        log_info "EXPLANATION: Wings needs SSL for secure communication with the Panel."
+        log_info "Let's Encrypt provides free SSL certificates that auto-renew."
+        echo ""
+        log_info "✓ Required for Panel-Wings communication"
+        log_info "✓ Certificates renew automatically every 90 days"
+        log_info "✓ Uses standalone mode (port 80 must be available)"
+        echo ""
+        log_info "⚠️  NOTE: Cloudflare proxy must be OFF (gray cloud) for Wings domain!"
+        echo ""
+        log_info "💡 Tip: Answer 'y' to enable SSL for Wings"
+        echo ""
+        
         if prompt_yes_no "Do you want to setup SSL for Wings?"; then
+            log_info "Setting up SSL certificate for $WINGS_FQDN..."
+            systemctl stop wings 2>/dev/null || true
             certbot certonly --standalone -d "$WINGS_FQDN" --non-interactive --agree-tos -m "$USER_EMAIL"
+            
+            if [ $? -eq 0 ]; then
+                log_success "SSL certificate installed successfully!"
+            else
+                log_warning "SSL setup failed. You can set it up manually later."
+            fi
+        else
+            log_info "Skipping SSL setup for Wings."
+            log_warning "⚠️  Wings will not have SSL enabled!"
         fi
         
         cat > /etc/systemd/system/wings.service <<EOF
