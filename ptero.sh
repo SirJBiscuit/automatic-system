@@ -86,6 +86,10 @@ update_discord_bot() {
     git fetch origin
     git reset --hard origin/main
     
+    # Restore execute permissions
+    chmod +x *.sh 2>/dev/null || true
+    find /opt/ptero -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null
+    
     # Copy updated bot files
     echo -e "${BLUE}[INFO]${NC} Copying bot files..."
     cp /opt/ptero/discord-bot/bot.py /opt/pterodactyl-bot/
