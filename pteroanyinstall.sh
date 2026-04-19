@@ -1918,10 +1918,20 @@ main() {
             log_info "Stopping services..."
             systemctl stop wings 2>/dev/null || true
             systemctl stop nginx 2>/dev/null || true
+            pkill -9 nginx 2>/dev/null || true
             
             # Remove Panel installation
             log_info "Removing Panel installation..."
             rm -rf /var/www/pterodactyl
+            
+            # Remove Wings installation and data
+            log_info "Removing Wings nodes and data..."
+            rm -rf /etc/pterodactyl
+            rm -rf /var/lib/pterodactyl
+            rm -f /usr/local/bin/wings
+            systemctl disable wings 2>/dev/null || true
+            rm -f /etc/systemd/system/wings.service
+            systemctl daemon-reload
             
             # Remove broken repository files
             log_info "Cleaning up repository files..."
