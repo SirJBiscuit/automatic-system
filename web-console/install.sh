@@ -51,6 +51,10 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
+# Detect if we're running from the cloned repository (do this BEFORE changing directories)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
+
 # Install dependencies
 echo -e "${BLUE}[1/7]${NC} Installing system dependencies..."
 apt-get update
@@ -64,10 +68,6 @@ cd $WEB_DIR
 
 # Copy files from repository or download if not present
 echo -e "${BLUE}[3/7]${NC} Setting up web console files..."
-
-# Detect if we're running from the cloned repository
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
 
 if [ -f "$SCRIPT_DIR/app.py" ]; then
     # Files exist in repo, copy them
