@@ -1,0 +1,452 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║           PTERODACTYL UNIVERSAL INSTALLER - SETUP GUIDE                  ║
+║                                                                          ║
+║                    Complete Installation Reference                       ║
+║                         Version 1.3.2                                    ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+
+═══════════════════════════════════════════════════════════════════════════
+                        TABLE OF CONTENTS
+═══════════════════════════════════════════════════════════════════════════
+
+1. Network Architecture Overview
+2. Static IP Configuration Guide
+3. Cloudflare DNS & SSL Setup
+4. Installation Prerequisites
+5. Port Requirements
+6. Domain Configuration
+7. Troubleshooting Common Issues
+
+
+═══════════════════════════════════════════════════════════════════════════
+                    1. NETWORK ARCHITECTURE OVERVIEW
+═══════════════════════════════════════════════════════════════════════════
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                  PTERO NETWORK ARCHITECTURE                          ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+                      ┌─────────────┐
+                      │  INTERNET   │
+                      └──────┬──────┘
+                             │
+                      ┌──────▼──────┐
+                      │ CLOUDFLARE  │
+                      │ (DNS + DDoS)│
+                      └──────┬──────┘
+                             │
+                ┌────────────┴────────────┐
+                │                         │
+         ┌──────▼──────┐          ┌──────▼──────┐
+         │    PANEL    │          │    WINGS    │
+         │ :80 / :443  │          │ :8080/:2022 │
+         └──────┬──────┘          └──────┬──────┘
+                │                         │
+       ┌────────┼────────┐       ┌────────┼────────┐
+       │        │        │       │        │        │
+   ┌───▼──┐ ┌──▼──┐ ┌───▼──┐ ┌──▼──┐ ┌───▼───┐ ┌──▼──┐
+   │Nginx │ │MySQL│ │Redis │ │ GPU │ │Docker │ │SFTP │
+   └──────┘ └─────┘ └──────┘ └─────┘ └───────┘ └─────┘
+
+EXPLANATION:
+- Internet traffic comes through Cloudflare for DDoS protection
+- Cloudflare routes to your Panel (web interface) or Wings (game servers)
+- Panel uses Nginx (web server), MySQL (database), Redis (cache)
+- Wings uses Docker (containers), GPU (optional), SFTP (file transfer)
+
+
+═══════════════════════════════════════════════════════════════════════════
+                    2. STATIC IP CONFIGURATION GUIDE
+═══════════════════════════════════════════════════════════════════════════
+
+WHAT IS A STATIC IP?
+--------------------
+A static IP is a permanent local IP address that doesn't change when your
+server reboots. This is crucial for Pterodactyl because:
+  • DNS records point to your IP
+  • Services bind to specific IPs
+  • Prevents connectivity issues after reboots
+
+WHEN DO YOU NEED IT?
+--------------------
+✓ YES - If your server uses DHCP (dynamic IP assignment)
+✓ YES - If you don't have DHCP reservation set up on your router
+✗ NO  - If your router has DHCP reservation configured for this server
+✗ NO  - If you're using a VPS/cloud server (already has static IP)
+
+HOW TO CONFIGURE STATIC IP:
+---------------------------
+
+Option 1: During Installation (Recommended)
+-------------------------------------------
+The installer will ask:
+  "Do you want to configure a static IP now? (y/n)"
+
+Answer 'y' and provide:
+  1. Static IP: Your desired IP (e.g., 192.168.1.107)
+  2. Gateway IP: Your router's IP (e.g., 192.168.1.1)
+  3. DNS Server: Google DNS (8.8.8.8) or your preference
+
+💡 TIP: Press Enter to accept the auto-detected defaults!
+
+Option 2: Manual Configuration (Ubuntu/Debian with Netplan)
+-----------------------------------------------------------
+1. Edit netplan configuration:
+   sudo nano /etc/netplan/01-netcfg.yaml
+
+2. Add this configuration:
+   network:
+     version: 2
+     renderer: networkd
+     ethernets:
+       enp6s0:  # Replace with your interface name
+         dhcp4: no
+         addresses:
+           - 192.168.1.107/24  # Your static IP
+         routes:
+           - to: default
+             via: 192.168.1.1  # Your gateway
+         nameservers:
+           addresses: [8.8.8.8, 1.1.1.1]
+
+3. Apply changes:
+   sudo netplan apply
+
+Option 3: DHCP Reservation (Router-side)
+-----------------------------------------
+1. Log into your router's admin panel
+2. Find DHCP settings
+3. Add a reservation for your server's MAC address
+4. Assign it a specific IP address
+5. Reboot server to get the reserved IP
+
+FINDING YOUR NETWORK INFO:
+--------------------------
+• Current IP:    ip -4 addr show
+• Gateway:       ip route | grep default
+• Interface:     ip link show
+• MAC Address:   ip link show | grep ether
+
+
+═══════════════════════════════════════════════════════════════════════════
+                    3. CLOUDFLARE DNS & SSL SETUP
+═══════════════════════════════════════════════════════════════════════════
+
+WHY USE CLOUDFLARE?
+-------------------
+✓ Free SSL certificates (automatic renewal)
+✓ DDoS protection for your panel
+✓ DNS management
+✓ CDN for faster loading
+✓ Analytics and security features
+
+CLOUDFLARE SETUP PROCESS:
+--------------------------
+
+Step 1: Create Cloudflare Account
+----------------------------------
+1. Go to https://cloudflare.com
+2. Sign up for a free account
+3. Add your domain to Cloudflare
+4. Update your domain's nameservers at your registrar
+
+Step 2: Get API Token (For SSL)
+--------------------------------
+1. Go to https://dash.cloudflare.com/profile/api-tokens
+2. Click "Create Token"
+3. Click "Create Custom Token"
+4. Set token name: "Pterodactyl DNS"
+5. Add permissions:
+   • Zone → DNS → Edit
+   • Zone → Zone → Read
+6. Under "Zone Resources":
+   • Include → Specific zone → [your domain]
+7. Click "Continue to summary"
+8. Click "Create Token"
+9. COPY THE TOKEN (shown only once!)
+
+Step 3: Get Zone ID
+--------------------
+1. Go to https://dash.cloudflare.com
+2. Click on your domain
+3. Scroll down on the Overview page
+4. Find "Zone ID" in the right sidebar (32 hex characters)
+5. Click to copy
+
+Step 4: Configure DNS Records
+------------------------------
+In Cloudflare DNS settings, add these records:
+
+For Panel:
+  Type: A
+  Name: panel (or your subdomain)
+  Content: YOUR_SERVER_IP
+  Proxy: ON (orange cloud)
+
+For Wings:
+  Type: A
+  Name: node1 (or your node name)
+  Content: YOUR_SERVER_IP
+  Proxy: OFF (gray cloud) - Important for game servers!
+
+For SFTP:
+  Type: A
+  Name: sftp
+  Content: YOUR_SERVER_IP
+  Proxy: OFF (gray cloud)
+
+Step 5: SSL/TLS Settings
+-------------------------
+1. Go to SSL/TLS tab in Cloudflare
+2. Set encryption mode to "Full (strict)"
+3. Enable "Always Use HTTPS"
+4. Enable "Automatic HTTPS Rewrites"
+
+HOW CLOUDFLARE WORKS:
+---------------------
+
+┌──────────┐      ┌────────────┐      ┌──────────┐
+│  User    │─────▶│ Cloudflare │─────▶│  Your    │
+│ Browser  │◀─────│   Proxy    │◀─────│  Server  │
+└──────────┘      └────────────┘      └──────────┘
+                        │
+                        ├─ DDoS Protection
+                        ├─ SSL Certificate
+                        ├─ Caching
+                        └─ Analytics
+
+Traffic Flow:
+1. User visits panel.yourdomain.com
+2. DNS resolves to Cloudflare's IP
+3. Cloudflare proxies request to your server
+4. Cloudflare provides SSL encryption
+5. Your server responds
+6. Cloudflare caches and delivers response
+
+
+═══════════════════════════════════════════════════════════════════════════
+                    4. INSTALLATION PREREQUISITES
+═══════════════════════════════════════════════════════════════════════════
+
+SYSTEM REQUIREMENTS:
+--------------------
+✓ Ubuntu 20.04/22.04 or Debian 11/12
+✓ 2GB RAM minimum (4GB+ recommended)
+✓ 20GB disk space minimum
+✓ Root or sudo access
+✓ Fresh server installation (recommended)
+
+BEFORE YOU START:
+-----------------
+1. Domain name registered and pointed to Cloudflare
+2. Server with static IP or DHCP reservation
+3. Cloudflare API token and Zone ID ready
+4. Email address for SSL certificates
+5. Firewall ports opened (see Port Requirements)
+
+NETWORK REQUIREMENTS:
+---------------------
+• Stable internet connection
+• Public IP address (or port forwarding)
+• No ISP blocking of required ports
+• IPv4 address (IPv6 optional)
+
+
+═══════════════════════════════════════════════════════════════════════════
+                    5. PORT REQUIREMENTS
+═══════════════════════════════════════════════════════════════════════════
+
+PANEL PORTS:
+------------
+80   (HTTP)  - Web traffic, redirects to HTTPS
+443  (HTTPS) - Secure web traffic
+3306 (MySQL) - Database (localhost only, not exposed)
+6379 (Redis) - Cache (localhost only, not exposed)
+
+WINGS PORTS:
+------------
+8080 (HTTP)  - Wings API communication
+2022 (SFTP)  - File transfer for game servers
+443  (HTTPS) - Secure Wings API
+25565+       - Game server ports (varies by game)
+
+FIREWALL CONFIGURATION:
+-----------------------
+
+For UFW (Ubuntu/Debian):
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 8080/tcp
+sudo ufw allow 2022/tcp
+sudo ufw allow 25565:25665/tcp  # Game ports range
+sudo ufw enable
+
+For firewalld (CentOS/RHEL):
+sudo firewall-cmd --permanent --add-port=80/tcp
+sudo firewall-cmd --permanent --add-port=443/tcp
+sudo firewall-cmd --permanent --add-port=8080/tcp
+sudo firewall-cmd --permanent --add-port=2022/tcp
+sudo firewall-cmd --permanent --add-port=25565-25665/tcp
+sudo firewall-cmd --reload
+
+ROUTER PORT FORWARDING:
+-----------------------
+If behind a router, forward these ports to your server's local IP:
+• 80 → Server IP
+• 443 → Server IP
+• 8080 → Server IP
+• 2022 → Server IP
+• 25565-25665 → Server IP (for game servers)
+
+
+═══════════════════════════════════════════════════════════════════════════
+                    6. DOMAIN CONFIGURATION
+═══════════════════════════════════════════════════════════════════════════
+
+RECOMMENDED SUBDOMAIN STRUCTURE:
+---------------------------------
+panel.yourdomain.com  - Main panel interface
+node1.yourdomain.com  - Wings node 1
+node2.yourdomain.com  - Wings node 2 (if multiple)
+sftp.yourdomain.com   - SFTP access
+
+EXAMPLE DNS SETUP:
+------------------
+Type  Name    Content           Proxy  TTL
+A     panel   143.103.18.56     ON     Auto
+A     node1   143.103.18.56     OFF    Auto
+A     sftp    143.103.18.56     OFF    Auto
+
+⚠️  IMPORTANT: Game server nodes MUST have proxy OFF (gray cloud)
+    Otherwise, game connections will fail!
+
+WILDCARD DNS (Optional):
+------------------------
+For automatic subdomains:
+Type  Name    Content           Proxy  TTL
+A     *       143.103.18.56     OFF    Auto
+
+This allows any subdomain to work without manual DNS entries.
+
+
+═══════════════════════════════════════════════════════════════════════════
+                    7. TROUBLESHOOTING COMMON ISSUES
+═══════════════════════════════════════════════════════════════════════════
+
+ISSUE: "Network interface list not showing"
+SOLUTION:
+- Wait for latest version: curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash
+- Manually check: ip -br addr show
+- Select interface by number when prompted
+
+ISSUE: "Static IP configuration failed"
+SOLUTION:
+- Choose 'n' to skip and use DHCP
+- Configure DHCP reservation on your router instead
+- Or manually configure after installation
+
+ISSUE: "Cloudflare SSL not working"
+SOLUTION:
+- Verify API token has correct permissions
+- Check Zone ID is correct (32 hex characters)
+- Ensure DNS records are set correctly
+- Wait 5-10 minutes for DNS propagation
+
+ISSUE: "Cannot access panel after installation"
+SOLUTION:
+- Check firewall: sudo ufw status
+- Verify Nginx is running: sudo systemctl status nginx
+- Check DNS: ping panel.yourdomain.com
+- Review logs: sudo tail -f /var/log/nginx/error.log
+
+ISSUE: "Game servers can't connect"
+SOLUTION:
+- Ensure Wings node DNS has proxy OFF in Cloudflare
+- Check Wings is running: sudo systemctl status wings
+- Verify ports are open: sudo netstat -tulpn | grep 25565
+- Check Docker: sudo docker ps
+
+ISSUE: "SFTP not working"
+SOLUTION:
+- Verify port 2022 is open
+- Check Wings logs: sudo journalctl -u wings -n 50
+- Test connection: sftp -P 2022 user@sftp.yourdomain.com
+
+USEFUL COMMANDS:
+----------------
+Check service status:
+  sudo systemctl status nginx
+  sudo systemctl status wings
+  sudo systemctl status mariadb
+  sudo systemctl status redis
+
+View logs:
+  sudo tail -f /var/log/nginx/error.log
+  sudo journalctl -u wings -f
+  sudo tail -f /var/www/pterodactyl/storage/logs/laravel.log
+
+Restart services:
+  sudo systemctl restart nginx
+  sudo systemctl restart wings
+  sudo systemctl restart mariadb
+
+Check network:
+  ip addr show
+  ip route
+  netstat -tulpn
+  ss -tulpn
+
+
+═══════════════════════════════════════════════════════════════════════════
+                    QUICK INSTALLATION CHECKLIST
+═══════════════════════════════════════════════════════════════════════════
+
+□ Domain registered and added to Cloudflare
+□ Cloudflare nameservers configured at registrar
+□ Cloudflare API token created with DNS permissions
+□ Cloudflare Zone ID copied
+□ DNS A records created for panel and nodes
+□ Server has static IP or DHCP reservation
+□ Firewall ports opened (80, 443, 8080, 2022, 25565+)
+□ Router port forwarding configured (if applicable)
+□ Email address ready for SSL certificates
+□ Fresh Ubuntu/Debian server with root access
+
+INSTALLATION COMMAND:
+---------------------
+curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash
+
+Then run:
+cd /opt/ptero
+./pteroanyinstall.sh install-full
+
+
+═══════════════════════════════════════════════════════════════════════════
+                    ADDITIONAL RESOURCES
+═══════════════════════════════════════════════════════════════════════════
+
+Official Pterodactyl Documentation:
+https://pterodactyl.io/project/introduction.html
+
+Cloudflare Documentation:
+https://developers.cloudflare.com/
+
+Community Support:
+Discord: https://discord.gg/pterodactyl
+Forums: https://community.pterodactyl.io/
+
+GitHub Repository:
+https://github.com/SirJBiscuit/automatic-system
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+                    🎉 HAPPY HOSTING! 🎉
+
+    For help, run: ./pteroanyinstall.sh help
+    For updates, the system checks automatically every 24 hours
+
+═══════════════════════════════════════════════════════════════════════════
