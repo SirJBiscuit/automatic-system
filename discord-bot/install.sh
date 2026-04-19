@@ -56,25 +56,62 @@ curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/di
 curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/discord-bot/requirements.txt -o requirements.txt
 curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/discord-bot/.env.example -o .env.example
 
-# Install Python packages
+# Create virtual environment
+log_info "Setting up Python virtual environment..."
+python3 -m venv $BOT_DIR/venv
+
+# Install Python packages in venv
 log_info "Installing Python packages..."
-pip3 install -r requirements.txt
+$BOT_DIR/venv/bin/pip install --upgrade pip
+$BOT_DIR/venv/bin/pip install -r requirements.txt
 
 # Create .env file
 if [ ! -f .env ]; then
     log_info "Creating .env configuration file..."
-    cp .env.example .env
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  🤖 DISCORD BOT CONFIGURATION"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "How to get a Discord Bot Token:"
+    echo "  1. Go to https://discord.com/developers/applications"
+    echo "  2. Click 'New Application' and give it a name"
+    echo "  3. Go to 'Bot' tab → Click 'Add Bot'"
+    echo "  4. Under 'Token', click 'Reset Token' → Copy it"
+    echo ""
+    read -e -p "Enter your Discord Bot Token: " DISCORD_TOKEN
+    echo ""
+    
+    echo "Pterodactyl Panel Configuration:"
+    echo ""
+    read -e -p "Enter your Panel URL (e.g., panel.cloudmc.online): " PANEL_URL
+    
+    # Add https:// if not present
+    if [[ ! "$PANEL_URL" =~ ^https?:// ]]; then
+        PANEL_URL="https://$PANEL_URL"
+        echo "  → Added https:// prefix: $PANEL_URL"
+    fi
     
     echo ""
-    log_warning "Please configure the .env file with your credentials:"
-    echo ""
-    echo "  1. Discord Bot Token"
-    echo "  2. Pterodactyl URL and API Key"
-    echo "  3. Anthropic API Key (for P.R.I.S.M AI)"
+    echo "ℹ️  Use a Client API key (starts with ptlc_), not Application key"
+    read -e -p "Enter your Pterodactyl API Key: " PTERO_API_KEY
     echo ""
     
-    read -p "Press Enter to edit .env file..."
-    nano .env
+    # Create .env file
+    cat > .env <<ENVEOF
+# Discord Bot Configuration
+DISCORD_TOKEN=$DISCORD_TOKEN
+
+# Pterodactyl Configuration
+PTERODACTYL_URL=$PANEL_URL
+PTERODACTYL_API_KEY=$PTERO_API_KEY
+
+# Optional: P.R.I.S.M AI Integration (leave empty to disable)
+ANTHROPIC_API_KEY=
+ENVEOF
+    
+    chmod 600 .env
+    log_success "Configuration saved!"
 else
     log_success ".env file already exists"
 fi
@@ -91,7 +128,7 @@ Type=simple
 User=root
 WorkingDirectory=$BOT_DIR
 EnvironmentFile=$BOT_DIR/.env
-ExecStart=/usr/bin/python3 $BOT_DIR/bot.py
+ExecStart=$BOT_DIR/venv/bin/python $BOT_DIR/bot.py
 Restart=always
 RestartSec=10
 
