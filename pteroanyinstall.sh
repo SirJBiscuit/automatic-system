@@ -341,6 +341,13 @@ check_dns() {
         return 1
     fi
     
+    # Check if it's a Cloudflare proxy IP (starts with 172. or 104. or 162. or 188.)
+    if [[ "$resolved_ip" =~ ^(172\.|104\.|162\.|188\.) ]]; then
+        log_success "DNS points to Cloudflare proxy ($resolved_ip) - This is correct for proxied domains"
+        log_info "💡 Cloudflare proxy is enabled (orange cloud). This is good for the Panel."
+        return 0
+    fi
+    
     if [ "$resolved_ip" == "$expected_ip" ]; then
         log_success "DNS correctly points to $expected_ip"
         return 0
@@ -1004,8 +1011,16 @@ setup_firewall() {
 install_panel() {
     log_info "Installing Ptero Panel..."
     
+    # Ensure PUBLIC_IP is set
+    if [ -z "$PUBLIC_IP" ]; then
+        PUBLIC_IP=$(get_public_ip)
+    fi
+    
     echo ""
-    log_info "Your public IP address: $PUBLIC_IP"
+    echo "════════════════════════════════════════════════════════════"
+    log_info "📍 Your public IP address: $PUBLIC_IP"
+    log_info "💡 Point your domain's DNS A record to this IP"
+    echo "════════════════════════════════════════════════════════════"
     echo ""
     
     PANEL_FQDN=$(prompt_input "Enter Panel FQDN (e.g., panel.example.com)")
@@ -1169,8 +1184,16 @@ install_redis() {
 install_wings() {
     log_info "Installing Ptero Wings..."
     
+    # Ensure PUBLIC_IP is set
+    if [ -z "$PUBLIC_IP" ]; then
+        PUBLIC_IP=$(get_public_ip)
+    fi
+    
     echo ""
-    log_info "Your public IP address: $PUBLIC_IP"
+    echo "════════════════════════════════════════════════════════════"
+    log_info "📍 Your public IP address: $PUBLIC_IP"
+    log_info "💡 Point your domain's DNS A record to this IP"
+    echo "════════════════════════════════════════════════════════════"
     echo ""
     
     WINGS_FQDN=$(prompt_input "Enter Wings FQDN (e.g., node.example.com)")
