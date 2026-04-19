@@ -75,7 +75,7 @@ check_system_resources() {
     echo "  Available Disk: ${AVAILABLE_DISK}GB"
     echo ""
     
-    # Gemma2:1b requires ~1GB RAM, ~2GB disk
+    # Llama 3.2 1B requires ~1GB RAM, ~2GB disk
     if [ "$AVAILABLE_RAM" -lt 2 ]; then
         log_warning "Low RAM detected. AI assistant may impact performance."
         if ! prompt_yes_no "Continue anyway?"; then
@@ -95,35 +95,35 @@ ask_llm_usage() {
     log_info "AI Model Selection"
     echo ""
     log_info "EXPLANATION: If you plan to use this panel for hosting LLM game servers,"
-    log_info "we'll use the lightweight Gemma2:1b model to minimize resource usage."
-    log_info "Otherwise, we can use Gemma2:4b for better performance."
+    log_info "we'll use the lightweight Llama 3.2 1B model to minimize resource usage."
+    log_info "Otherwise, we can use Gemma2 2B for better performance."
     echo ""
     
     if prompt_yes_no "Will this panel be used for hosting LLM-based game servers?"; then
         LLM_HOSTING=true
-        AI_MODEL="gemma2:1b"
-        log_info "Using Gemma2:1b (lightweight, ~1GB RAM) to preserve resources for game servers"
+        AI_MODEL="llama3.2:1b"
+        log_info "Using Llama 3.2 1B (lightweight, ~1GB RAM) to preserve resources for game servers"
     else
         LLM_HOSTING=false
         echo ""
         echo "Select AI model:"
-        echo "  1) Gemma2:1b (Lightweight, ~1GB RAM, faster responses)"
-        echo "  2) Gemma2:4b (Better accuracy, ~4GB RAM, slower responses)"
+        echo "  1) Llama 3.2 1B (Lightweight, ~1GB RAM, faster responses)"
+        echo "  2) Gemma2 2B (Better accuracy, ~2GB RAM, good balance)"
         echo ""
         read -p "Select [1-2]: " model_choice
         
         case $model_choice in
             1)
-                AI_MODEL="gemma2:1b"
-                log_info "Using Gemma2:1b"
+                AI_MODEL="llama3.2:1b"
+                log_info "Using Llama 3.2 1B"
                 ;;
             2)
-                AI_MODEL="gemma2:4b"
-                log_info "Using Gemma2:4b"
+                AI_MODEL="gemma2:2b"
+                log_info "Using Gemma2 2B"
                 ;;
             *)
-                AI_MODEL="gemma2:1b"
-                log_info "Defaulting to Gemma2:1b"
+                AI_MODEL="llama3.2:1b"
+                log_info "Defaulting to Llama 3.2 1B"
                 ;;
         esac
     fi
@@ -194,7 +194,7 @@ def load_config():
     except:
         return {
             "enabled": True,
-            "model": "gemma2:1b",
+            "model": "llama3.2:1b",
             "check_interval": 300,
             "auto_fix": True,
             "notify_admin": True
@@ -204,7 +204,7 @@ def save_config(config):
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f, indent=2)
 
-def query_ollama(prompt, model="gemma2:1b"):
+def query_ollama(prompt, model="llama3.2:1b"):
     """Query Ollama API"""
     try:
         response = requests.post(
@@ -334,7 +334,7 @@ Identify any issues and provide:
 Keep response concise and actionable. Format: SEVERITY: description | actions
 """
     
-    return query_ollama(context, load_config().get("model", "gemma2:1b"))
+    return query_ollama(context, load_config().get("model", "llama3.2:1b"))
 
 def auto_fix_issues(metrics, config):
     """Automatically fix common issues"""
@@ -1284,7 +1284,7 @@ Configuration:
   
   Settings:
     - enabled: true/false
-    - model: gemma2:1b or gemma2:4b
+    - model: llama3.2:1b or gemma2:2b
     - check_interval: seconds between checks (default: 300)
     - auto_fix: automatically fix issues (default: true)
     - notify_admin: send notifications (default: true)
