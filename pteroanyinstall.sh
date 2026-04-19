@@ -1496,6 +1496,7 @@ main() {
     
     case "${1:-}" in
         install-panel)
+            clear
             log_info "Starting Panel installation..."
             
             setup_network_wizard
@@ -1531,6 +1532,7 @@ main() {
             ;;
             
         install-wings)
+            clear
             log_info "Starting Wings installation..."
             
             setup_network_wizard
@@ -1560,6 +1562,7 @@ main() {
             ;;
             
         install-full)
+            clear
             log_info "Starting full Ptero installation..."
             
             setup_network_wizard
