@@ -48,13 +48,26 @@ apt-get install -y python3 python3-pip python3-venv git
 BOT_DIR="/opt/pterodactyl-bot"
 log_info "Creating bot directory: $BOT_DIR"
 mkdir -p $BOT_DIR
-cd $BOT_DIR
 
-# Download bot files
-log_info "Downloading bot files..."
-curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/discord-bot/bot.py -o bot.py
-curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/discord-bot/requirements.txt -o requirements.txt
-curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/discord-bot/.env.example -o .env.example
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Copy bot files from local repo or download from GitHub
+log_info "Setting up bot files..."
+if [ -f "$SCRIPT_DIR/bot.py" ]; then
+    log_info "Copying files from local repository..."
+    cp "$SCRIPT_DIR/bot.py" $BOT_DIR/
+    cp "$SCRIPT_DIR/requirements.txt" $BOT_DIR/
+    cp "$SCRIPT_DIR/.env.example" $BOT_DIR/
+    [ -f "$SCRIPT_DIR/voice_handler.py" ] && cp "$SCRIPT_DIR/voice_handler.py" $BOT_DIR/
+else
+    log_info "Downloading bot files from GitHub..."
+    curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/discord-bot/bot.py -o $BOT_DIR/bot.py
+    curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/discord-bot/requirements.txt -o $BOT_DIR/requirements.txt
+    curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/discord-bot/.env.example -o $BOT_DIR/.env.example
+fi
+
+cd $BOT_DIR
 
 # Create virtual environment
 log_info "Setting up Python virtual environment..."
