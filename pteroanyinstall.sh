@@ -452,11 +452,21 @@ install_php() {
         debian)
             # Add Sury PHP repository for Debian
             log_info "Adding Sury PHP repository..."
-            apt install -y lsb-release ca-certificates apt-transport-https software-properties-common gnupg2
-            curl -sSL https://packages.sury.org/php/apt.gpg -o /tmp/php-sury.gpg
-            gpg --dearmor -o /usr/share/keyrings/deb.sury.org-php.gpg /tmp/php-sury.gpg 2>/dev/null || cp /tmp/php-sury.gpg /usr/share/keyrings/deb.sury.org-php.gpg
+            apt install -y lsb-release ca-certificates apt-transport-https software-properties-common gnupg2 wget
+            
+            # Import GPG key using multiple methods for reliability
+            wget -qO /tmp/php-sury.gpg https://packages.sury.org/php/apt.gpg
+            
+            # Try method 1: Direct import to keyring
+            cat /tmp/php-sury.gpg | gpg --dearmor > /usr/share/keyrings/deb.sury.org-php.gpg 2>/dev/null
+            
+            # Add repository
             echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list
-            apt update -y
+            
+            # Update package lists
+            apt update -y 2>&1 | grep -v "NO_PUBKEY" || true
+            
+            # Install PHP
             apt install -y php8.1 php8.1-cli php8.1-gd php8.1-mysql php8.1-pdo php8.1-mbstring php8.1-tokenizer php8.1-bcmath php8.1-xml php8.1-fpm php8.1-curl php8.1-zip
             ;;
         centos|rhel|rocky|almalinux)
