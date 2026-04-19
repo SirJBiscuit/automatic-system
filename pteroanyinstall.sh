@@ -564,19 +564,16 @@ setup_network_wizard() {
     echo ""
     log_info "EXPLANATION: We'll now detect your public IP address."
     log_info "This is the IP address that the internet sees when connecting to your server."
+    echo ""
     
     AUTO_PUBLIC_IP=$(get_public_ip)
     
+    echo ""
     if [ -n "$AUTO_PUBLIC_IP" ]; then
-        PUBLIC_IP=$(prompt_with_explanation \
-            "Confirm or enter your public IP" \
-            "Auto-detected: $AUTO_PUBLIC_IP. Press Enter to use this, or type a different IP." \
-            "$AUTO_PUBLIC_IP")
+        PUBLIC_IP=$(prompt_input "Confirm or enter your public IP" "$AUTO_PUBLIC_IP")
     else
-        PUBLIC_IP=$(prompt_with_explanation \
-            "Enter your public IP address" \
-            "Could not auto-detect. Please enter your public IP manually." \
-            "")
+        log_warning "Could not auto-detect public IP"
+        PUBLIC_IP=$(prompt_input "Enter your public IP address" "")
     fi
     
     echo ""
