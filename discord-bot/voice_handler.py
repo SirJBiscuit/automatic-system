@@ -445,6 +445,7 @@ def setup_voice_commands(bot, prism_client=None):
             
             # Try local chatbot with enhanced question
             try:
+                print(f"📤 Sending to chatbot: {enhanced_question[:100]}...")
                 result = subprocess.run(
                     ['chatbot', 'ask', enhanced_question],
                     capture_output=True,
@@ -452,11 +453,20 @@ def setup_voice_commands(bot, prism_client=None):
                     timeout=30
                 )
                 
+                print(f"📥 Chatbot return code: {result.returncode}")
+                print(f"📥 Chatbot stdout: {result.stdout[:200] if result.stdout else 'None'}")
+                print(f"📥 Chatbot stderr: {result.stderr[:200] if result.stderr else 'None'}")
+                
                 if result.returncode == 0 and result.stdout:
                     answer = result.stdout.strip()
                     
+                    # Remove "Asking AI..." prefix if present
+                    if answer.startswith("Asking AI..."):
+                        answer = answer.replace("Asking AI...", "").strip()
+                    
                     # Check if answer is valid
                     if answer and answer != 'null' and len(answer) > 0:
+                        print(f"✅ Valid answer received: {len(answer)} chars")
                         # Send text
                         embed = discord.Embed(
                             title='🎤 P.R.I.S.M Voice Response',
@@ -469,10 +479,12 @@ def setup_voice_commands(bot, prism_client=None):
                         await voice_handler.speak_response(ctx, answer)
                         return
                     else:
-                        print(f"Chatbot returned empty/null response")
+                        print(f"❌ Chatbot returned empty/null response: '{answer}'")
                     
             except Exception as e:
-                print(f"Local chatbot error: {e}")
+                print(f"❌ Local chatbot error: {e}")
+                import traceback
+                traceback.print_exc()
             
             # Fallback to Anthropic
             if not prism_client:
