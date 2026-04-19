@@ -725,10 +725,10 @@ PHP Max Execution Time: $(php -r "echo ini_get('max_execution_time');" 2>/dev/nu
 
 === MYSQL/MARIADB ===
 $(mysql -V 2>/dev/null || echo "MySQL not accessible")
-InnoDB Buffer Pool: $(mysql -e "SHOW VARIABLES LIKE 'innodb_buffer_pool_size';" 2>/dev/null | tail -1 | awk '{print $2}' || echo "unknown")
+InnoDB Buffer Pool: $(mysql -e "SHOW VARIABLES LIKE 'innodb_buffer_pool_size';" 2>/dev/null | tail -1 | awk '{print int($2/1024/1024) " MB"}' || echo "unknown")
 
 === NGINX ===
-$(nginx -v 2>&1 || echo "Nginx not found")
+$(/usr/sbin/nginx -v 2>&1 || /usr/local/nginx/sbin/nginx -v 2>&1 || echo "Nginx not found")
 Worker Processes: $(grep worker_processes /etc/nginx/nginx.conf 2>/dev/null | head -1 || echo "unknown")
 
 === REDIS ===
@@ -754,8 +754,14 @@ Nginx Errors (last 24h): $(grep -c error /var/log/nginx/error.log 2>/dev/null ||
         echo ""
         
         # Build JSON payload with proper escaping using jq
-        PROMPT="Analyze this Pterodactyl server and suggest 3-5 specific optimizations. Keep it concise.
+        PROMPT="You are a Pterodactyl server expert. Analyze this system and provide 3-5 specific, actionable optimizations. For each recommendation:
+1. State the issue clearly
+2. Explain why it matters
+3. Give the exact command or config change needed
 
+Focus on: performance bottlenecks, security issues, resource optimization, and service configuration.
+
+System Info:
 $SYSTEM_INFO"
         
         # Create JSON payload
