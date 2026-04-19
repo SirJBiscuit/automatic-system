@@ -436,8 +436,12 @@ def setup_voice_commands(bot, prism_client=None):
             # Build enhanced question with context
             enhanced_question = question
             if servers_data:
-                server_context = json.dumps(servers_data, indent=2)
-                enhanced_question = f"Current servers:\n{server_context}\n\nQuestion: {question}"
+                # Create a simple text summary
+                server_summary = []
+                for s in servers_data:
+                    server_summary.append(f"{s['name']}: {s['status']} (CPU: {s['cpu']}, RAM: {s['memory']})")
+                server_text = "; ".join(server_summary)
+                enhanced_question = f"My servers: {server_text}. Question: {question}"
             
             # Try local chatbot with enhanced question
             try:
@@ -451,17 +455,21 @@ def setup_voice_commands(bot, prism_client=None):
                 if result.returncode == 0 and result.stdout:
                     answer = result.stdout.strip()
                     
-                    # Send text
-                    embed = discord.Embed(
-                        title='🎤 P.R.I.S.M Voice Response',
-                        description=answer,
-                        color=discord.Color.purple()
-                    )
-                    await ctx.send(embed=embed)
-                    
-                    # Speak answer
-                    await voice_handler.speak_response(ctx, answer)
-                    return
+                    # Check if answer is valid
+                    if answer and answer != 'null' and len(answer) > 0:
+                        # Send text
+                        embed = discord.Embed(
+                            title='🎤 P.R.I.S.M Voice Response',
+                            description=answer,
+                            color=discord.Color.purple()
+                        )
+                        await ctx.send(embed=embed)
+                        
+                        # Speak answer
+                        await voice_handler.speak_response(ctx, answer)
+                        return
+                    else:
+                        print(f"Chatbot returned empty/null response")
                     
             except Exception as e:
                 print(f"Local chatbot error: {e}")
