@@ -1178,9 +1178,8 @@ setup_cloudflare() {
     log_info "  Step 4: Find 'Zone ID' in the right sidebar"
     log_info "  Step 5: Click to copy"
     echo ""
-    echo -n "Press Enter when you're ready to continue..."
-    read -r -s
-    echo ""
+    echo -ne "${CYAN}Press Enter when you're ready to continue...${NC} "
+    read -r
     echo ""
     
     CF_API_TOKEN=$(prompt_input "Enter Cloudflare API Token (or leave empty to skip)")
