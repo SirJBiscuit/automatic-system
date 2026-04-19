@@ -603,6 +603,7 @@ setup_network_wizard() {
     
     echo ""
     if [ -n "$AUTO_PUBLIC_IP" ]; then
+        log_info "💡 Tip: Press Enter to use the detected IP, or type a different one"
         PUBLIC_IP=$(prompt_input "Confirm or enter your public IP" "$AUTO_PUBLIC_IP")
     else
         log_warning "Could not auto-detect public IP"
