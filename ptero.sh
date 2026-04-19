@@ -49,10 +49,16 @@ show_menu() {
     echo "  16) Restart tunnel"
     echo "  17) View tunnel logs"
     echo ""
+    echo -e "${GREEN}DISCORD BOT:${NC}"
+    echo "  18) Start Discord bot"
+    echo "  19) Stop Discord bot"
+    echo "  20) Restart Discord bot"
+    echo "  21) View Discord bot logs"
+    echo ""
     echo -e "${GREEN}OTHER:${NC}"
-    echo "  18) Install/Setup P.R.I.S.M"
-    echo "  19) Open shell in /opt/ptero"
-    echo "  20) Help - What does each option do?"
+    echo "  22) Install/Setup P.R.I.S.M"
+    echo "  23) Open shell in /opt/ptero"
+    echo "  24) Help - What does each option do?"
     echo ""
     echo "  0) Exit"
     echo ""
@@ -274,22 +280,47 @@ CLOUDFLARE TUNNEL:
     • Useful for debugging 502 errors
 
 
+DISCORD BOT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+18) Start Discord bot
+    • Starts the Pterodactyl Discord bot service
+    • Enables Discord commands for server management
+    • Use when bot is stopped
+
+19) Stop Discord bot
+    • Stops the Discord bot service
+    • Bot goes offline in Discord
+    • Use for maintenance or troubleshooting
+
+20) Restart Discord bot
+    • Stops then starts the bot service
+    • Use after updating bot code
+    • Use if bot is stuck or not responding
+
+21) View Discord bot logs
+    • Real-time logs from the Discord bot
+    • See command usage, errors, connections
+    • Press Ctrl+C to exit
+    • Useful for debugging bot issues
+
+
 OTHER:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-18) Install/Setup P.R.I.S.M
+22) Install/Setup P.R.I.S.M
     • Runs the full P.R.I.S.M installation script
     • Use for first-time setup
     • Use to reinstall if P.R.I.S.M is broken
     • Downloads AI model (takes 5-10 minutes)
 
-19) Open shell in /opt/ptero
+23) Open shell in /opt/ptero
     • Opens a bash shell in the scripts directory
     • For advanced users who want to run custom commands
     • Type 'exit' to return to menu
     • Be careful - you can break things here!
 
-20) Help - What does each option do?
+24) Help - What does each option do?
     • Shows this help screen
     • Use arrow keys or Page Up/Down to scroll
     • Press 'q' to exit help
@@ -331,9 +362,13 @@ while true; do
         15) systemctl stop cloudflared; echo "Tunnel stopped"; read -e -p "Press Enter to continue..." ;;
         16) systemctl restart cloudflared; echo "Tunnel restarted"; read -e -p "Press Enter to continue..." ;;
         17) journalctl -u cloudflared -f ;;
-        18) cd /opt/ptero && ./ai-assistant-setup.sh ;;
-        19) cd /opt/ptero && bash ;;
-        20) show_help ;;
+        18) systemctl start pterodactyl-bot; echo "Discord bot started"; read -e -p "Press Enter to continue..." ;;
+        19) systemctl stop pterodactyl-bot; echo "Discord bot stopped"; read -e -p "Press Enter to continue..." ;;
+        20) systemctl restart pterodactyl-bot; echo "Discord bot restarted"; read -e -p "Press Enter to continue..." ;;
+        21) journalctl -u pterodactyl-bot -f ;;
+        22) cd /opt/ptero && ./ai-assistant-setup.sh ;;
+        23) cd /opt/ptero && bash ;;
+        24) show_help ;;
         0) echo "Goodbye!"; exit 0 ;;
         *) echo -e "${RED}Invalid option${NC}"; sleep 1 ;;
     esac
