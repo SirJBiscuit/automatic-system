@@ -1004,8 +1004,12 @@ setup_firewall() {
 install_panel() {
     log_info "Installing Ptero Panel..."
     
+    echo ""
+    log_info "Your public IP address: $PUBLIC_IP"
+    echo ""
+    
     PANEL_FQDN=$(prompt_input "Enter Panel FQDN (e.g., panel.example.com)")
-    PUBLIC_IP=$(prompt_input "Enter Public IP address")
+    PANEL_IP=$(prompt_input "Enter Public IP address" "$PUBLIC_IP")
     
     if ! check_dns "$PANEL_FQDN" "$PUBLIC_IP"; then
         log_warning "DNS does not point to the correct IP"
@@ -1165,8 +1169,12 @@ install_redis() {
 install_wings() {
     log_info "Installing Ptero Wings..."
     
+    echo ""
+    log_info "Your public IP address: $PUBLIC_IP"
+    echo ""
+    
     WINGS_FQDN=$(prompt_input "Enter Wings FQDN (e.g., node.example.com)")
-    PUBLIC_IP=$(prompt_input "Enter Public IP address")
+    WINGS_IP=$(prompt_input "Enter Public IP address" "$PUBLIC_IP")
     
     if ! check_dns "$WINGS_FQDN" "$PUBLIC_IP"; then
         log_warning "DNS does not point to the correct IP"
