@@ -117,8 +117,8 @@ prompt_with_explanation() {
     local explanation="$2"
     local default="$3"
     
-    echo ""
-    log_info "$explanation"
+    echo "" >&2
+    log_info "$explanation" >&2
     prompt_input "$prompt" "$default"
 }
 
