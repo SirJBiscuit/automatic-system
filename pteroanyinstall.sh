@@ -583,6 +583,8 @@ setup_network_wizard() {
     log_info "EXPLANATION: A static IP ensures your server always uses the same local IP address."
     log_info "This prevents connectivity issues after reboots. You can skip this if using DHCP reservation."
     echo ""
+    log_info "📖 For detailed static IP setup guide, see: /opt/ptero/SETUP_INFO.txt"
+    echo ""
     if prompt_yes_no "Do you want to configure a static IP now?"; then
         CURRENT_IP=$(ip -4 addr show $SELECTED_INTERFACE | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
         GATEWAY=$(ip route | grep default | awk '{print $3}' | head -1)
