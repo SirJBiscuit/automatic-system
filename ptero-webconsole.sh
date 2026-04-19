@@ -90,7 +90,7 @@ show_status() {
 enable_console() {
     echo ""
     echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║          Enable Web Console                                ║${NC}"
+    echo -e "${CYAN}║          Pterodactyl Web Console                           ║${NC}"
     echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
@@ -101,6 +101,66 @@ enable_console() {
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             echo -e "${YELLOW}Installation cancelled${NC}"
+            exit 0
+        fi
+    else
+        # Show what the web console does
+        echo -e "${PURPLE}What is the Web Console?${NC}"
+        echo ""
+        echo -e "A professional web dashboard for managing your Pterodactyl game servers"
+        echo -e "with advanced features and beautiful UI."
+        echo ""
+        echo -e "${GREEN}✓${NC} ${YELLOW}Key Features:${NC}"
+        echo ""
+        echo -e "  ${CYAN}📊 Real-Time Monitoring${NC}"
+        echo -e "     • Live CPU, RAM, Disk, Network stats"
+        echo -e "     • GPU monitoring (NVIDIA)"
+        echo -e "     • Performance graphs with Chart.js"
+        echo -e "     • Server status tracking"
+        echo ""
+        echo -e "  ${CYAN}🎮 Server Management${NC}"
+        echo -e "     • Start/Stop/Restart individual servers"
+        echo -e "     • Bulk actions (control multiple servers)"
+        echo -e "     • Live console output"
+        echo -e "     • Send commands to servers"
+        echo ""
+        echo -e "  ${CYAN}📂 File Manager${NC}"
+        echo -e "     • Browse server files in your browser"
+        echo -e "     • Edit configuration files"
+        echo -e "     • Save changes directly"
+        echo ""
+        echo -e "  ${CYAN}⏰ Scheduled Actions${NC}"
+        echo -e "     • Schedule server restarts"
+        echo -e "     • Automated backups"
+        echo -e "     • Custom commands on schedule"
+        echo ""
+        echo -e "  ${CYAN}🎨 Professional UI${NC}"
+        echo -e "     • Beautiful modern design"
+        echo -e "     • Mobile-responsive"
+        echo -e "     • Dark theme with animations"
+        echo -e "     • Customizable (themes, toggles)"
+        echo ""
+        echo -e "  ${CYAN}🔍 Advanced Features${NC}"
+        echo -e "     • Search and filter servers"
+        echo -e "     • Server groups/categories"
+        echo -e "     • Device detection (mobile/desktop)"
+        echo -e "     • 60+ total features"
+        echo ""
+        echo -e "${YELLOW}Access:${NC} Web browser at ${GREEN}http://YOUR_IP:8080${NC}"
+        echo -e "${YELLOW}Requirements:${NC} ~50MB RAM, Port 8080, Python 3"
+        echo ""
+        echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${CYAN}║  This is completely optional and can be removed anytime   ║${NC}"
+        echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        read -p "Do you want to install the Web Console? (y/n): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo -e "${YELLOW}Installation cancelled${NC}"
+            echo ""
+            echo -e "${CYAN}You can install it later with:${NC} ./ptero-webconsole.sh enable"
+            echo ""
             exit 0
         fi
     fi
