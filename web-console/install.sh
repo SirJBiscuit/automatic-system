@@ -62,16 +62,36 @@ echo -e "${BLUE}[2/7]${NC} Creating web console directory: ${GREEN}$WEB_DIR${NC}
 mkdir -p $WEB_DIR
 cd $WEB_DIR
 
-# Download files
-echo -e "${BLUE}[3/7]${NC} Downloading web console files..."
-curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/app.py -o app.py
-curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/requirements.txt -o requirements.txt
-curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/.env.example -o .env.example
+# Copy files from repository or download if not present
+echo -e "${BLUE}[3/7]${NC} Setting up web console files..."
 
-# Create templates directory
-mkdir -p templates
-curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/templates/dashboard.html -o templates/dashboard.html
-curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/templates/login.html -o templates/login.html
+# Detect if we're running from the cloned repository
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
+
+if [ -f "$SCRIPT_DIR/app.py" ]; then
+    # Files exist in repo, copy them
+    echo -e "  ${GREEN}✓${NC} Copying files from repository..."
+    cp "$SCRIPT_DIR/app.py" app.py
+    cp "$SCRIPT_DIR/requirements.txt" requirements.txt
+    cp "$SCRIPT_DIR/.env.example" .env.example
+    
+    # Copy templates
+    mkdir -p templates
+    cp "$SCRIPT_DIR/templates/dashboard.html" templates/dashboard.html 2>/dev/null || true
+    cp "$SCRIPT_DIR/templates/login.html" templates/login.html 2>/dev/null || true
+else
+    # Download from GitHub
+    echo -e "  ${YELLOW}⚠${NC} Downloading files from GitHub..."
+    curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/app.py -o app.py
+    curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/requirements.txt -o requirements.txt
+    curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/.env.example -o .env.example
+    
+    # Create templates directory
+    mkdir -p templates
+    curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/templates/dashboard.html -o templates/dashboard.html
+    curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/templates/login.html -o templates/login.html
+fi
 
 # Create and activate virtual environment
 echo -e "${BLUE}[4/7]${NC} Creating Python virtual environment..."
