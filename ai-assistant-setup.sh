@@ -586,7 +586,7 @@ EOFCFG
   "api_key": "$API_KEY"
 }
 EOFAPI
-            chmod 600 /opt/ptero-assistant/pterodactyl-api.json
+            chmod 644 /opt/ptero-assistant/pterodactyl-api.json
             
             # Test API connection
             echo ""
@@ -1078,9 +1078,13 @@ WEBHOOKHELP
   "api_key": "$API_KEY"
 }
 EOFAPI
-                    chmod 600 /opt/ptero-assistant/pterodactyl-api.json
+                    chmod 644 /opt/ptero-assistant/pterodactyl-api.json
                     
                     echo ""
+                    echo "ℹ️  Note: You can now run 'chatbot api test' without sudo"
+                    echo ""
+                    
+                    # Test API connection ""
                     echo "Testing API connection..."
                     API_TEST=$(curl -s -H "Authorization: Bearer $API_KEY" \
                         -H "Accept: application/json" \
@@ -1094,7 +1098,22 @@ EOFAPI
                         if [ -n "$ERROR_MSG" ] && [ "$ERROR_MSG" != "Unknown error" ]; then
                             echo "  Error: $ERROR_MSG"
                         fi
-                        echo "  Check: URL is correct and API key has proper permissions"
+                        
+                        # Check if it's the wrong API key type
+                        if echo "$API_TEST" | grep -q "application API key"; then
+                            echo ""
+                            echo "  ⚠️  You're using an Application API key (starts with ptla_)"
+                            echo "  ℹ️  P.R.I.S.M needs a Client API key (starts with ptlc_)"
+                            echo ""
+                            echo "  How to create a Client API key:"
+                            echo "    1. Go to your Panel → Click your username → Account Settings"
+                            echo "    2. Click 'API Credentials' on the left"
+                            echo "    3. Click 'Create' button"
+                            echo "    4. Check all permission boxes"
+                            echo "    5. Copy the key (starts with ptlc_)"
+                        else
+                            echo "  Check: URL is correct and API key has proper permissions"
+                        fi
                     fi
                 else
                     echo "✗ Missing Panel URL or API Key"
