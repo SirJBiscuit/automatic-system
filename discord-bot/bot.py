@@ -21,6 +21,9 @@ ADMIN_ROLE_ID = int(os.getenv('ADMIN_ROLE_ID', '0'))
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
 ENABLE_VOICE = os.getenv('ENABLE_VOICE', 'true').lower() == 'true'
 
+# Auto-delete configuration (in seconds)
+AUTO_DELETE_TIME = 20  # Default 20 seconds
+
 # P.R.I.S.M AI Client
 prism_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
 
@@ -141,21 +144,23 @@ async def on_command(ctx):
 original_send = commands.Context.send
 
 async def send_with_delete(self, *args, **kwargs):
-    """Send message with auto-delete after 20 seconds and add temporary indicator"""
+    """Send message with auto-delete and add temporary indicator"""
+    global AUTO_DELETE_TIME
+    
     if 'delete_after' not in kwargs:
-        kwargs['delete_after'] = 20
+        kwargs['delete_after'] = AUTO_DELETE_TIME
     
     # Add temporary indicator to embeds
     if 'embed' in kwargs:
         embed = kwargs['embed']
         if embed.footer.text:
-            embed.set_footer(text=f"{embed.footer.text} • ⏱️ Auto-deletes in 20s")
+            embed.set_footer(text=f"{embed.footer.text} • ⏱️ Auto-deletes in {AUTO_DELETE_TIME}s")
         else:
-            embed.set_footer(text="⏱️ This message will auto-delete in 20 seconds")
+            embed.set_footer(text=f"⏱️ This message will auto-delete in {AUTO_DELETE_TIME} seconds")
     
     # Add indicator to regular messages (if it's a string)
     elif args and isinstance(args[0], str):
-        args = (f"{args[0]} `⏱️ 20s`",) + args[1:]
+        args = (f"{args[0]} `⏱️ {AUTO_DELETE_TIME}s`",) + args[1:]
     
     return await original_send(self, *args, **kwargs)
 
@@ -356,6 +361,30 @@ async def ping(ctx):
     latency = round(bot.latency * 1000)
     await ctx.send(f'🏓 Pong! Latency: {latency}ms')
 
+@bot.command(name='setdelete', help='Set auto-delete time for bot messages')
+async def set_delete_time(ctx, seconds: int = None):
+    """Set how long before bot messages auto-delete"""
+    global AUTO_DELETE_TIME
+    
+    if seconds is None:
+        await ctx.send(f'⏱️ Current auto-delete time: **{AUTO_DELETE_TIME} seconds**\n\n**Usage:** `!setdelete <seconds>`\n**Example:** `!setdelete 30`\n\n💡 Set to 0 to disable auto-delete')
+        return
+    
+    if seconds < 0:
+        await ctx.send('❌ Time must be 0 or greater!')
+        return
+    
+    if seconds > 300:
+        await ctx.send('❌ Maximum time is 300 seconds (5 minutes)!')
+        return
+    
+    AUTO_DELETE_TIME = seconds
+    
+    if seconds == 0:
+        await ctx.send('✅ Auto-delete **disabled**! Bot messages will stay permanently.')
+    else:
+        await ctx.send(f'✅ Auto-delete time set to **{seconds} seconds**!')
+
 @bot.command(name='botinfo', help='Show bot information')
 async def bot_info(ctx):
     """Show bot information"""
@@ -370,6 +399,7 @@ async def bot_info(ctx):
     embed.add_field(name='Latency', value=f'{round(bot.latency * 1000)}ms', inline=True)
     embed.add_field(name='Panel URL', value=PTERODACTYL_URL, inline=False)
     embed.add_field(name='P.R.I.S.M AI', value='✅ Enabled' if prism_client else '❌ Disabled', inline=True)
+    embed.add_field(name='Auto-Delete', value=f'{AUTO_DELETE_TIME}s' if AUTO_DELETE_TIME > 0 else 'Disabled', inline=True)
     
     await ctx.send(embed=embed)
 
