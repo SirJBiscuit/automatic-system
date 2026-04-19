@@ -73,9 +73,13 @@ mkdir -p templates
 curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/templates/dashboard.html -o templates/dashboard.html
 curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/web-console/templates/login.html -o templates/login.html
 
-# Install Python packages
-echo -e "${BLUE}[4/7]${NC} Installing Python packages..."
-pip3 install -r requirements.txt
+# Create and activate virtual environment
+echo -e "${BLUE}[4/7]${NC} Creating Python virtual environment..."
+python3 -m venv venv
+
+# Install Python packages in virtual environment
+echo -e "${BLUE}[4.5/7]${NC} Installing Python packages..."
+./venv/bin/pip install -r requirements.txt
 
 # Create .env file
 if [ ! -f .env ]; then
@@ -164,7 +168,7 @@ Type=simple
 User=root
 WorkingDirectory=$WEB_DIR
 EnvironmentFile=$WEB_DIR/.env
-ExecStart=/usr/bin/python3 $WEB_DIR/app.py
+ExecStart=$WEB_DIR/venv/bin/python $WEB_DIR/app.py
 Restart=always
 RestartSec=10
 
