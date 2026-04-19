@@ -20,9 +20,20 @@ PTERODACTYL_API_KEY = os.getenv('PTERODACTYL_API_KEY', '')
 ADMIN_ROLE_ID = int(os.getenv('ADMIN_ROLE_ID', '0'))
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
 ENABLE_VOICE = os.getenv('ENABLE_VOICE', 'true').lower() == 'true'
+USE_LOCAL_CHATBOT = os.getenv('USE_LOCAL_CHATBOT', 'true').lower() == 'true'
 
 # Auto-delete configuration (in seconds)
 AUTO_DELETE_TIME = 20  # Default 20 seconds
+
+# Check for local chatbot
+CHATBOT_AVAILABLE = False
+if USE_LOCAL_CHATBOT:
+    import subprocess
+    try:
+        result = subprocess.run(['which', 'chatbot'], capture_output=True, text=True)
+        CHATBOT_AVAILABLE = result.returncode == 0
+    except:
+        CHATBOT_AVAILABLE = False
 
 # P.R.I.S.M AI Client
 prism_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
@@ -406,8 +417,33 @@ async def bot_info(ctx):
 @bot.command(name='ask', help='Ask P.R.I.S.M AI about your servers')
 async def ask_prism(ctx, *, question: str):
     """Ask P.R.I.S.M AI about server management"""
+    # Try local chatbot first
+    if CHATBOT_AVAILABLE:
+        async with ctx.typing():
+            try:
+                result = subprocess.run(
+                    ['chatbot', 'ask', question],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                
+                if result.returncode == 0 and result.stdout:
+                    answer = result.stdout.strip()
+                    embed = discord.Embed(
+                        title='🤖 P.R.I.S.M Response',
+                        description=answer,
+                        color=discord.Color.blue()
+                    )
+                    await ctx.send(embed=embed)
+                    return
+            except Exception as e:
+                print(f"Local chatbot error: {e}")
+                # Fall through to Anthropic API
+    
+    # Fallback to Anthropic API
     if not prism_client:
-        await ctx.send('❌ P.R.I.S.M AI is not configured. Set ANTHROPIC_API_KEY environment variable.')
+        await ctx.send('❌ P.R.I.S.M AI is not configured.\n\n**Options:**\n1. Set up local chatbot: `chatbot api setup`\n2. Set ANTHROPIC_API_KEY environment variable')
         return
     
     async with ctx.typing():

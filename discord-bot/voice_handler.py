@@ -47,6 +47,7 @@ class VoiceHandler:
         self.voice_clients = {}
         self.listening_channels = set()
         self.always_listening = {}  # guild_id: True/False
+        self.status_messages = {}  # guild_id: status_message
         self.wake_words = ['hey prism', 'ok prism', 'prism', 'hey bot']
         
     async def join_voice(self, ctx):
@@ -75,24 +76,28 @@ class VoiceHandler:
             return True
         return False
     
-    async def listen_for_commands(self, ctx, duration=5):
+    async def listen_for_commands(self, ctx, duration=5, silent=False):
         """Listen for voice commands"""
         if not SPEECH_RECOGNITION_AVAILABLE:
-            await ctx.send("❌ Voice recognition not available")
+            if not silent:
+                await ctx.send("❌ Voice recognition not available")
             return None
         
         voice_client = self.voice_clients.get(ctx.guild.id)
         if not voice_client:
-            await ctx.send("❌ Not in a voice channel")
+            if not silent:
+                await ctx.send("❌ Not in a voice channel")
             return None
         
-        await ctx.send(f"🎤 Listening for {duration} seconds...")
+        if not silent:
+            await ctx.send(f"🎤 Listening for {duration} seconds...")
         
         # Record audio
         audio_file = await self.record_audio(voice_client, duration)
         
         if not audio_file:
-            await ctx.send("❌ Failed to record audio")
+            if not silent:
+                await ctx.send("❌ Failed to record audio")
             return None
         
         # Convert to text
@@ -112,43 +117,17 @@ class VoiceHandler:
             return None
     
     async def record_audio(self, voice_client, duration):
-        """Record audio from voice channel"""
-        try:
-            import discord.sinks
-            
-            # Create temporary file for recording
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
-            temp_file.close()
-            
-            # Create a sink to record audio
-            sink = discord.sinks.WaveSink()
-            
-            # Start recording
-            voice_client.start_recording(
-                sink,
-                lambda sink, user: None,  # Callback when finished
-                sync_start=True
-            )
-            
-            # Wait for duration
-            await asyncio.sleep(duration)
-            
-            # Stop recording
-            voice_client.stop_recording()
-            
-            # Get the recorded audio
-            if sink.audio_data:
-                # Get first user's audio (or combine all users)
-                for user_id, audio in sink.audio_data.items():
-                    with open(temp_file.name, 'wb') as f:
-                        f.write(audio.file.read())
-                    return temp_file.name
-            
-            return None
-            
-        except Exception as e:
-            print(f"Recording error: {e}")
-            return None
+        """Record audio from voice channel - PLACEHOLDER"""
+        # NOTE: Discord voice recording requires discord.py with voice extras
+        # and proper sink implementation. This is a complex feature that requires:
+        # 1. discord.py[voice] with recording support
+        # 2. Proper audio sink implementation
+        # 3. Voice receive gateway support
+        
+        # For now, return None to indicate recording is not yet implemented
+        # Users should use text commands or the !say command for TTS
+        print(f"⚠️ Voice recording not yet fully implemented")
+        return None
     
     async def speak_response(self, ctx, text):
         """Convert text to speech and play in voice channel"""
@@ -199,15 +178,35 @@ class VoiceHandler:
             return
         
         self.always_listening[guild_id] = True
-        await ctx.send(f"👂 **Always-on listening activated!**\n\nSay one of these wake words:\n• `Hey PRISM`\n• `OK PRISM`\n• `PRISM`\n\nThen speak your command. Use `!stoplisten` to disable.")
+        
+        # Send persistent status message (won't auto-delete)
+        status_msg = await ctx.send(
+            "👂 **Always-On Listening: ACTIVE** 🟢\n\n"
+            "**Wake words:** `Hey PRISM` • `OK PRISM` • `PRISM`\n"
+            "**Status:** Listening...\n\n"
+            "Use `!stoplisten` to disable.",
+            delete_after=None  # Don't auto-delete this message
+        )
+        
+        # Store status message
+        self.status_messages[guild_id] = status_msg
         
         # Start continuous listening loop
-        asyncio.create_task(self._continuous_listen_loop(ctx))
+        asyncio.create_task(self._continuous_listen_loop(ctx, status_msg))
     
     async def stop_continuous_listening(self, ctx):
         """Stop always-on listening mode"""
         guild_id = ctx.guild.id
         self.always_listening[guild_id] = False
+        
+        # Delete the status message
+        if guild_id in self.status_messages:
+            try:
+                await self.status_messages[guild_id].delete()
+                del self.status_messages[guild_id]
+            except:
+                pass  # Message might already be deleted
+        
         await ctx.send("🔇 Always-on listening disabled")
     
     async def _continuous_listen_loop(self, ctx):
@@ -216,8 +215,8 @@ class VoiceHandler:
         
         while self.always_listening.get(guild_id, False):
             try:
-                # Listen for 3 seconds at a time
-                command_text = await self.listen_for_commands(ctx, duration=3)
+                # Listen for 3 seconds at a time (silent mode - no spam)
+                command_text = await self.listen_for_commands(ctx, duration=3, silent=True)
                 
                 if command_text:
                     # Check if wake word was said
@@ -230,14 +229,18 @@ class VoiceHandler:
                             command_lower = command_lower.replace(wake, '').strip()
                         
                         if command_lower:  # If there's a command after wake word
-                            await ctx.send(f"🎤 Heard: *{command_lower}*")
+                            await ctx.send(f"🎤 **You said:** *{command_lower}*")
                             await self.process_voice_command(ctx, command_lower)
                         else:
-                            # Just wake word, listen for actual command
-                            await self.speak_response(ctx, "Yes?")
-                            command_text = await self.listen_for_commands(ctx, duration=5)
+                            # Just wake word, ask what they need
+                            await self.speak_response(ctx, "Yes? What's your question?")
+                            await ctx.send("🎤 **PRISM:** What's your question?")
+                            command_text = await self.listen_for_commands(ctx, duration=8, silent=False)
                             if command_text:
+                                await ctx.send(f"🎤 **You asked:** *{command_text}*")
                                 await self.process_voice_command(ctx, command_text)
+                            else:
+                                await self.speak_response(ctx, "I didn't hear anything. Say my name again when you're ready.")
                 
                 # Small delay before next listen cycle
                 await asyncio.sleep(0.5)
@@ -248,11 +251,38 @@ class VoiceHandler:
     
     async def process_voice_command(self, ctx, command_text):
         """Process voice command with P.R.I.S.M AI"""
+        import subprocess
+        
+        # Try local chatbot first
+        try:
+            result = subprocess.run(
+                ['chatbot', 'ask', command_text],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode == 0 and result.stdout:
+                ai_response = result.stdout.strip()
+                
+                # Send text response
+                await ctx.send(f"🤖 **PRISM:** {ai_response}")
+                
+                # Speak response
+                await self.speak_response(ctx, ai_response)
+                
+                return ai_response
+        except Exception as e:
+            print(f"Local chatbot error: {e}")
+        
+        # Fallback to Anthropic API
         if not self.prism_client:
-            await ctx.send("❌ P.R.I.S.M AI not configured")
+            error_msg = "I'm not configured yet. Please set up the chatbot or Anthropic API."
+            await ctx.send(f"❌ {error_msg}")
+            await self.speak_response(ctx, error_msg)
             return None
         
-        # Get AI response
+        # Get AI response from Anthropic
         try:
             response = self.prism_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
@@ -271,7 +301,7 @@ If they're asking to perform an action, tell them what you're doing."""
             ai_response = response.content[0].text
             
             # Send text response
-            await ctx.send(f"🎤 You said: *{command_text}*\n🤖 P.R.I.S.M: {ai_response}")
+            await ctx.send(f"🤖 **PRISM:** {ai_response}")
             
             # Speak response
             await self.speak_response(ctx, ai_response)
@@ -279,7 +309,9 @@ If they're asking to perform an action, tell them what you're doing."""
             return ai_response
             
         except Exception as e:
-            await ctx.send(f"❌ AI error: {e}")
+            error_msg = f"Sorry, I encountered an error: {str(e)}"
+            await ctx.send(f"❌ {error_msg}")
+            await self.speak_response(ctx, error_msg)
             return None
 
 def setup_voice_commands(bot, prism_client=None):
