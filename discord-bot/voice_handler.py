@@ -117,17 +117,59 @@ class VoiceHandler:
             return None
     
     async def record_audio(self, voice_client, duration):
-        """Record audio from voice channel - PLACEHOLDER"""
-        # NOTE: Discord voice recording requires discord.py with voice extras
-        # and proper sink implementation. This is a complex feature that requires:
-        # 1. discord.py[voice] with recording support
-        # 2. Proper audio sink implementation
-        # 3. Voice receive gateway support
-        
-        # For now, return None to indicate recording is not yet implemented
-        # Users should use text commands or the !say command for TTS
-        print(f"⚠️ Voice recording not yet fully implemented")
-        return None
+        """Record audio from voice channel using discord sinks"""
+        try:
+            # Check if discord has sinks module
+            if not hasattr(discord, 'sinks'):
+                print("❌ discord.sinks not available - need discord.py 2.0+")
+                return None
+            
+            # Create a temporary file
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav', mode='wb')
+            temp_filename = temp_file.name
+            temp_file.close()
+            
+            # Create sink for recording
+            sink = discord.sinks.WaveSink()
+            
+            # Callback when recording finishes
+            recorded_users = []
+            
+            def finished_callback(sink, channel, *args):
+                recorded_users.extend(sink.audio_data.keys())
+            
+            # Start recording
+            voice_client.start_recording(sink, finished_callback, channel=voice_client.channel)
+            
+            # Wait for duration
+            await asyncio.sleep(duration)
+            
+            # Stop recording
+            voice_client.stop_recording()
+            
+            # Wait a bit for callback to process
+            await asyncio.sleep(0.5)
+            
+            # Get recorded audio from first user who spoke
+            if sink.audio_data:
+                for user_id, audio in sink.audio_data.items():
+                    # Write audio data to file
+                    audio.file.seek(0)
+                    with open(temp_filename, 'wb') as f:
+                        f.write(audio.file.read())
+                    return temp_filename
+            
+            return None
+            
+        except AttributeError as e:
+            print(f"❌ Voice recording not supported: {e}")
+            print("💡 Install: pip install discord.py[voice]")
+            return None
+        except Exception as e:
+            print(f"❌ Recording error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
     
     async def speak_response(self, ctx, text):
         """Convert text to speech and play in voice channel"""
@@ -347,15 +389,15 @@ def setup_voice_commands(bot, prism_client=None):
         if command_text:
             await voice_handler.process_voice_command(ctx, command_text)
     
-    @bot.command(name='startlisten', help='Enable always-on listening with wake words')
+    @bot.command(name='startlisten', help='Enable always-on listening (Coming Soon)')
     async def start_listen(ctx):
         """Start continuous listening mode"""
-        await voice_handler.start_continuous_listening(ctx)
+        await ctx.send("⚠️ **Voice recording coming soon!**\n\n**What works now:**\n✅ Type `!ask <question>` - Bot speaks answer\n✅ `!say <text>` - Bot speaks text\n✅ All server commands work\n\n**Example:**\n`!ask what servers are online?`\nBot will answer AND speak it!")
     
     @bot.command(name='stoplisten', help='Disable always-on listening')
     async def stop_listen(ctx):
         """Stop continuous listening mode"""
-        await voice_handler.stop_continuous_listening(ctx)
+        await ctx.send("ℹ️ Voice listening is not currently active")
     
     @bot.command(name='say', help='Make bot speak text')
     async def say(ctx, *, text: str):

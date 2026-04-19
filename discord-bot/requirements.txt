@@ -3,10 +3,10 @@ aiohttp>=3.9.0
 python-dotenv>=1.0.0
 anthropic>=0.18.0
 
-# Voice support (optional)
+# Voice support
 PyNaCl>=1.5.0
 SpeechRecognition>=3.10.0
 gTTS>=2.4.0
 pydub>=0.25.1
 ffmpeg-python>=0.2.0
-wave>=0.0.2
+opuslib>=3.0.1
