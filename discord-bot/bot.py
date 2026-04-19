@@ -125,6 +125,27 @@ async def on_ready():
     monitor_servers.start()
     await bot.change_presence(activity=discord.Game(name="!help for commands"))
 
+@bot.event
+async def on_command(ctx):
+    """Delete user command message after command is processed"""
+    try:
+        await ctx.message.delete()
+    except discord.errors.Forbidden:
+        pass  # Bot doesn't have permission to delete messages
+    except discord.errors.NotFound:
+        pass  # Message already deleted
+
+# Override ctx.send to auto-delete after 20 seconds
+original_send = commands.Context.send
+
+async def send_with_delete(self, *args, **kwargs):
+    """Send message with auto-delete after 20 seconds"""
+    if 'delete_after' not in kwargs:
+        kwargs['delete_after'] = 20
+    return await original_send(self, *args, **kwargs)
+
+commands.Context.send = send_with_delete
+
 @bot.command(name='servers', help='List all game servers')
 async def list_servers(ctx):
     """List all servers with status"""
