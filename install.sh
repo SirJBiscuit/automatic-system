@@ -68,10 +68,6 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-echo "  ⏳ Creating installation directory..."
-mkdir -p "$INSTALL_DIR"
-cd "$INSTALL_DIR"
-
 # Check if git is installed
 if ! command -v git &> /dev/null; then
     echo "  ⏳ Installing git..."
@@ -103,13 +99,17 @@ else
     echo "  📥 Cloning repository from GitHub..."
     echo ""
     
+    # Make sure we're in parent directory
+    cd /opt
+    
     # Remove directory if it exists but isn't a git repo
     if [ -d "$INSTALL_DIR" ]; then
+        echo "  ⏳ Removing old installation..."
         rm -rf "$INSTALL_DIR"
     fi
     
     # Clone the repository
-    git clone -q https://github.com/SirJBiscuit/automatic-system.git "$INSTALL_DIR" 2>&1 | grep -v "Cloning into"
+    git clone https://github.com/SirJBiscuit/automatic-system.git ptero 2>&1 | grep -E "(Cloning|Receiving|Resolving)" || true
     cd "$INSTALL_DIR"
 fi
 
