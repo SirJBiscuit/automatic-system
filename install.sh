@@ -41,11 +41,10 @@ echo "  ⏳ Creating installation directory..."
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
-# Check for existing installation
-if [ -f "$INSTALL_DIR/pteroanyinstall.sh" ] && [ "$FORCE_UPDATE" = false ]; then
+# Always download latest version
+if [ -f "$INSTALL_DIR/pteroanyinstall.sh" ]; then
     echo ""
     echo "  ℹ️  Existing installation detected!"
-    echo ""
     
     # Check for updates
     if [ -f "$VERSION_FILE" ]; then
@@ -57,41 +56,19 @@ if [ -f "$INSTALL_DIR/pteroanyinstall.sh" ] && [ "$FORCE_UPDATE" = false ]; then
         echo ""
         
         if [ "$LOCAL_VERSION" != "$REMOTE_VERSION" ] && [ "$REMOTE_VERSION" != "unknown" ]; then
-            echo "  🆕 New version available!"
-            echo ""
-            read -p "  ▸ Update to version $REMOTE_VERSION? (y/n): " update_choice
-            
-            if [[ $update_choice =~ ^[Yy]$ ]]; then
-                echo ""
-                echo "  ⏳ Updating scripts..."
-            else
-                echo ""
-                echo "  ℹ️  Skipping update. Using existing installation."
-                echo ""
-                echo "  💡 To force update, run: curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash -s -- --force"
-                exit 0
-            fi
+            echo "  🆕 New version available! Auto-updating..."
         else
-            echo "  ✅ Scripts are up to date!"
-            echo ""
-            read -p "  ▸ Re-download scripts anyway? (y/n): " redownload_choice
-            
-            if [[ ! $redownload_choice =~ ^[Yy]$ ]]; then
-                echo ""
-                echo "  ℹ️  Using existing installation."
-                echo ""
-                echo "  💡 To force update, run: curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash -s -- --force"
-                exit 0
-            fi
+            echo "  🔄 Re-downloading latest scripts..."
         fi
     else
-        echo "  ⚠️  Version file not found. Updating scripts..."
+        echo "  🔄 Downloading latest scripts..."
     fi
+    
     echo ""
-elif [ -f "$INSTALL_DIR/pteroanyinstall.sh" ] && [ "$FORCE_UPDATE" = true ]; then
-    echo ""
-    echo "  🔄 Force update mode - skipping version check"
-    echo ""
+    echo "  ⏳ Removing old files..."
+    rm -f pteroanyinstall.sh pre-install-checks.sh billing-setup.sh panel-customizer.sh \
+          quick-setup.sh ptero-admin.sh ai-assistant-setup.sh prism-upgrade.sh \
+          prism-enhanced.py prism-cli.sh node-installer.sh cloud-backup.sh update.sh
 fi
 
 echo "  📥 Downloading scripts from GitHub..."
