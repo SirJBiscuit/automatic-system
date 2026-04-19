@@ -1589,11 +1589,10 @@ main() {
             install_certbot
             
             # Get and validate email
+            echo ""
+            log_info "This email will be used for SSL certificates and admin account notifications."
             while true; do
-                USER_EMAIL=$(prompt_with_explanation \
-                    "Enter your email address" \
-                    "This email will be used for SSL certificates and admin account notifications." \
-                    "")
+                USER_EMAIL=$(prompt_input "Enter your email address" "")
                 
                 # Validate email format (basic check - must have @ and .)
                 if [[ "$USER_EMAIL" =~ ^[^@]+@[^@]+\.[^@]+$ ]] && [[ ! -z "$USER_EMAIL" ]]; then
@@ -1673,11 +1672,10 @@ main() {
             fi
             
             # Get and validate email
+            echo ""
+            log_info "This email will be used for SSL certificates and admin account."
             while true; do
-                USER_EMAIL=$(prompt_with_explanation \
-                    "Enter your email address" \
-                    "This email will be used for SSL certificates and admin account." \
-                    "")
+                USER_EMAIL=$(prompt_input "Enter your email address" "")
                 
                 # Validate email format (basic check - must have @ and .)
                 if [[ "$USER_EMAIL" =~ ^[^@]+@[^@]+\.[^@]+$ ]] && [[ ! -z "$USER_EMAIL" ]]; then
