@@ -952,6 +952,13 @@ EOFLOG
     webhook)
         case "$2" in
             setup)
+                # Check if running as root
+                if [ "$EUID" -ne 0 ]; then
+                    echo "❌ This command requires root privileges."
+                    echo "Please run: sudo chatbot webhook setup"
+                    exit 1
+                fi
+                
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 echo "  📢 DISCORD WEBHOOK SETUP"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -1036,6 +1043,13 @@ WEBHOOKHELP
     api)
         case "$2" in
             setup)
+                # Check if running as root
+                if [ "$EUID" -ne 0 ]; then
+                    echo "❌ This command requires root privileges."
+                    echo "Please run: sudo chatbot api setup"
+                    exit 1
+                fi
+                
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 echo "  🔌 PTERODACTYL API SETUP"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
