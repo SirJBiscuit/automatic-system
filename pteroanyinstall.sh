@@ -1051,6 +1051,8 @@ install_panel() {
     
     php artisan key:generate --force
     
+    log_info "Setting up Panel environment with email: $USER_EMAIL"
+    
     php artisan p:environment:setup \
         --author="$USER_EMAIL" \
         --url="https://$PANEL_FQDN" \
@@ -1060,7 +1062,8 @@ install_panel() {
         --queue="redis" \
         --redis-host="127.0.0.1" \
         --redis-pass="" \
-        --redis-port="6379"
+        --redis-port="6379" \
+        --no-interaction
     
     php artisan p:environment:database \
         --host="127.0.0.1" \
