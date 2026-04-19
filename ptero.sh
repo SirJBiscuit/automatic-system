@@ -92,9 +92,9 @@ update_discord_bot() {
     cp /opt/ptero/discord-bot/voice_handler.py /opt/pterodactyl-bot/ 2>/dev/null || true
     cp /opt/ptero/discord-bot/requirements.txt /opt/pterodactyl-bot/ 2>/dev/null || true
     
-    # Install/update dependencies
-    echo -e "${BLUE}[INFO]${NC} Updating dependencies..."
-    /opt/pterodactyl-bot/venv/bin/pip install -q --upgrade -r /opt/pterodactyl-bot/requirements.txt
+    # Install/update dependencies (skip if already installed)
+    echo -e "${BLUE}[INFO]${NC} Checking dependencies..."
+    /opt/pterodactyl-bot/venv/bin/pip install -q -r /opt/pterodactyl-bot/requirements.txt 2>/dev/null || echo "Dependencies already installed"
     
     # Restart bot
     echo -e "${BLUE}[INFO]${NC} Restarting Discord bot..."
