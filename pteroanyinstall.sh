@@ -1128,8 +1128,27 @@ install_panel() {
         log_warning "⚠️  Your Panel will not be secure without SSL!"
     fi
     
-    systemctl restart nginx
+    echo ""
+    log_info "Testing Nginx configuration..."
+    nginx -t
     
+    if [ $? -eq 0 ]; then
+        log_info "Restarting Nginx..."
+        systemctl restart nginx
+        
+        if [ $? -eq 0 ]; then
+            log_success "Nginx restarted successfully!"
+        else
+            log_error "Nginx failed to restart. Checking status..."
+            systemctl status nginx --no-pager
+            log_warning "You may need to fix the Nginx configuration manually."
+        fi
+    else
+        log_error "Nginx configuration test failed!"
+        log_warning "Please check the configuration before restarting Nginx."
+    fi
+    
+    echo ""
     log_success "Ptero Panel installed at https://$PANEL_FQDN"
     log_info "Admin credentials saved to /root/panel_credentials.txt"
     
