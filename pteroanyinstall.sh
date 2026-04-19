@@ -1144,17 +1144,77 @@ EOF
 }
 
 setup_cloudflare() {
-    log_info "Setting up Cloudflare integration..."
+    echo ""
+    log_info "╔════════════════════════════════════════════════════════════╗"
+    log_info "║          Cloudflare DNS Integration Setup                 ║"
+    log_info "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    log_info "This enables automatic SSL certificate generation using Cloudflare DNS."
+    echo ""
+    log_info "📋 What you need:"
+    log_info "  1. Cloudflare API Token"
+    log_info "  2. Cloudflare Zone ID"
+    echo ""
+    log_info "🔑 How to get your API Token:"
+    echo ""
+    log_info "  Step 1: Go to https://dash.cloudflare.com/profile/api-tokens"
+    log_info "  Step 2: Click 'Create Token'"
+    log_info "  Step 3: Click 'Create Custom Token'"
+    log_info "  Step 4: Set Token name: 'Pterodactyl DNS'"
+    log_info "  Step 5: Add permissions:"
+    log_info "          • Zone → DNS → Edit"
+    log_info "          • Zone → Zone → Read"
+    log_info "  Step 6: Under 'Zone Resources':"
+    log_info "          • Include → Specific zone → [your domain]"
+    log_info "  Step 7: Click 'Continue to summary'"
+    log_info "  Step 8: Click 'Create Token'"
+    log_info "  Step 9: Copy the token (shown only once!)"
+    echo ""
+    log_info "📍 How to get your Zone ID:"
+    echo ""
+    log_info "  Step 1: Go to https://dash.cloudflare.com"
+    log_info "  Step 2: Click on your domain"
+    log_info "  Step 3: Scroll down on the Overview page"
+    log_info "  Step 4: Find 'Zone ID' in the right sidebar"
+    log_info "  Step 5: Click to copy"
+    echo ""
+    echo -n "Press Enter when you're ready to continue..."
+    read -r -s
+    echo ""
+    echo ""
     
     CF_API_TOKEN=$(prompt_input "Enter Cloudflare API Token (or leave empty to skip)")
     
     if [ -z "$CF_API_TOKEN" ]; then
         log_info "Skipping Cloudflare setup"
+        echo ""
+        log_info "You can set this up later by running:"
+        log_info "  certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini -d yourdomain.com"
+        echo ""
         return 0
+    fi
+    
+    # Validate token format (basic check)
+    if [[ ! "$CF_API_TOKEN" =~ ^[A-Za-z0-9_-]{40,}$ ]]; then
+        log_warning "⚠️  Token format looks unusual. Make sure you copied the full token."
+        if ! prompt_yes_no "Continue anyway?"; then
+            log_info "Cloudflare setup cancelled"
+            return 0
+        fi
     fi
     
     CF_ZONE_ID=$(prompt_input "Enter Cloudflare Zone ID")
     
+    # Validate Zone ID format (basic check)
+    if [[ ! "$CF_ZONE_ID" =~ ^[a-f0-9]{32}$ ]]; then
+        log_warning "⚠️  Zone ID format looks unusual. It should be 32 hexadecimal characters."
+        if ! prompt_yes_no "Continue anyway?"; then
+            log_info "Cloudflare setup cancelled"
+            return 0
+        fi
+    fi
+    
+    echo ""
     log_info "Installing Cloudflare DNS plugin for Certbot..."
     
     case $OS in
@@ -1168,12 +1228,23 @@ setup_cloudflare() {
     
     mkdir -p /root/.secrets
     cat > /root/.secrets/cloudflare.ini <<EOF
+# Cloudflare API Token for DNS validation
+# Created: $(date)
 dns_cloudflare_api_token = $CF_API_TOKEN
 EOF
     chmod 600 /root/.secrets/cloudflare.ini
     
-    log_success "Cloudflare integration configured"
-    log_info "You can now use: certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini -d yourdomain.com"
+    echo ""
+    log_success "✅ Cloudflare integration configured successfully!"
+    echo ""
+    log_info "📁 Configuration saved to: /root/.secrets/cloudflare.ini"
+    log_info "🔒 Zone ID: $CF_ZONE_ID"
+    echo ""
+    log_info "💡 To generate SSL certificate for your domain:"
+    log_info "   certbot certonly --dns-cloudflare \\"
+    log_info "     --dns-cloudflare-credentials /root/.secrets/cloudflare.ini \\"
+    log_info "     -d yourdomain.com -d *.yourdomain.com"
+    echo ""
 }
 
 check_service_status() {
