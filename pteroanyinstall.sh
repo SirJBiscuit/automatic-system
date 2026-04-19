@@ -1465,7 +1465,6 @@ main() {
     case "${1:-}" in
         install-panel)
             log_info "Starting Panel installation..."
-            show_installation_flow
             
             setup_network_wizard
             
@@ -1501,7 +1500,6 @@ main() {
             
         install-wings)
             log_info "Starting Wings installation..."
-            show_installation_flow
             
             setup_network_wizard
             
@@ -1531,7 +1529,6 @@ main() {
             
         install-full)
             log_info "Starting full Ptero installation..."
-            show_installation_flow
             
             setup_network_wizard
             
