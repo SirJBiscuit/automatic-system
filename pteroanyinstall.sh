@@ -1079,7 +1079,8 @@ install_panel() {
         --port="3306" \
         --database="panel" \
         --username="pterodactyl" \
-        --password="$DB_PASS"
+        --password="$DB_PASS" \
+        --no-interaction
     
     php artisan migrate --seed --force
     
