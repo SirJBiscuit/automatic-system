@@ -49,13 +49,20 @@ BOT_DIR="/opt/pterodactyl-bot"
 log_info "Creating bot directory: $BOT_DIR"
 mkdir -p $BOT_DIR
 
-# Get script directory
+# Detect if we're in the cloned repo
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="/opt/ptero"
 
 # Copy bot files from local repo or download from GitHub
 log_info "Setting up bot files..."
-if [ -f "$SCRIPT_DIR/bot.py" ]; then
+if [ -f "$REPO_DIR/discord-bot/bot.py" ]; then
     log_info "Copying files from local repository..."
+    cp "$REPO_DIR/discord-bot/bot.py" $BOT_DIR/
+    cp "$REPO_DIR/discord-bot/requirements.txt" $BOT_DIR/
+    cp "$REPO_DIR/discord-bot/.env.example" $BOT_DIR/
+    [ -f "$REPO_DIR/discord-bot/voice_handler.py" ] && cp "$REPO_DIR/discord-bot/voice_handler.py" $BOT_DIR/
+elif [ -f "$SCRIPT_DIR/bot.py" ]; then
+    log_info "Copying files from script directory..."
     cp "$SCRIPT_DIR/bot.py" $BOT_DIR/
     cp "$SCRIPT_DIR/requirements.txt" $BOT_DIR/
     cp "$SCRIPT_DIR/.env.example" $BOT_DIR/
