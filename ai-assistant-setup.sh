@@ -1197,6 +1197,9 @@ EOFCLI
     fi
     
     log_success "Chatbot CLI tool created"
+    }
+    
+    create_chatbot_cli
 }
 
 show_usage_examples() {
