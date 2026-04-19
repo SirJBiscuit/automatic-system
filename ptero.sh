@@ -54,11 +54,12 @@ show_menu() {
     echo "  19) Stop Discord bot"
     echo "  20) Restart Discord bot"
     echo "  21) View Discord bot logs"
+    echo "  22) Update Discord bot"
     echo ""
     echo -e "${GREEN}OTHER:${NC}"
-    echo "  22) Install/Setup P.R.I.S.M"
-    echo "  23) Open shell in /opt/ptero"
-    echo "  24) Help - What does each option do?"
+    echo "  23) Install/Setup P.R.I.S.M"
+    echo "  24) Open shell in /opt/ptero"
+    echo "  25) Help - What does each option do?"
     echo ""
     echo "  0) Exit"
     echo ""
@@ -72,6 +73,35 @@ update_scripts() {
     chmod +x *.sh 2>/dev/null || true
     find /opt/ptero -type f -name "*.sh" -exec chmod +x {} \;
     echo -e "${GREEN}[SUCCESS]${NC} Scripts updated!"
+    read -e -p "Press Enter to continue..."
+}
+
+update_discord_bot() {
+    echo -e "${BLUE}[INFO]${NC} Updating Discord bot..."
+    echo ""
+    
+    # Pull latest changes
+    cd /opt/ptero
+    git pull origin main
+    
+    # Copy updated bot files
+    echo -e "${BLUE}[INFO]${NC} Copying bot files..."
+    cp /opt/ptero/discord-bot/bot.py /opt/pterodactyl-bot/
+    cp /opt/ptero/discord-bot/voice_handler.py /opt/pterodactyl-bot/ 2>/dev/null || true
+    
+    # Install/update dependencies
+    echo -e "${BLUE}[INFO]${NC} Updating dependencies..."
+    /opt/pterodactyl-bot/venv/bin/pip install -q --upgrade -r /opt/ptero/discord-bot/requirements.txt
+    
+    # Restart bot
+    echo -e "${BLUE}[INFO]${NC} Restarting Discord bot..."
+    systemctl restart pterodactyl-bot
+    
+    echo ""
+    echo -e "${GREEN}[SUCCESS]${NC} Discord bot updated!"
+    echo ""
+    echo "Check status with option 21 (View Discord bot logs)"
+    echo ""
     read -e -p "Press Enter to continue..."
 }
 
@@ -304,23 +334,30 @@ DISCORD BOT:
     • Press Ctrl+C to exit
     • Useful for debugging bot issues
 
+22) Update Discord bot
+    • Pulls latest bot code from GitHub
+    • Updates bot.py and voice_handler.py
+    • Installs/updates Python dependencies
+    • Automatically restarts the bot
+    • Use when new features are added
+
 
 OTHER:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-22) Install/Setup P.R.I.S.M
+23) Install/Setup P.R.I.S.M
     • Runs the full P.R.I.S.M installation script
     • Use for first-time setup
     • Use to reinstall if P.R.I.S.M is broken
     • Downloads AI model (takes 5-10 minutes)
 
-23) Open shell in /opt/ptero
+24) Open shell in /opt/ptero
     • Opens a bash shell in the scripts directory
     • For advanced users who want to run custom commands
     • Type 'exit' to return to menu
     • Be careful - you can break things here!
 
-24) Help - What does each option do?
+25) Help - What does each option do?
     • Shows this help screen
     • Use arrow keys or Page Up/Down to scroll
     • Press 'q' to exit help
@@ -366,9 +403,10 @@ while true; do
         19) systemctl stop pterodactyl-bot; echo "Discord bot stopped"; read -e -p "Press Enter to continue..." ;;
         20) systemctl restart pterodactyl-bot; echo "Discord bot restarted"; read -e -p "Press Enter to continue..." ;;
         21) journalctl -u pterodactyl-bot -f ;;
-        22) cd /opt/ptero && ./ai-assistant-setup.sh ;;
-        23) cd /opt/ptero && bash ;;
-        24) show_help ;;
+        22) update_discord_bot ;;
+        23) cd /opt/ptero && ./ai-assistant-setup.sh ;;
+        24) cd /opt/ptero && bash ;;
+        25) show_help ;;
         0) echo "Goodbye!"; exit 0 ;;
         *) echo -e "${RED}Invalid option${NC}"; sleep 1 ;;
     esac
