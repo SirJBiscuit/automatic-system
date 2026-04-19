@@ -444,8 +444,16 @@ install_php() {
     log_info "Installing PHP and required extensions..."
     
     case $OS in
-        ubuntu|debian)
+        ubuntu)
             add-apt-repository -y ppa:ondrej/php
+            apt update -y
+            apt install -y php8.1 php8.1-{cli,gd,mysql,pdo,mbstring,tokenizer,bcmath,xml,fpm,curl,zip}
+            ;;
+        debian)
+            # Add Sury PHP repository for Debian
+            curl -sSL https://packages.sury.org/php/README.txt
+            curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+            echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list
             apt update -y
             apt install -y php8.1 php8.1-{cli,gd,mysql,pdo,mbstring,tokenizer,bcmath,xml,fpm,curl,zip}
             ;;
