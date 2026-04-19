@@ -1585,10 +1585,20 @@ main() {
             install_nginx
             install_certbot
             
-            USER_EMAIL=$(prompt_with_explanation \
-                "Enter your email address" \
-                "This email will be used for SSL certificates and admin account notifications." \
-                "")
+            # Get and validate email
+            while true; do
+                USER_EMAIL=$(prompt_with_explanation \
+                    "Enter your email address" \
+                    "This email will be used for SSL certificates and admin account notifications." \
+                    "")
+                
+                # Validate email format
+                if [[ "$USER_EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+                    break
+                else
+                    log_error "Invalid email format. Please try again."
+                fi
+            done
             ADMIN_PASS=$(prompt_with_explanation \
                 "Enter admin password" \
                 "This is the password for the Panel admin account. Leave blank to auto-generate a secure password." \
@@ -1659,10 +1669,20 @@ main() {
                 configure_gpu_support
             fi
             
-            USER_EMAIL=$(prompt_with_explanation \
-                "Enter your email address" \
-                "This email will be used for SSL certificates and admin account." \
-                "")
+            # Get and validate email
+            while true; do
+                USER_EMAIL=$(prompt_with_explanation \
+                    "Enter your email address" \
+                    "This email will be used for SSL certificates and admin account." \
+                    "")
+                
+                # Validate email format
+                if [[ "$USER_EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+                    break
+                else
+                    log_error "Invalid email format. Please try again."
+                fi
+            done
             ADMIN_PASS=$(prompt_with_explanation \
                 "Enter admin password" \
                 "This is the password for the Panel admin account. Leave blank to auto-generate." \
