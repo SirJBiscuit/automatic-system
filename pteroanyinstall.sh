@@ -1923,11 +1923,28 @@ main() {
             
             # Drop databases and users FIRST (before removing files)
             log_info "Removing Panel database and users..."
-            mysql -u root -e "DROP DATABASE IF EXISTS panel;" 2>/dev/null || true
-            mysql -u root -e "DROP DATABASE IF EXISTS pterodactyl;" 2>/dev/null || true
-            mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'127.0.0.1';" 2>/dev/null || true
-            mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'localhost';" 2>/dev/null || true
-            mysql -u root -e "FLUSH PRIVILEGES;" 2>/dev/null || true
+            
+            # Show existing databases
+            log_info "Checking existing databases..."
+            mysql -u root -e "SHOW DATABASES LIKE '%panel%';" || log_warning "Could not list databases"
+            mysql -u root -e "SHOW DATABASES LIKE '%pterodactyl%';" || log_warning "Could not list databases"
+            
+            # Drop databases
+            log_info "Dropping databases..."
+            mysql -u root -e "DROP DATABASE IF EXISTS panel;" && log_success "Dropped 'panel' database" || log_warning "Could not drop 'panel'"
+            mysql -u root -e "DROP DATABASE IF EXISTS pterodactyl;" && log_success "Dropped 'pterodactyl' database" || log_warning "Could not drop 'pterodactyl'"
+            
+            # Drop users
+            log_info "Dropping users..."
+            mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'127.0.0.1';" && log_success "Dropped user pterodactyl@127.0.0.1" || log_warning "Could not drop user"
+            mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'localhost';" && log_success "Dropped user pterodactyl@localhost" || log_warning "Could not drop user"
+            mysql -u root -e "FLUSH PRIVILEGES;"
+            
+            # Verify cleanup
+            log_info "Verifying cleanup..."
+            mysql -u root -e "SHOW DATABASES LIKE '%panel%';"
+            mysql -u root -e "SHOW DATABASES LIKE '%pterodactyl%';"
+            
             log_success "Database cleanup complete"
             
             # Remove Panel installation
