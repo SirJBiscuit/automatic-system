@@ -82,16 +82,19 @@ update_discord_bot() {
     
     # Pull latest changes
     cd /opt/ptero
-    git pull origin main
+    echo -e "${BLUE}[INFO]${NC} Fetching latest code from GitHub..."
+    git fetch origin
+    git reset --hard origin/main
     
     # Copy updated bot files
     echo -e "${BLUE}[INFO]${NC} Copying bot files..."
     cp /opt/ptero/discord-bot/bot.py /opt/pterodactyl-bot/
     cp /opt/ptero/discord-bot/voice_handler.py /opt/pterodactyl-bot/ 2>/dev/null || true
+    cp /opt/ptero/discord-bot/requirements.txt /opt/pterodactyl-bot/ 2>/dev/null || true
     
     # Install/update dependencies
     echo -e "${BLUE}[INFO]${NC} Updating dependencies..."
-    /opt/pterodactyl-bot/venv/bin/pip install -q --upgrade -r /opt/ptero/discord-bot/requirements.txt
+    /opt/pterodactyl-bot/venv/bin/pip install -q --upgrade -r /opt/pterodactyl-bot/requirements.txt
     
     # Restart bot
     echo -e "${BLUE}[INFO]${NC} Restarting Discord bot..."
