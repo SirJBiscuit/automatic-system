@@ -753,11 +753,17 @@ Nginx Errors (last 24h): $(grep -c error /var/log/nginx/error.log 2>/dev/null ||
         echo "🤖 AI is analyzing your system..."
         echo ""
         
-        ANALYSIS=$(curl -s --max-time 120 http://localhost:11434/api/generate -d "{
-            \"model\": \"$MODEL\",
-            \"prompt\": \"You are a Pterodactyl server optimization expert. Analyze this system and provide specific, actionable optimization recommendations. Format your response as numbered items with clear categories (Performance, Security, Maintenance, Configuration). Be specific about what to change and why. Here's the system info:\n\n$SYSTEM_INFO\",
-            \"stream\": false
-        }" | jq -r '.response')
+        # Build JSON payload with proper escaping using jq
+        PROMPT="You are a Pterodactyl server optimization expert. Analyze this system and provide specific, actionable optimization recommendations. Format your response as numbered items with clear categories (Performance, Security, Maintenance, Configuration). Be specific about what to change and why. Here's the system info:
+
+$SYSTEM_INFO"
+        
+        ANALYSIS=$(jq -n \
+            --arg model "$MODEL" \
+            --arg prompt "$PROMPT" \
+            '{model: $model, prompt: $prompt, stream: false}' | \
+            curl -s --max-time 120 http://localhost:11434/api/generate -d @- | \
+            jq -r '.response')
         
         if [ -z "$ANALYSIS" ] || [ "$ANALYSIS" = "null" ]; then
             echo "⚠️  AI analysis timed out or failed. Here's a basic system check instead:"
