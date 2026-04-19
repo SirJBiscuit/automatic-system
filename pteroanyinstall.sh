@@ -1134,14 +1134,32 @@ install_panel() {
     
     if [ $? -eq 0 ]; then
         log_info "Restarting Nginx..."
+        
+        # Kill any orphaned nginx processes
+        pkill -9 nginx 2>/dev/null || true
+        sleep 2
+        
         systemctl restart nginx
         
         if [ $? -eq 0 ]; then
             log_success "Nginx restarted successfully!"
         else
-            log_error "Nginx failed to restart. Checking status..."
-            systemctl status nginx --no-pager
-            log_warning "You may need to fix the Nginx configuration manually."
+            log_error "Nginx failed to restart. Trying to fix..."
+            
+            # Force kill any remaining processes
+            killall -9 nginx 2>/dev/null || true
+            sleep 2
+            
+            # Try starting again
+            systemctl start nginx
+            
+            if [ $? -eq 0 ]; then
+                log_success "Nginx started successfully!"
+            else
+                log_error "Nginx still failed. Checking status..."
+                systemctl status nginx --no-pager
+                log_warning "You may need to fix the Nginx configuration manually."
+            fi
         fi
     else
         log_error "Nginx configuration test failed!"
