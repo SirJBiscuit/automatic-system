@@ -41,34 +41,34 @@ check_root() {
 }
 
 check_for_updates() {
-    local version_file="/opt/ptero/.version"
-    local remote_version_url="https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/VERSION"
+    local notification_file="/opt/ptero/.update-notification"
     
-    if [ -f "$version_file" ]; then
-        local local_version=$(cat "$version_file" | tr -d '\n\r')
-        local remote_version=$(curl -sSL "$remote_version_url" 2>/dev/null | tr -d '\n\r' || echo "unknown")
-        
-        if [ "$remote_version" != "unknown" ] && [ "$local_version" != "$remote_version" ]; then
-            echo ""
-            log_warning "╔════════════════════════════════════════════════════════════╗"
-            log_warning "║              UPDATE AVAILABLE                              ║"
-            log_warning "╚════════════════════════════════════════════════════════════╝"
-            echo ""
-            log_info "Current version: $local_version"
-            log_info "Latest version:  $remote_version"
-            echo ""
-            log_info "To get the latest version with all fixes and features:"
-            echo ""
-            echo -e "${YELLOW}Run these commands:${NC}"
-            echo ""
-            echo "  cd /opt/ptero"
-            echo "  rm -rf *"
-            echo "  curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash"
-            echo ""
-            read -p "Press Enter to continue with current version, or Ctrl+C to update now..."
-            echo ""
-        fi
+    # Check if update notification exists
+    if [ -f "$notification_file" ]; then
+        echo ""
+        cat "$notification_file"
+        echo ""
+        read -p "Press Enter to continue with current version, or Ctrl+C to update now..."
+        echo ""
     fi
+}
+
+install_update_checker() {
+    log_info "Installing update checker service..."
+    
+    # Copy service files
+    cp /opt/ptero/ptero-update-checker.sh /opt/ptero/ptero-update-checker.sh
+    chmod +x /opt/ptero/ptero-update-checker.sh
+    
+    cp /opt/ptero/ptero-update-checker.service /etc/systemd/system/
+    cp /opt/ptero/ptero-update-checker.timer /etc/systemd/system/
+    
+    # Enable and start timer
+    systemctl daemon-reload
+    systemctl enable ptero-update-checker.timer
+    systemctl start ptero-update-checker.timer
+    
+    log_success "Update checker installed! Will check for updates daily."
 }
 
 detect_os() {

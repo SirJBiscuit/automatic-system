@@ -68,7 +68,8 @@ if [ -f "$INSTALL_DIR/pteroanyinstall.sh" ]; then
     echo "  ⏳ Removing old files..."
     rm -f pteroanyinstall.sh pre-install-checks.sh billing-setup.sh panel-customizer.sh \
           quick-setup.sh ptero-admin.sh ai-assistant-setup.sh prism-upgrade.sh \
-          prism-enhanced.py prism-cli.sh node-installer.sh cloud-backup.sh update.sh
+          prism-enhanced.py prism-cli.sh node-installer.sh cloud-backup.sh update.sh \
+          ptero-update-checker.sh ptero-update-checker.service ptero-update-checker.timer
 fi
 
 echo "  📥 Downloading scripts from GitHub..."
@@ -90,7 +91,7 @@ show_progress() {
 }
 
 # Download main scripts with progress
-TOTAL_FILES=13
+TOTAL_FILES=16
 CURRENT=0
 
 download_file() {
@@ -115,6 +116,9 @@ download_file "$REPO_URL/prism-cli.sh" "prism-cli.sh" "PRISM CLI"
 download_file "$REPO_URL/node-installer.sh" "node-installer.sh" "Node installer"
 download_file "$REPO_URL/cloud-backup.sh" "cloud-backup.sh" "Cloud backup"
 download_file "$REPO_URL/update.sh" "update.sh" "Update script"
+download_file "$REPO_URL/ptero-update-checker.sh" "ptero-update-checker.sh" "Update checker"
+download_file "$REPO_URL/ptero-update-checker.service" "ptero-update-checker.service" "Update service"
+download_file "$REPO_URL/ptero-update-checker.timer" "ptero-update-checker.timer" "Update timer"
 
 echo ""
 echo ""
@@ -123,7 +127,8 @@ echo "  ⏳ Setting permissions..."
 # Make executable
 chmod +x pteroanyinstall.sh pre-install-checks.sh billing-setup.sh panel-customizer.sh \
          quick-setup.sh ptero-admin.sh ai-assistant-setup.sh prism-upgrade.sh \
-         prism-enhanced.py prism-cli.sh node-installer.sh cloud-backup.sh update.sh
+         prism-enhanced.py prism-cli.sh node-installer.sh cloud-backup.sh update.sh \
+         ptero-update-checker.sh
 
 echo "  ⏳ Downloading version file..."
 
@@ -254,6 +259,23 @@ echo "║                                                                       
 echo "║  💡 Need help? Run: ./pteroanyinstall.sh help                           ║"
 echo "║                                                                          ║"
 echo "╚══════════════════════════════════════════════════════════════════════════╝"
+echo ""
+echo ""
+echo "  ⏳ Installing update checker service..."
+echo ""
+
+# Install update checker
+if [ -f "/opt/ptero/ptero-update-checker.sh" ]; then
+    cp /opt/ptero/ptero-update-checker.service /etc/systemd/system/ 2>/dev/null
+    cp /opt/ptero/ptero-update-checker.timer /etc/systemd/system/ 2>/dev/null
+    systemctl daemon-reload 2>/dev/null
+    systemctl enable ptero-update-checker.timer 2>/dev/null
+    systemctl start ptero-update-checker.timer 2>/dev/null
+    echo "  ✅ Update checker installed! Will check for updates daily."
+else
+    echo "  ⚠️  Update checker not found, skipping..."
+fi
+
 echo ""
 echo "  Press any key to continue..."
 read -n 1 -s
