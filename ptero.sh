@@ -1,0 +1,181 @@
+#!/bin/bash
+
+# Pterodactyl Management Interface
+# Quick access to common commands
+
+set -e
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+clear
+
+show_banner() {
+    echo ""
+    echo -e "${CYAN}╔════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║${NC}              ${BLUE}PTERODACTYL MANAGEMENT INTERFACE${NC}                      ${CYAN}║${NC}"
+    echo -e "${CYAN}╚════════════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+}
+
+show_menu() {
+    echo -e "${GREEN}SYSTEM MANAGEMENT:${NC}"
+    echo "  1) Update all scripts from GitHub"
+    echo "  2) Clean install (removes everything and reinstalls)"
+    echo "  3) Check service status"
+    echo "  4) View logs"
+    echo ""
+    echo -e "${GREEN}P.R.I.S.M AI ASSISTANT:${NC}"
+    echo "  5) Enable P.R.I.S.M"
+    echo "  6) Disable P.R.I.S.M"
+    echo "  7) Check P.R.I.S.M status"
+    echo "  8) Run system optimization"
+    echo "  9) Ask P.R.I.S.M a question"
+    echo ""
+    echo -e "${GREEN}WEB CONSOLE:${NC}"
+    echo "  10) Start web console"
+    echo "  11) Stop web console"
+    echo "  12) Restart web console"
+    echo "  13) View web console logs"
+    echo ""
+    echo -e "${GREEN}CLOUDFLARE TUNNEL:${NC}"
+    echo "  14) Start tunnel"
+    echo "  15) Stop tunnel"
+    echo "  16) Restart tunnel"
+    echo "  17) View tunnel logs"
+    echo ""
+    echo -e "${GREEN}OTHER:${NC}"
+    echo "  18) Install/Setup P.R.I.S.M"
+    echo "  19) Open shell in /opt/ptero"
+    echo ""
+    echo "  0) Exit"
+    echo ""
+}
+
+update_scripts() {
+    echo -e "${BLUE}[INFO]${NC} Updating scripts from GitHub..."
+    cd /opt/ptero
+    git reset --hard HEAD
+    git pull origin main
+    chmod +x *.sh 2>/dev/null || true
+    find /opt/ptero -type f -name "*.sh" -exec chmod +x {} \;
+    echo -e "${GREEN}[SUCCESS]${NC} Scripts updated!"
+    read -e -p "Press Enter to continue..."
+}
+
+clean_install() {
+    echo -e "${YELLOW}[WARNING]${NC} This will remove all scripts and reinstall from GitHub."
+    echo -e "${YELLOW}[WARNING]${NC} P.R.I.S.M config and services will be preserved."
+    echo ""
+    read -e -p "Are you sure? (y/n): " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}[INFO]${NC} Removing old scripts..."
+        rm -rf /opt/ptero
+        rm -f /usr/local/bin/chatbot
+        echo -e "${BLUE}[INFO]${NC} Running installer..."
+        curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | bash
+        echo -e "${GREEN}[SUCCESS]${NC} Clean install complete!"
+    else
+        echo "Cancelled."
+    fi
+    read -e -p "Press Enter to continue..."
+}
+
+check_status() {
+    echo -e "${BLUE}[INFO]${NC} Checking service status..."
+    echo ""
+    echo -e "${CYAN}=== Pterodactyl Panel ===${NC}"
+    systemctl is-active --quiet nginx && echo -e "  Nginx: ${GREEN}Running${NC}" || echo -e "  Nginx: ${RED}Stopped${NC}"
+    systemctl is-active --quiet mysql && echo -e "  MySQL: ${GREEN}Running${NC}" || echo -e "  MySQL: ${RED}Stopped${NC}"
+    systemctl is-active --quiet redis-server && echo -e "  Redis: ${GREEN}Running${NC}" || echo -e "  Redis: ${RED}Stopped${NC}"
+    
+    echo ""
+    echo -e "${CYAN}=== Wings ===${NC}"
+    systemctl is-active --quiet wings && echo -e "  Wings: ${GREEN}Running${NC}" || echo -e "  Wings: ${RED}Stopped${NC}"
+    
+    echo ""
+    echo -e "${CYAN}=== Web Console ===${NC}"
+    systemctl is-active --quiet pterodactyl-web-console && echo -e "  Web Console: ${GREEN}Running${NC}" || echo -e "  Web Console: ${RED}Stopped${NC}"
+    
+    echo ""
+    echo -e "${CYAN}=== Cloudflare Tunnel ===${NC}"
+    systemctl is-active --quiet cloudflared && echo -e "  Tunnel: ${GREEN}Running${NC}" || echo -e "  Tunnel: ${RED}Stopped${NC}"
+    
+    echo ""
+    echo -e "${CYAN}=== P.R.I.S.M ===${NC}"
+    systemctl is-active --quiet ptero-assistant && echo -e "  P.R.I.S.M: ${GREEN}Running${NC}" || echo -e "  P.R.I.S.M: ${RED}Stopped${NC}"
+    systemctl is-active --quiet ollama && echo -e "  Ollama: ${GREEN}Running${NC}" || echo -e "  Ollama: ${RED}Stopped${NC}"
+    
+    echo ""
+    read -e -p "Press Enter to continue..."
+}
+
+view_logs() {
+    echo ""
+    echo "Select logs to view:"
+    echo "  1) Web Console"
+    echo "  2) Cloudflare Tunnel"
+    echo "  3) P.R.I.S.M"
+    echo "  4) Wings"
+    echo "  5) Nginx Error Log"
+    echo ""
+    read -e -p "Select [1-5]: " log_choice
+    
+    case $log_choice in
+        1) journalctl -u pterodactyl-web-console -f ;;
+        2) journalctl -u cloudflared -f ;;
+        3) tail -f /var/log/ptero-assistant.log ;;
+        4) journalctl -u wings -f ;;
+        5) tail -f /var/log/nginx/error.log ;;
+        *) echo "Invalid choice" ;;
+    esac
+}
+
+ask_prism() {
+    echo ""
+    read -e -p "Ask P.R.I.S.M: " question
+    if [ -n "$question" ]; then
+        chatbot ask "$question"
+    fi
+    echo ""
+    read -e -p "Press Enter to continue..."
+}
+
+# Main loop
+while true; do
+    show_banner
+    show_menu
+    read -e -p "Select option: " choice
+    echo ""
+    
+    case $choice in
+        1) update_scripts ;;
+        2) clean_install ;;
+        3) check_status ;;
+        4) view_logs ;;
+        5) chatbot -enable; read -e -p "Press Enter to continue..." ;;
+        6) chatbot -disable; read -e -p "Press Enter to continue..." ;;
+        7) chatbot status; read -e -p "Press Enter to continue..." ;;
+        8) chatbot detect ;;
+        9) ask_prism ;;
+        10) systemctl start pterodactyl-web-console; echo "Web console started"; read -e -p "Press Enter to continue..." ;;
+        11) systemctl stop pterodactyl-web-console; echo "Web console stopped"; read -e -p "Press Enter to continue..." ;;
+        12) systemctl restart pterodactyl-web-console; echo "Web console restarted"; read -e -p "Press Enter to continue..." ;;
+        13) journalctl -u pterodactyl-web-console -f ;;
+        14) systemctl start cloudflared; echo "Tunnel started"; read -e -p "Press Enter to continue..." ;;
+        15) systemctl stop cloudflared; echo "Tunnel stopped"; read -e -p "Press Enter to continue..." ;;
+        16) systemctl restart cloudflared; echo "Tunnel restarted"; read -e -p "Press Enter to continue..." ;;
+        17) journalctl -u cloudflared -f ;;
+        18) cd /opt/ptero && ./ai-assistant-setup.sh ;;
+        19) cd /opt/ptero && bash ;;
+        0) echo "Goodbye!"; exit 0 ;;
+        *) echo -e "${RED}Invalid option${NC}"; sleep 1 ;;
+    esac
+    
+    clear
+done
