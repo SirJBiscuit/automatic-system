@@ -101,9 +101,15 @@ detect_network_interfaces() {
     local interfaces=()
     local count=1
     
-    for iface in $(ip -o link show | awk -F': ' '{print $2}' | grep -v lo); do
-        local ip_addr=$(ip -4 addr show $iface | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
-        local status=$(ip link show $iface | grep -oP '(?<=state )\w+')
+    # Get all interfaces except loopback, docker, and virtual interfaces
+    for iface in $(ip -o link show | awk -F': ' '{print $2}'); do
+        # Skip loopback, docker, bridge, and veth interfaces
+        if [[ "$iface" == "lo" ]] || [[ "$iface" == docker* ]] || [[ "$iface" == br-* ]] || [[ "$iface" == veth* ]]; then
+            continue
+        fi
+        
+        local ip_addr=$(ip -4 addr show "$iface" 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
+        local status=$(ip link show "$iface" 2>/dev/null | grep -oP '(?<=state )\w+')
         local type="Unknown"
         
         if [[ $iface == eth* ]] || [[ $iface == ens* ]] || [[ $iface == enp* ]]; then
@@ -113,7 +119,7 @@ detect_network_interfaces() {
         fi
         
         echo "$count) $iface - $type - Status: $status - IP: ${ip_addr:-Not assigned}"
-        interfaces+=($iface)
+        interfaces+=("$iface")
         ((count++))
     done
     
