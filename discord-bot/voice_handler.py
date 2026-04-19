@@ -441,7 +441,7 @@ def setup_voice_commands(bot, prism_client=None):
                 for s in servers_data:
                     server_summary.append(f"{s['name']}: {s['status']} (CPU: {s['cpu']}, RAM: {s['memory']})")
                 server_text = "; ".join(server_summary)
-                enhanced_question = f"My servers: {server_text}. Question: {question}"
+                enhanced_question = f"Here is my current Pterodactyl server data: {server_text}. Based on this data, answer: {question}"
             
             # Try local chatbot with enhanced question
             try:
