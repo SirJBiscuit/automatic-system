@@ -111,10 +111,42 @@ class VoiceHandler:
     
     async def record_audio(self, voice_client, duration):
         """Record audio from voice channel"""
-        # This is a simplified version - actual implementation would need
-        # to capture audio from Discord voice channel
-        # For now, we'll use a placeholder
-        return None
+        try:
+            import discord.sinks
+            
+            # Create temporary file for recording
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+            temp_file.close()
+            
+            # Create a sink to record audio
+            sink = discord.sinks.WaveSink()
+            
+            # Start recording
+            voice_client.start_recording(
+                sink,
+                lambda sink, user: None,  # Callback when finished
+                sync_start=True
+            )
+            
+            # Wait for duration
+            await asyncio.sleep(duration)
+            
+            # Stop recording
+            voice_client.stop_recording()
+            
+            # Get the recorded audio
+            if sink.audio_data:
+                # Get first user's audio (or combine all users)
+                for user_id, audio in sink.audio_data.items():
+                    with open(temp_file.name, 'wb') as f:
+                        f.write(audio.file.read())
+                    return temp_file.name
+            
+            return None
+            
+        except Exception as e:
+            print(f"Recording error: {e}")
+            return None
     
     async def speak_response(self, ctx, text):
         """Convert text to speech and play in voice channel"""
