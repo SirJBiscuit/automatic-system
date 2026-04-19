@@ -102,14 +102,14 @@ detect_network_interfaces() {
     local count=1
     
     # Get all interfaces except loopback, docker, and virtual interfaces
-    for iface in $(ip -o link show | awk -F': ' '{print $2}'); do
+    for iface in $(ip -o link show 2>/dev/null | awk -F': ' '{print $2}'); do
         # Skip loopback, docker, bridge, and veth interfaces
-        if [[ "$iface" == "lo" ]] || [[ "$iface" == docker* ]] || [[ "$iface" == br-* ]] || [[ "$iface" == veth* ]]; then
+        if [[ "$iface" == "lo" ]] || [[ "$iface" == docker* ]] || [[ "$iface" == br-* ]] || [[ "$iface" == veth* ]] || [[ "$iface" == *@* ]]; then
             continue
         fi
         
-        local ip_addr=$(ip -4 addr show "$iface" 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
-        local status=$(ip link show "$iface" 2>/dev/null | grep -oP '(?<=state )\w+')
+        local ip_addr=$(ip -4 addr show "$iface" 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' 2>/dev/null | head -1)
+        local status=$(ip link show "$iface" 2>/dev/null | grep -oP '(?<=state )\w+' 2>/dev/null)
         local type="Unknown"
         
         if [[ $iface == eth* ]] || [[ $iface == ens* ]] || [[ $iface == enp* ]]; then
