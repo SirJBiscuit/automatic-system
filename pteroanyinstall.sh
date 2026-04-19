@@ -193,11 +193,13 @@ network:
       dhcp4: no
       addresses:
         - $ip_address/24
-      gateway4: $gateway
+      routes:
+        - to: default
+          via: $gateway
       nameservers:
         addresses: [$dns, 8.8.8.8]
 EOF
-                netplan apply
+                netplan apply 2>/dev/null || log_warning "Netplan apply failed, but configuration saved"
             else
                 cat > /etc/network/interfaces.d/$interface <<EOF
 auto $interface
@@ -207,7 +209,7 @@ iface $interface inet static
     gateway $gateway
     dns-nameservers $dns 8.8.8.8
 EOF
-                systemctl restart networking
+                systemctl restart networking 2>/dev/null || log_warning "Networking restart failed, but configuration saved"
             fi
             ;;
         centos|rhel|rocky|almalinux)
@@ -578,10 +580,10 @@ setup_network_wizard() {
     fi
     
     echo ""
-    if prompt_yes_no "Do you want to configure a static IP to prevent IP changes on reboot?"; then
-        log_info "EXPLANATION: A static IP ensures your server always uses the same local IP address."
-        log_info "This is important for network stability and prevents connectivity issues after reboots."
-        
+    log_info "EXPLANATION: A static IP ensures your server always uses the same local IP address."
+    log_info "This prevents connectivity issues after reboots. You can skip this if using DHCP reservation."
+    echo ""
+    if prompt_yes_no "Do you want to configure a static IP now?"; then
         CURRENT_IP=$(ip -4 addr show $SELECTED_INTERFACE | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
         GATEWAY=$(ip route | grep default | awk '{print $3}' | head -1)
         
@@ -589,19 +591,32 @@ setup_network_wizard() {
         GATEWAY_IP=$(prompt_input "Enter gateway IP" "$GATEWAY")
         DNS_IP=$(prompt_input "Enter DNS server" "8.8.8.8")
         
+        echo ""
+        log_info "Configuring static IP..."
         configure_static_ip "$SELECTED_INTERFACE" "$STATIC_IP" "$GATEWAY_IP" "$DNS_IP"
         
-        mkdir -p "$CONFIG_DIR"
-        cat > "$CONFIG_FILE" <<EOF
+        if [ $? -eq 0 ]; then
+            log_success "Static IP configured successfully"
+        else
+            log_warning "Static IP configuration may have failed. Current DHCP will continue working."
+            log_info "You can configure static IP manually later if needed."
+        fi
+    else
+        log_info "Skipping static IP configuration. Using DHCP."
+        CURRENT_IP=$(ip -4 addr show $SELECTED_INTERFACE | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
+        STATIC_IP=$CURRENT_IP
+    fi
+    
+    mkdir -p "$CONFIG_DIR"
+    cat > "$CONFIG_FILE" <<EOF
 INTERFACE=$SELECTED_INTERFACE
-STATIC_IP=$STATIC_IP
+STATIC_IP=${STATIC_IP:-$CURRENT_IP}
 PUBLIC_IP=$PUBLIC_IP
-GATEWAY=$GATEWAY_IP
-DNS=$DNS_IP
+GATEWAY=${GATEWAY_IP:-auto}
+DNS=${DNS_IP:-8.8.8.8}
 CONFIGURED_DATE=$(date)
 EOF
-        log_success "Network configuration saved to $CONFIG_FILE"
-    fi
+    log_success "Network configuration saved to $CONFIG_FILE"
     
     echo ""
     log_success "Network configuration complete!"
