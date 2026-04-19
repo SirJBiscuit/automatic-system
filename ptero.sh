@@ -26,7 +26,7 @@ show_banner() {
 show_menu() {
     echo -e "${GREEN}SYSTEM MANAGEMENT:${NC}"
     echo "  1) Update all scripts from GitHub"
-    echo "  2) Clean install (removes everything and reinstalls)"
+    echo "  2) Reinstall scripts only (keeps all data/services)"
     echo "  3) Check service status"
     echo "  4) View logs"
     echo ""
@@ -52,6 +52,7 @@ show_menu() {
     echo -e "${GREEN}OTHER:${NC}"
     echo "  18) Install/Setup P.R.I.S.M"
     echo "  19) Open shell in /opt/ptero"
+    echo "  20) Help - What does each option do?"
     echo ""
     echo "  0) Exit"
     echo ""
@@ -69,8 +70,9 @@ update_scripts() {
 }
 
 clean_install() {
-    echo -e "${YELLOW}[WARNING]${NC} This will remove all scripts and reinstall from GitHub."
-    echo -e "${YELLOW}[WARNING]${NC} P.R.I.S.M config and services will be preserved."
+    echo -e "${BLUE}[INFO]${NC} This will reinstall scripts from GitHub."
+    echo -e "${GREEN}[SAFE]${NC} Your panel, databases, and services are NOT affected."
+    echo -e "${GREEN}[SAFE]${NC} Only the management scripts in /opt/ptero are replaced."
     echo ""
     read -e -p "Are you sure? (y/n): " confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
@@ -146,6 +148,164 @@ ask_prism() {
     read -e -p "Press Enter to continue..."
 }
 
+show_help() {
+    cat << 'HELPEOF' | less -R
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                    PTERODACTYL MANAGEMENT HELP                         ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+SYSTEM MANAGEMENT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1) Update all scripts from GitHub
+   • Pulls latest code from GitHub repository
+   • Resets any local changes to scripts
+   • Sets execute permissions automatically
+   • Quick way to get bug fixes and new features
+   • SAFE: Does not affect your panel, databases, or game servers
+
+2) Reinstall scripts only (keeps all data/services)
+   • Deletes /opt/ptero and /usr/local/bin/chatbot
+   • Downloads fresh copy from GitHub
+   • Preserves ALL services, configs, and data
+   • SAFE: Only reinstalls management scripts
+   • Your panel, databases, P.R.I.S.M config are untouched
+   • Use when scripts are corrupted or you want a fresh start
+
+3) Check service status
+   • Shows if all services are running or stopped
+   • Checks: Nginx, MySQL, Redis, Wings, Web Console, Tunnel, P.R.I.S.M
+   • Color-coded: Green = running, Red = stopped
+   • Quick health check of your entire system
+
+4) View logs
+   • Opens real-time logs for any service
+   • Choose from: Web Console, Tunnel, P.R.I.S.M, Wings, Nginx
+   • Press Ctrl+C to exit log view
+   • Useful for troubleshooting errors
+
+
+P.R.I.S.M AI ASSISTANT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+5) Enable P.R.I.S.M
+   • Starts the AI monitoring service
+   • Begins 24/7 system monitoring
+   • Auto-fixes common issues
+   • Same as running: chatbot -enable
+
+6) Disable P.R.I.S.M
+   • Stops the AI monitoring service
+   • Monitoring pauses until re-enabled
+   • Same as running: chatbot -disable
+
+7) Check P.R.I.S.M status
+   • Shows if P.R.I.S.M is running
+   • Displays current configuration
+   • Shows AI model being used
+   • Same as running: chatbot status
+
+8) Run system optimization
+   • AI analyzes your ENTIRE system
+   • Checks: CPU, RAM, disk, services, security
+   • Suggests specific optimizations
+   • Offers to apply fixes automatically
+   • Takes 1-2 minutes to complete
+   • Same as running: chatbot detect
+
+9) Ask P.R.I.S.M a question
+   • Interactive prompt to ask AI anything
+   • Examples:
+     - "Why is CPU usage high?"
+     - "How do I optimize MySQL?"
+     - "What's causing high memory usage?"
+   • Get instant expert advice
+   • Same as running: chatbot ask "question"
+
+
+WEB CONSOLE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+10) Start web console
+    • Starts the Pterodactyl Web Console service
+    • Makes it accessible at https://console.cloudmc.online
+    • Use when console is stopped
+
+11) Stop web console
+    • Stops the web console service
+    • Console becomes inaccessible
+    • Use for maintenance or troubleshooting
+
+12) Restart web console
+    • Stops then starts the service
+    • Use after config changes
+    • Use if console is stuck or not responding
+
+13) View web console logs
+    • Real-time logs from the web console
+    • See login attempts, errors, API calls
+    • Press Ctrl+C to exit
+    • Useful for debugging connection issues
+
+
+CLOUDFLARE TUNNEL:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+14) Start tunnel
+    • Starts the Cloudflare tunnel service
+    • Makes your services accessible via custom domain
+    • Required for external access
+
+15) Stop tunnel
+    • Stops the tunnel
+    • External access via domain stops working
+    • Local access still works
+
+16) Restart tunnel
+    • Restarts the tunnel service
+    • Use after config changes
+    • Use if tunnel shows connection errors
+
+17) View tunnel logs
+    • Real-time tunnel logs
+    • See connection status, errors, requests
+    • Press Ctrl+C to exit
+    • Useful for debugging 502 errors
+
+
+OTHER:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+18) Install/Setup P.R.I.S.M
+    • Runs the full P.R.I.S.M installation script
+    • Use for first-time setup
+    • Use to reinstall if P.R.I.S.M is broken
+    • Downloads AI model (takes 5-10 minutes)
+
+19) Open shell in /opt/ptero
+    • Opens a bash shell in the scripts directory
+    • For advanced users who want to run custom commands
+    • Type 'exit' to return to menu
+    • Be careful - you can break things here!
+
+20) Help - What does each option do?
+    • Shows this help screen
+    • Use arrow keys or Page Up/Down to scroll
+    • Press 'q' to exit help
+
+0) Exit
+   • Closes the menu interface
+   • Returns to normal terminal
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TIP: Use arrow keys or Page Up/Down to scroll. Press 'q' to exit help.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HELPEOF
+}
+
 # Main loop
 while true; do
     show_banner
@@ -173,6 +333,7 @@ while true; do
         17) journalctl -u cloudflared -f ;;
         18) cd /opt/ptero && ./ai-assistant-setup.sh ;;
         19) cd /opt/ptero && bash ;;
+        20) show_help ;;
         0) echo "Goodbye!"; exit 0 ;;
         *) echo -e "${RED}Invalid option${NC}"; sleep 1 ;;
     esac
