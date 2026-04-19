@@ -1592,11 +1592,11 @@ main() {
                     "This email will be used for SSL certificates and admin account notifications." \
                     "")
                 
-                # Validate email format
-                if [[ "$USER_EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+                # Validate email format (basic check - must have @ and .)
+                if [[ "$USER_EMAIL" =~ ^[^@]+@[^@]+\.[^@]+$ ]] && [[ ! -z "$USER_EMAIL" ]]; then
                     break
                 else
-                    log_error "Invalid email format. Please try again."
+                    log_error "Invalid email format. Please enter a valid email address."
                 fi
             done
             ADMIN_PASS=$(prompt_with_explanation \
@@ -1676,11 +1676,11 @@ main() {
                     "This email will be used for SSL certificates and admin account." \
                     "")
                 
-                # Validate email format
-                if [[ "$USER_EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+                # Validate email format (basic check - must have @ and .)
+                if [[ "$USER_EMAIL" =~ ^[^@]+@[^@]+\.[^@]+$ ]] && [[ ! -z "$USER_EMAIL" ]]; then
                     break
                 else
-                    log_error "Invalid email format. Please try again."
+                    log_error "Invalid email format. Please enter a valid email address."
                 fi
             done
             ADMIN_PASS=$(prompt_with_explanation \
