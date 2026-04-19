@@ -124,7 +124,6 @@ detect_network_interfaces() {
     done
     
     echo ""
-    echo "${interfaces[@]}"
 }
 
 get_public_ip() {
@@ -501,16 +500,22 @@ EOF
 }
 
 setup_network_wizard() {
-    log_info "Starting Network Configuration Wizard..."
+    log_info "Network Interface Selection"
     echo ""
-    log_info "EXPLANATION: We need to configure your network interface to ensure stable connectivity."
-    log_info "This prevents your server's IP from changing after reboots, which would break DNS and services."
+    log_info "Select your primary network interface for stable connectivity."
     echo ""
     
-    show_network_diagram
+    # Detect interfaces and display them
+    detect_network_interfaces
     
-    local interfaces_output=$(detect_network_interfaces)
-    local interfaces=($interfaces_output)
+    # Get the interface list for selection
+    local interfaces=()
+    for iface in $(ip -o link show 2>/dev/null | awk -F': ' '{print $2}'); do
+        if [[ "$iface" == "lo" ]] || [[ "$iface" == docker* ]] || [[ "$iface" == br-* ]] || [[ "$iface" == veth* ]]; then
+            continue
+        fi
+        interfaces+=("$iface")
+    done
     
     echo ""
     read -p "Select network interface number: " iface_num
