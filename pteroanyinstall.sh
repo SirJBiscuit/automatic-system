@@ -672,9 +672,6 @@ EOF
 install_billing_system() {
     log_info "Setting up Billing System Integration..."
     echo ""
-    log_info "EXPLANATION: A billing system allows you to charge customers for game servers."
-    log_info "We offer an automated billing setup with PayPal integration."
-    echo ""
     
     echo "Available Billing Options:"
     echo "1) Automatic Billing Setup (PayPal + Custom Portal) - RECOMMENDED"
@@ -688,13 +685,6 @@ install_billing_system() {
     case $billing_choice in
         1)
             log_info "Starting Automatic Billing Setup..."
-            log_info "EXPLANATION: This will create a complete billing portal with:"
-            log_info "  - PayPal payment integration"
-            log_info "  - Automated server provisioning"
-            log_info "  - Customer management"
-            log_info "  - Invoice generation"
-            log_info "  - Game server plan configuration"
-            echo ""
             
             if [ ! -f "$(dirname $0)/billing-setup.sh" ]; then
                 log_info "Downloading billing setup script..."
@@ -710,7 +700,6 @@ install_billing_system() {
             ;;
         2)
             log_info "Installing WHMCS Pterodactyl Module..."
-            log_info "EXPLANATION: This module connects your existing WHMCS to Pterodactyl."
             
             WHMCS_URL=$(prompt_input "Enter your WHMCS URL (e.g., https://billing.example.com)")
             WHMCS_API_ID=$(prompt_input "Enter WHMCS API Identifier")
@@ -747,87 +736,9 @@ EOF
     esac
 }
 
-setup_reboot_protection() {
-    log_info "Configuring Reboot Protection..."
-    echo ""
-    log_info "EXPLANATION: Reboot protection ensures all services start automatically after a server restart."
-    log_info "This includes Docker containers, databases, web servers, and Pterodactyl services."
-    echo ""
-    
-    cat > /etc/systemd/system/pterodactyl-startup.service <<EOF
-[Unit]
-Description=Pterodactyl Startup Service
-After=network-online.target docker.service mariadb.service nginx.service redis.service
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStartPre=/bin/sleep 10
-ExecStart=/usr/local/bin/pterodactyl-startup.sh
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-    cat > /usr/local/bin/pterodactyl-startup.sh <<'EOF'
-#!/bin/bash
-
-LOG_FILE="/var/log/pterodactyl-startup.log"
-echo "$(date): Ptero startup initiated" >> $LOG_FILE
-
-if [ -f /etc/automatic-system/config.conf ]; then
-    source /etc/automatic-system/config.conf
-    echo "$(date): Loaded configuration" >> $LOG_FILE
-fi
-
-systemctl is-active --quiet docker || systemctl start docker
-echo "$(date): Docker started" >> $LOG_FILE
-
-systemctl is-active --quiet mariadb || systemctl start mariadb
-echo "$(date): MariaDB started" >> $LOG_FILE
-
-systemctl is-active --quiet nginx || systemctl start nginx
-echo "$(date): Nginx started" >> $LOG_FILE
-
-systemctl is-active --quiet redis-server || systemctl start redis-server || systemctl start redis
-echo "$(date): Redis started" >> $LOG_FILE
-
-if systemctl list-unit-files | grep -q wings.service; then
-    sleep 5
-    systemctl is-active --quiet wings || systemctl start wings
-    echo "$(date): Wings started" >> $LOG_FILE
-fi
-
-if [ -d /var/www/pterodactyl ]; then
-    cd /var/www/pterodactyl
-    php artisan queue:restart >> $LOG_FILE 2>&1
-    echo "$(date): Panel queue restarted" >> $LOG_FILE
-fi
-
-echo "$(date): Ptero startup complete" >> $LOG_FILE
-EOF
-
-    chmod +x /usr/local/bin/pterodactyl-startup.sh
-    systemctl daemon-reload
-    systemctl enable pterodactyl-startup.service
-    
-    log_success "Reboot protection configured"
-    log_info "Services will auto-start on reboot. Logs: /var/log/pterodactyl-startup.log"
-}
-
 setup_monitoring() {
     log_info "Setting up Server Monitoring..."
     echo ""
-    log_info "EXPLANATION: Monitoring helps you track server performance, resource usage, and uptime."
-    log_info "This can alert you to problems before they affect your customers."
-    echo ""
-    
-    if ! prompt_yes_no "Do you want to install monitoring tools?"; then
-        return 0
-    fi
     
     case $OS in
         ubuntu|debian)
@@ -851,11 +762,11 @@ echo ""
 df -h | grep -E '^/dev/'
 echo ""
 echo "=== Service Status ==="
-systemctl is-active docker && echo "✓ Docker: Running" || echo "✗ Docker: Stopped"
-systemctl is-active mariadb && echo "✓ MariaDB: Running" || echo "✗ MariaDB: Stopped"
-systemctl is-active nginx && echo "✓ Nginx: Running" || echo "✗ Nginx: Stopped"
-systemctl is-active redis-server && echo "✓ Redis: Running" || systemctl is-active redis && echo "✓ Redis: Running" || echo "✗ Redis: Stopped"
-systemctl is-active wings && echo "✓ Wings: Running" || echo "  Wings: Not installed"
+systemctl is-active docker && echo "Docker: Running" || echo "Docker: Stopped"
+systemctl is-active mariadb && echo "MariaDB: Running" || echo "MariaDB: Stopped"
+systemctl is-active nginx && echo "Nginx: Running" || echo "Nginx: Stopped"
+systemctl is-active redis-server && echo "Redis: Running" || systemctl is-active redis && echo "Redis: Running" || echo "Redis: Stopped"
+systemctl is-active wings && echo "Wings: Running" || echo "  Wings: Not installed"
 echo ""
 echo "=== Network Usage ==="
 vnstat -d
@@ -867,118 +778,8 @@ EOF
     log_info "Run 'ptero-monitor' to view server status"
 }
 
-setup_automatic_backups() {
-    log_info "Setting up Automatic Backups..."
-    echo ""
-    log_info "EXPLANATION: Automatic backups protect your data by creating regular copies."
-    log_info "This includes the Panel database, configuration files, and Wings data."
-    echo ""
-    
-    if ! prompt_yes_no "Do you want to setup automatic backups?"; then
-        return 0
-    fi
-    
-    BACKUP_DIR=$(prompt_input "Enter backup directory" "/var/backups/ptero")
-    BACKUP_RETENTION=$(prompt_input "How many days to keep backups?" "7")
-    
-    mkdir -p "$BACKUP_DIR"
-    
-    cat > /usr/local/bin/pterodactyl-backup.sh <<EOF
-#!/bin/bash
-
-BACKUP_DIR="$BACKUP_DIR"
-DATE=\$(date +%Y%m%d_%H%M%S)
-RETENTION_DAYS=$BACKUP_RETENTION
-
-mkdir -p \$BACKUP_DIR
-
-if [ -d /var/www/pterodactyl ]; then
-    cd /var/www/pterodactyl
-    source .env
-    mysqldump -u \$DB_USERNAME -p\$DB_PASSWORD \$DB_DATABASE > \$BACKUP_DIR/panel_db_\$DATE.sql
-    tar -czf \$BACKUP_DIR/panel_files_\$DATE.tar.gz /var/www/pterodactyl
-    echo "\$(date): Panel backup completed" >> /var/log/pterodactyl-backup.log
-fi
-
-if [ -d /etc/pterodactyl ]; then
-    tar -czf \$BACKUP_DIR/wings_config_\$DATE.tar.gz /etc/pterodactyl
-    echo "\$(date): Wings config backup completed" >> /var/log/pterodactyl-backup.log
-fi
-
-find \$BACKUP_DIR -name "*.sql" -mtime +\$RETENTION_DAYS -delete
-find \$BACKUP_DIR -name "*.tar.gz" -mtime +\$RETENTION_DAYS -delete
-
-echo "\$(date): Old backups cleaned (retention: \$RETENTION_DAYS days)" >> /var/log/pterodactyl-backup.log
-EOF
-
-    chmod +x /usr/local/bin/pterodactyl-backup.sh
-    
-    (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/pterodactyl-backup.sh") | crontab -
-    
-    log_success "Automatic backups configured"
-    log_info "Ptero backups run daily at 2 AM, stored in: $BACKUP_DIR"
-    log_info "Retention: $BACKUP_RETENTION days"
-}
-
-ask_optional_features() {
-    log_info "Optional Features Configuration"
-    echo ""
-    log_info "EXPLANATION: These optional features enhance your Pterodactyl installation."
-    log_info "You can add monitoring, backups, and other useful tools."
-    echo ""
-    
-    if prompt_yes_no "Do you want to install server monitoring tools?"; then
-        setup_monitoring
-    fi
-    
-    echo ""
-    if prompt_yes_no "Do you want to setup automatic backups?"; then
-        setup_automatic_backups
-    fi
-    
-    echo ""
-    if prompt_yes_no "Do you want to setup a billing system integration?"; then
-        install_billing_system
-    fi
-    
-    echo ""
-    if prompt_yes_no "Do you want to configure firewall rules automatically?"; then
-        setup_firewall
-    fi
-    
-    echo ""
-    customize_panel_appearance
-}
-
-customize_panel_appearance() {
-    log_info "Panel Appearance Customization"
-    echo ""
-    log_info "EXPLANATION: Customize the look and feel of your Pterodactyl Panel."
-    log_info "This includes colors, logos, backgrounds, and styling."
-    echo ""
-    
-    if prompt_yes_no "Do you want to customize your panel's appearance?"; then
-        if [ ! -f "$(dirname $0)/panel-customizer.sh" ]; then
-            log_info "Downloading panel customizer..."
-            curl -sSL -o /tmp/panel-customizer.sh https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/panel-customizer.sh
-            chmod +x /tmp/panel-customizer.sh
-            /tmp/panel-customizer.sh
-        else
-            chmod +x "$(dirname $0)/panel-customizer.sh"
-            "$(dirname $0)/panel-customizer.sh"
-        fi
-        log_success "Panel customization complete!"
-    else
-        log_info "Skipping panel customization"
-        log_info "You can customize later by running: ./panel-customizer.sh"
-    fi
-}
-
 setup_firewall() {
     log_info "Configuring Firewall..."
-    echo ""
-    log_info "EXPLANATION: Firewall rules protect your server by blocking unauthorized access."
-    log_info "We'll open only the necessary ports for Pterodactyl to function."
     echo ""
     
     case $OS in
