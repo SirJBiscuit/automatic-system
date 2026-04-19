@@ -128,12 +128,14 @@ async def on_ready():
 @bot.event
 async def on_command(ctx):
     """Delete user command message after command is processed"""
+    print(f"🗑️  Attempting to delete command: {ctx.message.content}")
     try:
         await ctx.message.delete()
+        print(f"✅ Deleted command from {ctx.author}")
     except discord.errors.Forbidden:
-        pass  # Bot doesn't have permission to delete messages
+        print(f"❌ No permission to delete messages in {ctx.channel}")
     except discord.errors.NotFound:
-        pass  # Message already deleted
+        print(f"⚠️  Message already deleted")
 
 # Override ctx.send to auto-delete after 20 seconds
 original_send = commands.Context.send
