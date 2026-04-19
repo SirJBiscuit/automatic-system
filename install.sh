@@ -85,6 +85,12 @@ if [ -d "$INSTALL_DIR/.git" ]; then
     echo ""
     
     cd "$INSTALL_DIR"
+    
+    # Clean up any local changes and remove untracked files
+    echo "  🧹 Cleaning up old files..."
+    git clean -fd >/dev/null 2>&1
+    git reset --hard HEAD >/dev/null 2>&1
+    
     git fetch origin >/dev/null 2>&1
     
     # Check for updates
@@ -95,8 +101,11 @@ if [ -d "$INSTALL_DIR/.git" ]; then
         echo "  🆕 New version available! Updating..."
         git reset --hard origin/main >/dev/null 2>&1
         git pull origin main >/dev/null 2>&1
+        echo "  ✅ Updated successfully!"
     else
         echo "  ✅ Already up to date!"
+        # Still pull to ensure we have latest
+        git pull origin main >/dev/null 2>&1
     fi
 else
     echo "  📥 Cloning repository from GitHub..."
@@ -107,23 +116,51 @@ else
     
     # Remove directory if it exists but isn't a git repo
     if [ -d "$INSTALL_DIR" ]; then
-        echo "  ⏳ Removing old installation..."
+        echo "  🧹 Removing old installation..."
         rm -rf "$INSTALL_DIR"
     fi
     
     # Clone the repository
+    echo "  ⏳ Downloading files..."
     git clone https://github.com/SirJBiscuit/automatic-system.git ptero 2>&1 | grep -E "(Cloning|Receiving|Resolving)" || true
     cd "$INSTALL_DIR"
+    echo "  ✅ Repository cloned!"
 fi
 
 echo ""
 echo "  ⏳ Setting permissions..."
 
 # Make all shell scripts executable
-find "$INSTALL_DIR" -type f -name "*.sh" -exec chmod +x {} \;
+chmod +x *.sh 2>/dev/null || true
+chmod +x web-console/*.sh 2>/dev/null || true
+chmod +x discord-bot/*.sh 2>/dev/null || true
+
+# Also use find for any nested scripts
+find "$INSTALL_DIR" -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null
+
+# Create .pt alias for easy access
+echo "  ⚡ Setting up .pt shortcut..."
+if ! grep -q "alias .pt=" /root/.bashrc 2>/dev/null; then
+    echo "" >> /root/.bashrc
+    echo "# Pterodactyl management shortcut" >> /root/.bashrc
+    echo "alias .pt='sudo $INSTALL_DIR/ptero.sh'" >> /root/.bashrc
+fi
+
+# Also add for all users
+if ! grep -q "alias .pt=" /etc/bash.bashrc 2>/dev/null; then
+    echo "" >> /etc/bash.bashrc
+    echo "# Pterodactyl management shortcut" >> /etc/bash.bashrc
+    echo "alias .pt='sudo $INSTALL_DIR/ptero.sh'" >> /etc/bash.bashrc
+fi
+
+# Activate alias for current session
+shopt -s expand_aliases
+alias .pt="sudo $INSTALL_DIR/ptero.sh"
+
+echo "  ✅ Shortcut installed! Type '.pt' to open management interface"
 
 # Make Python scripts executable
-find "$INSTALL_DIR" -type f -name "*.py" -exec chmod +x {} \;
+find "$INSTALL_DIR" -type f -name "*.py" -exec chmod +x {} \; 2>/dev/null
 
 echo "  ✅ Permissions set"
 
@@ -234,4 +271,11 @@ echo ""
 echo "  📂 Changing to installation directory..."
 cd "$INSTALL_DIR"
 echo "  ✅ You are now in: $INSTALL_DIR"
+echo ""
+echo "╔══════════════════════════════════════════════════════════════════════════╗"
+echo "║                         ⚡ QUICK ACCESS TIP ⚡                           ║"
+echo "╚══════════════════════════════════════════════════════════════════════════╝"
+echo ""
+echo "  💡 Type '.pt' from anywhere to open the management interface!"
+echo "  💡 Or run: sudo /opt/ptero/ptero.sh"
 echo ""
