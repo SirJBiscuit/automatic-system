@@ -68,6 +68,9 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+# Always start from /root to avoid directory issues
+cd /root 2>/dev/null || cd ~
+
 # Check if git is installed
 if ! command -v git &> /dev/null; then
     echo "  ⏳ Installing git..."
@@ -225,3 +228,10 @@ echo ""
 echo "  Press any key to continue..."
 read -n 1 -s
 clear 2>/dev/null || echo -e "\n"
+
+# Automatically change to installation directory
+echo ""
+echo "  📂 Changing to installation directory..."
+cd "$INSTALL_DIR"
+echo "  ✅ You are now in: $INSTALL_DIR"
+echo ""
