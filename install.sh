@@ -153,6 +153,14 @@ if ! grep -q "alias .pt=" /etc/bash.bashrc 2>/dev/null; then
     echo "alias .pt='sudo $INSTALL_DIR/ptero.sh'" >> /etc/bash.bashrc
 fi
 
+# Reload bashrc to activate alias immediately
+if [ -f /etc/bash.bashrc ]; then
+    source /etc/bash.bashrc 2>/dev/null || true
+fi
+if [ -f ~/.bashrc ]; then
+    source ~/.bashrc 2>/dev/null || true
+fi
+
 # Activate alias for current session
 shopt -s expand_aliases
 alias .pt="sudo $INSTALL_DIR/ptero.sh"
