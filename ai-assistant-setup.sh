@@ -433,17 +433,26 @@ EOFPY
     
     chmod +x "$ASSISTANT_DIR/assistant.py"
     
-    # Install Python dependencies
-    if command -v pip3 &> /dev/null; then
-        pip3 install requests
-    else
-        log_warning "pip3 not found, installing..."
+    # Create virtual environment and install dependencies
+    log_info "Setting up Python virtual environment..."
+    
+    # Install python3-venv if not present
+    if ! python3 -m venv --help &> /dev/null; then
         if [ -f /etc/debian_version ]; then
-            apt-get install -y python3-pip python3-requests
+            apt-get install -y python3-venv python3-full
         elif [ -f /etc/redhat-release ]; then
-            yum install -y python3-pip python3-requests
+            yum install -y python3-virtualenv
         fi
     fi
+    
+    # Create virtual environment
+    python3 -m venv "$ASSISTANT_DIR/venv"
+    
+    # Install requests in venv
+    "$ASSISTANT_DIR/venv/bin/pip" install --upgrade pip >/dev/null 2>&1
+    "$ASSISTANT_DIR/venv/bin/pip" install requests >/dev/null 2>&1
+    
+    log_success "Python environment configured"
     
     # Create systemd service
     cat > /etc/systemd/system/ptero-assistant.service <<EOFSVC
@@ -455,7 +464,7 @@ After=network.target ollama.service
 Type=simple
 User=root
 WorkingDirectory=$ASSISTANT_DIR
-ExecStart=/usr/bin/python3 $ASSISTANT_DIR/assistant.py
+ExecStart=$ASSISTANT_DIR/venv/bin/python $ASSISTANT_DIR/assistant.py
 Restart=always
 RestartSec=10
 
