@@ -1926,13 +1926,13 @@ main() {
             
             # Drop Panel database and users
             log_info "Removing Panel database and users..."
-            mysql -u root <<EOF 2>/dev/null || true
-DROP DATABASE IF EXISTS panel;
-DROP DATABASE IF EXISTS pterodactyl;
-DROP USER IF EXISTS 'pterodactyl'@'127.0.0.1';
-DROP USER IF EXISTS 'pterodactyl'@'localhost';
-FLUSH PRIVILEGES;
-EOF
+            mysql -u root -e "DROP DATABASE IF EXISTS panel;" 2>/dev/null || true
+            mysql -u root -e "DROP DATABASE IF EXISTS pterodactyl;" 2>/dev/null || true
+            mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'127.0.0.1';" 2>/dev/null || true
+            mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'localhost';" 2>/dev/null || true
+            mysql -u root -e "FLUSH PRIVILEGES;" 2>/dev/null || true
+            
+            log_success "Database cleanup complete"
             
             # Remove Wings installation and data
             log_info "Removing Wings nodes and data..."
