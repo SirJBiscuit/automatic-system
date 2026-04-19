@@ -141,9 +141,22 @@ async def on_command(ctx):
 original_send = commands.Context.send
 
 async def send_with_delete(self, *args, **kwargs):
-    """Send message with auto-delete after 20 seconds"""
+    """Send message with auto-delete after 20 seconds and add temporary indicator"""
     if 'delete_after' not in kwargs:
         kwargs['delete_after'] = 20
+    
+    # Add temporary indicator to embeds
+    if 'embed' in kwargs:
+        embed = kwargs['embed']
+        if embed.footer.text:
+            embed.set_footer(text=f"{embed.footer.text} • ⏱️ Auto-deletes in 20s")
+        else:
+            embed.set_footer(text="⏱️ This message will auto-delete in 20 seconds")
+    
+    # Add indicator to regular messages (if it's a string)
+    elif args and isinstance(args[0], str):
+        args = (f"{args[0]} `⏱️ 20s`",) + args[1:]
+    
     return await original_send(self, *args, **kwargs)
 
 commands.Context.send = send_with_delete
@@ -193,12 +206,16 @@ async def list_servers(ctx):
     await ctx.send(embed=embed)
 
 @bot.command(name='status', help='Get detailed server status')
-async def server_status(ctx, server_id: str):
+async def server_status(ctx, server_id: str = None):
     """Get detailed status for a specific server"""
+    if not server_id:
+        await ctx.send('❌ **Missing server ID!**\n\n**Usage:** `!status <server_id>`\n**Example:** `!status abc123def`\n\n💡 **Tip:** Use `!servers` to see all your server IDs')
+        return
+    
     status_data = await PterodactylAPI.get_server_status(server_id)
     
     if not status_data:
-        await ctx.send(f'❌ Server `{server_id}` not found')
+        await ctx.send(f'❌ Server `{server_id}` not found\n\n💡 **Tip:** Use `!servers` to see all available servers')
         return
     
     attrs = status_data['attributes']
