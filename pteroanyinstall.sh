@@ -557,14 +557,21 @@ setup_database() {
     
     mysql -u root <<EOF
 CREATE DATABASE IF NOT EXISTS $db_name;
-CREATE USER IF NOT EXISTS '$db_user'@'127.0.0.1' IDENTIFIED BY '$db_pass';
-CREATE USER IF NOT EXISTS '$db_user'@'localhost' IDENTIFIED BY '$db_pass';
+DROP USER IF EXISTS '$db_user'@'127.0.0.1';
+DROP USER IF EXISTS '$db_user'@'localhost';
+CREATE USER '$db_user'@'127.0.0.1' IDENTIFIED BY '$db_pass';
+CREATE USER '$db_user'@'localhost' IDENTIFIED BY '$db_pass';
 GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'127.0.0.1';
 GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'localhost';
 FLUSH PRIVILEGES;
 EOF
     
-    log_success "Database $db_name created with user: $db_user"
+    if [ $? -eq 0 ]; then
+        log_success "Database $db_name created with user: $db_user"
+    else
+        log_error "Failed to create database"
+        return 1
+    fi
 }
 
 setup_network_wizard() {
