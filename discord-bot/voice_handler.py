@@ -404,14 +404,44 @@ def setup_voice_commands(bot, prism_client=None):
         """Make bot speak"""
         await voice_handler.speak_response(ctx, text)
     
-    @bot.command(name='voiceask', help='Ask P.R.I.S.M with voice response')
+    @bot.command(name='voiceask', help='Type question, PRISM speaks answer (RECOMMENDED)')
     async def voice_ask(ctx, *, question: str):
-        """Ask P.R.I.S.M and get voice response"""
-        if not prism_client:
-            await ctx.send("❌ P.R.I.S.M AI not configured")
-            return
+        """Ask P.R.I.S.M and get voice response - uses local chatbot"""
+        import subprocess
         
         async with ctx.typing():
+            # Try local chatbot first
+            try:
+                result = subprocess.run(
+                    ['chatbot', 'ask', question],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                
+                if result.returncode == 0 and result.stdout:
+                    answer = result.stdout.strip()
+                    
+                    # Send text
+                    embed = discord.Embed(
+                        title='🎤 P.R.I.S.M Voice Response',
+                        description=answer,
+                        color=discord.Color.purple()
+                    )
+                    await ctx.send(embed=embed)
+                    
+                    # Speak answer
+                    await voice_handler.speak_response(ctx, answer)
+                    return
+                    
+            except Exception as e:
+                print(f"Local chatbot error: {e}")
+            
+            # Fallback to Anthropic
+            if not prism_client:
+                await ctx.send("❌ P.R.I.S.M not configured. Run: `chatbot api setup`")
+                return
+            
             try:
                 response = prism_client.messages.create(
                     model="claude-3-5-sonnet-20241022",
