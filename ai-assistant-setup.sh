@@ -38,7 +38,7 @@ prompt_yes_no() {
     local response
     
     while true; do
-        read -p "$prompt (y/n): " response
+        read -e -p "$prompt (y/n): " response
         case $response in
             [Yy]* ) return 0;;
             [Nn]* ) return 1;;
@@ -110,7 +110,7 @@ ask_llm_usage() {
         echo "  1) Llama 3.2 1B (Lightweight, ~1GB RAM, faster responses)"
         echo "  2) Gemma2 2B (Better accuracy, ~2GB RAM, good balance)"
         echo ""
-        read -p "Select [1-2]: " model_choice
+        read -e -p "Select [1-2]: " model_choice
         
         case $model_choice in
             1)
@@ -513,7 +513,7 @@ EOFCFG
     
     if prompt_yes_no "Would you like to set up Discord notifications now?"; then
         echo ""
-        read -p "Enter your Discord webhook URL: " DISCORD_WEBHOOK
+        read -e -p "Enter your Discord webhook URL: " DISCORD_WEBHOOK
         
         if [ -n "$DISCORD_WEBHOOK" ]; then
             # Save webhook to config
@@ -569,8 +569,8 @@ EOFCFG
     
     if prompt_yes_no "Would you like to set up Pterodactyl API access now?"; then
         echo ""
-        read -p "Enter your Pterodactyl Panel URL (e.g., https://panel.example.com): " PANEL_URL
-        read -p "Enter your Pterodactyl API Key: " API_KEY
+        read -e -p "Enter your Pterodactyl Panel URL (e.g., https://panel.example.com): " PANEL_URL
+        read -e -p "Enter your Pterodactyl API Key: " API_KEY
         
         if [ -n "$PANEL_URL" ] && [ -n "$API_KEY" ]; then
             # Save API config
@@ -772,8 +772,8 @@ Nginx Errors (last 24h): $(grep -c error /var/log/nginx/error.log 2>/dev/null ||
         echo ""
         
         # Interactive optimization prompts
-        echo "Would you like to apply automatic optimizations? (y/n)"
-        read -r apply_auto
+        echo ""
+        read -e -r -p "Would you like to apply automatic optimizations? (y/n): " apply_auto
         
         if [[ "$apply_auto" =~ ^[Yy]$ ]]; then
             echo ""
@@ -786,7 +786,7 @@ Nginx Errors (last 24h): $(grep -c error /var/log/nginx/error.log 2>/dev/null ||
                 if [[ "$CURRENT_MEM" == "128M" ]]; then
                     echo "📝 PHP memory_limit is low (128M)"
                     echo "   Recommendation: Increase to 256M for better performance"
-                    read -p "   Apply this fix? (y/n): " fix_php_mem
+                    read -e -p "   Apply this fix? (y/n): " fix_php_mem
                     if [[ "$fix_php_mem" =~ ^[Yy]$ ]]; then
                         PHP_INI=$(php -i 2>/dev/null | grep "Loaded Configuration File" | awk '{print $5}')
                         if [ -f "$PHP_INI" ]; then
@@ -803,7 +803,7 @@ Nginx Errors (last 24h): $(grep -c error /var/log/nginx/error.log 2>/dev/null ||
                 echo ""
                 echo "🛡️  Fail2ban is not installed"
                 echo "   Recommendation: Install for brute-force protection"
-                read -p "   Install Fail2ban now? (y/n): " install_f2b
+                read -e -p "   Install Fail2ban now? (y/n): " install_f2b
                 if [[ "$install_f2b" =~ ^[Yy]$ ]]; then
                     if [ -f /etc/debian_version ]; then
                         apt-get update && apt-get install -y fail2ban
@@ -821,7 +821,7 @@ Nginx Errors (last 24h): $(grep -c error /var/log/nginx/error.log 2>/dev/null ||
                     echo ""
                     echo "💾 Redis has no memory limit set"
                     echo "   Recommendation: Set maxmemory to prevent OOM issues"
-                    read -p "   Set Redis maxmemory to 256MB? (y/n): " fix_redis
+                    read -e -p "   Set Redis maxmemory to 256MB? (y/n): " fix_redis
                     if [[ "$fix_redis" =~ ^[Yy]$ ]]; then
                         redis-cli config set maxmemory 268435456 2>/dev/null
                         redis-cli config set maxmemory-policy allkeys-lru 2>/dev/null
@@ -835,7 +835,7 @@ Nginx Errors (last 24h): $(grep -c error /var/log/nginx/error.log 2>/dev/null ||
                 echo ""
                 echo "📋 Pterodactyl log rotation not configured"
                 echo "   Recommendation: Configure logrotate to prevent disk fill"
-                read -p "   Configure log rotation? (y/n): " fix_logrotate
+                read -e -p "   Configure log rotation? (y/n): " fix_logrotate
                 if [[ "$fix_logrotate" =~ ^[Yy]$ ]]; then
                     cat > /etc/logrotate.d/pterodactyl <<'EOFLOG'
 /var/www/pterodactyl/storage/logs/*.log {
@@ -861,7 +861,7 @@ EOFLOG
                     echo ""
                     echo "⚡ Nginx worker processes not optimized"
                     echo "   Current: $WORKERS | Recommended: $CPU_CORES (auto)"
-                    read -p "   Optimize Nginx workers? (y/n): " fix_nginx
+                    read -e -p "   Optimize Nginx workers? (y/n): " fix_nginx
                     if [[ "$fix_nginx" =~ ^[Yy]$ ]]; then
                         sed -i "s/worker_processes.*/worker_processes auto;/" /etc/nginx/nginx.conf
                         nginx -t && systemctl reload nginx
@@ -880,12 +880,12 @@ EOFLOG
                     echo ""
                     echo "🗄️  MySQL InnoDB buffer pool is small"
                     echo "   Current: $((INNODB_BUFFER / 1024 / 1024))MB | Recommended: $((RECOMMENDED_BUFFER / 1024 / 1024))MB"
-                    read -p "   Optimize MySQL configuration? (y/n): " fix_mysql
+                    read -e -p "   Optimize MySQL configuration? (y/n): " fix_mysql
                     if [[ "$fix_mysql" =~ ^[Yy]$ ]]; then
                         echo "   Note: Edit /etc/mysql/my.cnf or /etc/my.cnf.d/server.cnf"
                         echo "   Add: innodb_buffer_pool_size = $((RECOMMENDED_BUFFER / 1024 / 1024))M"
                         echo "   Then: systemctl restart mysql"
-                        read -p "   Press Enter to continue..."
+                        read -e -p "   Press Enter to continue..."
                     fi
                 fi
             fi
@@ -896,7 +896,7 @@ EOFLOG
                 echo ""
                 echo "💿 No swap space configured"
                 echo "   Recommendation: Add 2GB swap for memory buffer"
-                read -p "   Create swap file? (y/n): " create_swap
+                read -e -p "   Create swap file? (y/n): " create_swap
                 if [[ "$create_swap" =~ ^[Yy]$ ]]; then
                     fallocate -l 2G /swapfile
                     chmod 600 /swapfile
@@ -934,7 +934,7 @@ EOFLOG
                 echo "  4. Name it 'P.R.I.S.M' and choose a channel"
                 echo "  5. Click 'Copy Webhook URL'"
                 echo ""
-                read -p "Enter your Discord webhook URL: " WEBHOOK_URL
+                read -e -p "Enter your Discord webhook URL: " WEBHOOK_URL
                 
                 if [ -n "$WEBHOOK_URL" ]; then
                     jq --arg webhook "$WEBHOOK_URL" '.discord_webhook = $webhook' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
@@ -1019,8 +1019,8 @@ WEBHOOKHELP
                 echo "  5. Select all permissions"
                 echo "  6. Click 'Create' and copy the key"
                 echo ""
-                read -p "Enter your Panel URL (e.g., https://panel.example.com): " PANEL_URL
-                read -p "Enter your API Key: " API_KEY
+                read -e -p "Enter your Panel URL (e.g., https://panel.example.com): " PANEL_URL
+                read -e -p "Enter your API Key: " API_KEY
                 
                 if [ -n "$PANEL_URL" ] && [ -n "$API_KEY" ]; then
                     cat > /opt/ptero-assistant/pterodactyl-api.json <<EOFAPI
@@ -1367,7 +1367,7 @@ main() {
         echo ""
         echo "Let's check if P.R.I.S.M is running:"
         echo ""
-        read -p "Press Enter to run: chatbot status "
+        read -e -p "Press Enter to run: chatbot status "
         echo ""
         chatbot status
         
@@ -1378,7 +1378,7 @@ main() {
         echo ""
         echo "You can ask P.R.I.S.M anything about your server:"
         echo ""
-        read -p "Press Enter to run: chatbot ask \"Introduce yourself\" "
+        read -e -p "Press Enter to run: chatbot ask \"Introduce yourself\" "
         echo ""
         chatbot ask "Introduce yourself as P.R.I.S.M and briefly explain what you can do for this Pterodactyl server in 2-3 sentences"
         
