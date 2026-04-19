@@ -1747,6 +1747,30 @@ main() {
             fi
             ;;
             
+        cleanup)
+            clear
+            log_info "Running cleanup to fix installation issues..."
+            echo ""
+            
+            log_info "Removing broken repository files..."
+            rm -f /etc/apt/sources.list.d/php.list
+            rm -f /usr/share/keyrings/deb.sury.org-php.gpg
+            rm -f /tmp/php-sury.gpg
+            
+            log_info "Cleaning apt cache..."
+            apt clean
+            apt autoclean
+            
+            log_info "Updating package lists..."
+            apt update
+            
+            echo ""
+            log_success "Cleanup complete!"
+            echo ""
+            log_info "You can now run the installation again:"
+            echo "  ./pteroanyinstall.sh install-full"
+            ;;
+            
         clean)
             log_info "Cleaning up Pterodactyl..."
             echo ""
@@ -1788,30 +1812,6 @@ main() {
             # Show disk space saved
             log_success "Cleanup completed!"
             df -h / | tail -1 | awk '{print "Disk usage: " $5 " (" $3 " used / " $2 " total)"}'
-            ;;
-            
-        cleanup)
-            clear
-            log_info "Running cleanup to fix installation issues..."
-            echo ""
-            
-            log_info "Removing broken repository files..."
-            rm -f /etc/apt/sources.list.d/php.list
-            rm -f /usr/share/keyrings/deb.sury.org-php.gpg
-            rm -f /tmp/php-sury.gpg
-            
-            log_info "Cleaning apt cache..."
-            apt clean
-            apt autoclean
-            
-            log_info "Updating package lists..."
-            apt update
-            
-            echo ""
-            log_success "Cleanup complete!"
-            echo ""
-            log_info "You can now run the installation again:"
-            echo "  ./pteroanyinstall.sh install-full"
             ;;
             
         help|--help|-h)
