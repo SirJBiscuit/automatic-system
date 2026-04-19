@@ -2,7 +2,6 @@
 
 # Quick installer script - downloads and runs automatic-system from GitHub
 # Usage: curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash
-# Force update: curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | sudo bash -s -- --force
 
 set -e
 
@@ -10,23 +9,55 @@ REPO_URL="https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main"
 INSTALL_DIR="/opt/ptero"
 VERSION_FILE="$INSTALL_DIR/.version"
 REMOTE_VERSION_URL="$REPO_URL/VERSION"
-FORCE_UPDATE=false
 
-# Check for force flag
-if [[ "$1" == "--force" ]] || [[ "$1" == "-f" ]]; then
-    FORCE_UPDATE=true
-fi
+# Detect terminal width
+TERM_WIDTH=$(tput cols 2>/dev/null || echo 80)
+BOX_WIDTH=$((TERM_WIDTH > 100 ? 100 : TERM_WIDTH - 4))
+
+# Function to create horizontal line
+print_line() {
+    local char=$1
+    printf "${char}%.0s" $(seq 1 $BOX_WIDTH)
+    echo ""
+}
+
+# Function to print centered text in box
+print_box_line() {
+    local text="$1"
+    local text_len=${#text}
+    local padding=$(( (BOX_WIDTH - text_len - 2) / 2 ))
+    local right_padding=$(( BOX_WIDTH - text_len - padding - 2 ))
+    printf "║%*s%s%*s║\n" $padding "" "$text" $right_padding ""
+}
+
+# Function to print section header
+print_section() {
+    local title="$1"
+    printf "┌"; printf "─%.0s" $(seq 1 $((BOX_WIDTH - 2))); printf "┐\n"
+    local text_len=${#title}
+    local padding=$(( (BOX_WIDTH - text_len - 2) / 2 ))
+    local right_padding=$(( BOX_WIDTH - text_len - padding - 2 ))
+    printf "│%*s%s%*s│\n" $padding "" "$title" $right_padding ""
+    printf "└"; printf "─%.0s" $(seq 1 $((BOX_WIDTH - 2))); printf "┘\n"
+}
+
+# Function to print quick start box
+print_quick_start_box() {
+    printf "╔"; printf "═%.0s" $(seq 1 $((BOX_WIDTH - 2))); printf "╗\n"
+    print_box_line "$1"
+    printf "╚"; printf "═%.0s" $(seq 1 $((BOX_WIDTH - 2))); printf "╝\n"
+}
 
 clear 2>/dev/null || echo -e "\n"
 echo ""
-echo "╔══════════════════════════════════════════════════════════════════════════╗"
-echo "║                                                                          ║"
-echo "║              🚀 PTERODACTYL UNIVERSAL INSTALLER 🚀                       ║"
-echo "║                                                                          ║"
-echo "║                    Automated Installation System                         ║"
-echo "║                    Version 1.1.0 | SirJBiscuit                          ║"
-echo "║                                                                          ║"
-echo "╚══════════════════════════════════════════════════════════════════════════╝"
+printf "╔"; print_line "═"; printf "\b╗\n"
+print_box_line ""
+print_box_line "🚀 PTERODACTYL UNIVERSAL INSTALLER 🚀"
+print_box_line ""
+print_box_line "Automated Installation System"
+print_box_line "Version 1.3.2 | SirJBiscuit"
+print_box_line ""
+printf "╚"; print_line "═"; printf "\b╝\n"
 echo ""
 echo "  📥 Downloading latest scripts from GitHub..."
 echo ""
@@ -69,7 +100,9 @@ if [ -f "$INSTALL_DIR/pteroanyinstall.sh" ]; then
     rm -f pteroanyinstall.sh pre-install-checks.sh billing-setup.sh panel-customizer.sh \
           quick-setup.sh ptero-admin.sh ai-assistant-setup.sh prism-upgrade.sh \
           prism-enhanced.py prism-cli.sh node-installer.sh cloud-backup.sh update.sh \
-          ptero-update-checker.sh ptero-update-checker.service ptero-update-checker.timer
+          ptero-update-checker.sh ptero-update-checker.service ptero-update-checker.timer \
+          .version .update-notification
+    echo "  ✅ Old files removed"
 fi
 
 echo "  📥 Downloading scripts from GitHub..."
@@ -163,9 +196,7 @@ EOF
 EOF
 }
 echo ""
-echo "┌──────────────────────────────────────────────────────────────────────────┐"
-echo "│ 📦 INSTALLATION                                                          │"
-echo "└──────────────────────────────────────────────────────────────────────────┘"
+print_section "📦 INSTALLATION"
 echo ""
 echo "  First, navigate to installation directory:"
 echo "  $ cd $INSTALL_DIR"
@@ -174,9 +205,7 @@ echo "  ▸ ./pteroanyinstall.sh install-panel    Install Panel only"
 echo "  ▸ ./pteroanyinstall.sh install-wings    Install Wings only"
 echo "  ▸ ./pteroanyinstall.sh install-full     Install both (⭐ recommended)"
 echo ""
-echo "┌──────────────────────────────────────────────────────────────────────────┐"
-echo "│ ⚙️  MANAGEMENT & MAINTENANCE                                             │"
-echo "└──────────────────────────────────────────────────────────────────────────┘"
+print_section "⚙️  MANAGEMENT & MAINTENANCE"
 echo ""
 echo "  ▸ ./update.sh                           Update installer scripts"
 echo "  ▸ ./pteroanyinstall.sh update           Update Pterodactyl components"
@@ -185,25 +214,19 @@ echo "  ▸ ./pteroanyinstall.sh scan             Scan and fix issues"
 echo "  ▸ ./pteroanyinstall.sh backup           Run backup"
 echo "  ▸ ./pteroanyinstall.sh clean            Clean cache and logs"
 echo ""
-echo "┌──────────────────────────────────────────────────────────────────────────┐"
-echo "│ ☁️  CLOUD BACKUPS                                                        │"
-echo "└──────────────────────────────────────────────────────────────────────────┘"
+print_section "☁️  CLOUD BACKUPS"
 echo ""
 echo "  ▸ ./cloud-backup.sh                     Interactive backup menu"
 echo "  ▸ ./cloud-backup.sh gdrive              Google Drive backup"
 echo "  ▸ ./cloud-backup.sh b2                  Backblaze B2 backup"
 echo "  ▸ ./cloud-backup.sh mega                Mega.nz backup"
 echo ""
-echo "┌──────────────────────────────────────────────────────────────────────────┐"
-echo "│ 🎨 CUSTOMIZATION                                                         │"
-echo "└──────────────────────────────────────────────────────────────────────────┘"
+print_section "🎨 CUSTOMIZATION"
 echo ""
 echo "  ▸ ./pteroanyinstall.sh customize        Customize Panel appearance"
 echo "  ▸ ./panel-customizer.sh                 Direct customization tool"
 echo ""
-echo "┌──────────────────────────────────────────────────────────────────────────┐"
-echo "│ 🤖 AI ASSISTANT (P.R.I.S.M)                                              │"
-echo "└──────────────────────────────────────────────────────────────────────────┘"
+print_section "🤖 AI ASSISTANT (P.R.I.S.M)"
 echo ""
 echo "  ▸ ./pteroanyinstall.sh ai-assistant     Install P.R.I.S.M AI"
 echo "  ▸ ./pteroanyinstall.sh prism-upgrade    Upgrade to Enhanced"
@@ -211,15 +234,11 @@ echo ""
 echo "  💬 P.R.I.S.M Commands:"
 echo "     chatbot status | ask \"question\" | detect | webhook setup | api setup"
 echo ""
-echo "┌──────────────────────────────────────────────────────────────────────────┐"
-echo "│ 🖥️  ADDITIONAL NODES                                                     │"
-echo "└──────────────────────────────────────────────────────────────────────────┘"
+print_section "🖥️  ADDITIONAL NODES"
 echo ""
 echo "  ▸ ./node-installer.sh                   Install Wings on extra servers"
 echo ""
-echo "╔══════════════════════════════════════════════════════════════════════════╗"
-echo "║                    🚀 QUICK START GUIDE 🚀                               ║"
-echo "╚══════════════════════════════════════════════════════════════════════════╝"
+print_quick_start_box "🚀 QUICK START GUIDE 🚀"
 echo ""
 echo "  1️⃣  Pre-check      → cd $INSTALL_DIR && ./pteroanyinstall.sh pre-check"
 echo "  2️⃣  Install        → ./pteroanyinstall.sh install-full"
@@ -227,9 +246,7 @@ echo "  3️⃣  Quick Setup    → ./pteroanyinstall.sh quick-setup"
 echo ""
 echo "  📦 Optional: ./ptero-webconsole.sh enable (Web Dashboard)"
 echo ""
-echo "╔══════════════════════════════════════════════════════════════════════════╗"
-echo "║  🎉 Ready to install! Need help? Run: ./pteroanyinstall.sh help         ║"
-echo "╚══════════════════════════════════════════════════════════════════════════╝"
+print_quick_start_box "🎉 Ready to install! Need help? Run: ./pteroanyinstall.sh help"
 echo ""
 echo ""
 echo "  ⏳ Installing update checker service..."
