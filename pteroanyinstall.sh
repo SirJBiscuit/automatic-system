@@ -451,11 +451,13 @@ install_php() {
             ;;
         debian)
             # Add Sury PHP repository for Debian
-            curl -sSL https://packages.sury.org/php/README.txt
-            curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+            log_info "Adding Sury PHP repository..."
+            apt install -y lsb-release ca-certificates apt-transport-https software-properties-common gnupg2
+            curl -sSL https://packages.sury.org/php/apt.gpg -o /tmp/php-sury.gpg
+            gpg --dearmor -o /usr/share/keyrings/deb.sury.org-php.gpg /tmp/php-sury.gpg 2>/dev/null || cp /tmp/php-sury.gpg /usr/share/keyrings/deb.sury.org-php.gpg
             echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list
             apt update -y
-            apt install -y php8.1 php8.1-{cli,gd,mysql,pdo,mbstring,tokenizer,bcmath,xml,fpm,curl,zip}
+            apt install -y php8.1 php8.1-cli php8.1-gd php8.1-mysql php8.1-pdo php8.1-mbstring php8.1-tokenizer php8.1-bcmath php8.1-xml php8.1-fpm php8.1-curl php8.1-zip
             ;;
         centos|rhel|rocky|almalinux)
             yum install -y epel-release
