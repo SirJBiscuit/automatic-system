@@ -1800,6 +1800,53 @@ main() {
             fi
             ;;
             
+        cleanupdate)
+            clear
+            log_info "Running clean update and reinstall..."
+            echo ""
+            
+            log_warning "This will remove the Panel installation and update to the latest version."
+            if ! prompt_yes_no "Continue?"; then
+                log_info "Cancelled"
+                exit 0
+            fi
+            
+            # Stop services
+            log_info "Stopping services..."
+            systemctl stop wings 2>/dev/null || true
+            systemctl stop nginx 2>/dev/null || true
+            
+            # Remove Panel installation
+            log_info "Removing Panel installation..."
+            rm -rf /var/www/pterodactyl
+            
+            # Remove broken repository files
+            log_info "Cleaning up repository files..."
+            rm -f /etc/apt/sources.list.d/php.list
+            rm -f /usr/share/keyrings/deb.sury.org-php.gpg
+            rm -f /tmp/php-sury.gpg
+            
+            # Clean apt cache
+            log_info "Cleaning apt cache..."
+            apt clean
+            apt autoclean
+            apt update
+            
+            # Update installer scripts
+            log_info "Updating installer scripts..."
+            cd /opt/ptero
+            rm -rf *
+            curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/install.sh | bash
+            
+            echo ""
+            log_success "Clean update complete!"
+            echo ""
+            log_info "Ready to install. Run one of:"
+            echo "  ./pteroanyinstall.sh install-panel"
+            echo "  ./pteroanyinstall.sh install-wings"
+            echo "  ./pteroanyinstall.sh install-full"
+            ;;
+            
         cleanup)
             clear
             log_info "Running cleanup to fix installation issues..."
