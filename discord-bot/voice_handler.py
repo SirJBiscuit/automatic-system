@@ -406,14 +406,43 @@ def setup_voice_commands(bot, prism_client=None):
     
     @bot.command(name='voiceask', help='Type question, PRISM speaks answer (RECOMMENDED)')
     async def voice_ask(ctx, *, question: str):
-        """Ask P.R.I.S.M and get voice response - uses local chatbot"""
+        """Ask P.R.I.S.M and get voice response - includes real server data"""
         import subprocess
+        import json
+        from bot import PterodactylAPI
         
         async with ctx.typing():
-            # Try local chatbot first
+            # Get actual server data first
+            servers_data = []
+            try:
+                servers = await PterodactylAPI.get_servers()
+                for server in servers[:5]:  # Limit to 5 servers
+                    attrs = server['attributes']
+                    server_id = attrs['identifier']
+                    status = await PterodactylAPI.get_server_status(server_id)
+                    if status:
+                        state = status['attributes']['current_state']
+                        resources = status['attributes']['resources']
+                        servers_data.append({
+                            'name': attrs['name'],
+                            'id': server_id,
+                            'status': state,
+                            'cpu': f"{resources.get('cpu_absolute', 0):.1f}%",
+                            'memory': f"{resources.get('memory_bytes', 0) / (1024**3):.2f}GB"
+                        })
+            except Exception as e:
+                print(f"Error getting server data: {e}")
+            
+            # Build enhanced question with context
+            enhanced_question = question
+            if servers_data:
+                server_context = json.dumps(servers_data, indent=2)
+                enhanced_question = f"Current servers:\n{server_context}\n\nQuestion: {question}"
+            
+            # Try local chatbot with enhanced question
             try:
                 result = subprocess.run(
-                    ['chatbot', 'ask', question],
+                    ['chatbot', 'ask', enhanced_question],
                     capture_output=True,
                     text=True,
                     timeout=30
