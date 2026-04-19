@@ -1908,31 +1908,31 @@ main() {
             log_info "Running clean update and reinstall..."
             echo ""
             
-            log_warning "This will remove the Panel installation and update to the latest version."
+            log_warning "This will remove ALL Panel/Wings data and update to the latest version."
             if ! prompt_yes_no "Continue?"; then
                 log_info "Cancelled"
                 exit 0
             fi
             
-            # Stop services
+            # Stop services first
             log_info "Stopping services..."
             systemctl stop wings 2>/dev/null || true
             systemctl stop nginx 2>/dev/null || true
             pkill -9 nginx 2>/dev/null || true
+            sleep 2
             
-            # Remove Panel installation
-            log_info "Removing Panel installation..."
-            rm -rf /var/www/pterodactyl
-            
-            # Drop Panel database and users
+            # Drop databases and users FIRST (before removing files)
             log_info "Removing Panel database and users..."
             mysql -u root -e "DROP DATABASE IF EXISTS panel;" 2>/dev/null || true
             mysql -u root -e "DROP DATABASE IF EXISTS pterodactyl;" 2>/dev/null || true
             mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'127.0.0.1';" 2>/dev/null || true
             mysql -u root -e "DROP USER IF EXISTS 'pterodactyl'@'localhost';" 2>/dev/null || true
             mysql -u root -e "FLUSH PRIVILEGES;" 2>/dev/null || true
-            
             log_success "Database cleanup complete"
+            
+            # Remove Panel installation
+            log_info "Removing Panel files..."
+            rm -rf /var/www/pterodactyl
             
             # Remove Wings installation and data
             log_info "Removing Wings nodes and data..."
@@ -1963,6 +1963,11 @@ main() {
             
             echo ""
             log_success "Clean update complete!"
+            echo ""
+            log_info "✅ All Panel data removed"
+            log_info "✅ All Wings data removed"
+            log_info "✅ All databases dropped"
+            log_info "✅ Installer updated to latest version"
             echo ""
             log_info "Ready to install. Run one of:"
             echo "  ./pteroanyinstall.sh install-panel"
