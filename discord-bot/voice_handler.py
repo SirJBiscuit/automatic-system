@@ -49,6 +49,8 @@ class VoiceHandler:
         self.always_listening = {}  # guild_id: True/False
         self.status_messages = {}  # guild_id: status_message
         self.wake_words = ['hey prism', 'ok prism', 'prism', 'hey bot']
+        self.greetings = {}  # guild_id: custom_greeting
+        self.default_greeting = "Hello! I'm ready to help with your servers."
         
     async def join_voice(self, ctx):
         """Join user's voice channel"""
@@ -367,7 +369,9 @@ def setup_voice_commands(bot, prism_client=None):
         voice_client = await voice_handler.join_voice(ctx)
         if voice_client:
             await ctx.send(f"✅ Joined {ctx.author.voice.channel.name}")
-            await voice_handler.speak_response(ctx, "Hello! I'm ready to help with your servers.")
+            # Use custom greeting if set, otherwise default
+            greeting = voice_handler.greetings.get(ctx.guild.id, voice_handler.default_greeting)
+            await voice_handler.speak_response(ctx, greeting)
     
     @bot.command(name='leave', help='Leave voice channel')
     async def leave_voice(ctx):
@@ -376,6 +380,26 @@ def setup_voice_commands(bot, prism_client=None):
             await ctx.send("👋 Left voice channel")
         else:
             await ctx.send("❌ Not in a voice channel")
+    
+    @bot.command(name='setgreeting', help='Set custom voice join greeting')
+    async def set_greeting(ctx, *, greeting: str = None):
+        """Set custom greeting when bot joins voice"""
+        if greeting is None:
+            # Show current greeting
+            current = voice_handler.greetings.get(ctx.guild.id, voice_handler.default_greeting)
+            await ctx.send(f"**Current greeting:**\n{current}\n\n**Usage:** `!setgreeting <your message>`\n**Example:** `!setgreeting Welcome! Ready to manage your game servers!`\n**Reset:** `!setgreeting reset`")
+            return
+        
+        if greeting.lower() == 'reset':
+            # Reset to default
+            if ctx.guild.id in voice_handler.greetings:
+                del voice_handler.greetings[ctx.guild.id]
+            await ctx.send(f"✅ Greeting reset to default:\n*{voice_handler.default_greeting}*")
+        else:
+            # Set custom greeting
+            voice_handler.greetings[ctx.guild.id] = greeting
+            await ctx.send(f"✅ Custom greeting set!\n\n**Preview:**")
+            await voice_handler.speak_response(ctx, greeting)
     
     @bot.command(name='listen', help='Listen for voice command once')
     async def listen(ctx, duration: int = 5):
