@@ -404,6 +404,47 @@ def setup_voice_commands(bot, prism_client=None):
         """Make bot speak"""
         await voice_handler.speak_response(ctx, text)
     
+    @bot.command(name='prism', help='Ask PRISM anything (general questions, with voice)')
+    async def prism_general(ctx, *, question: str):
+        """Ask P.R.I.S.M general questions - no server data, just AI chat"""
+        import subprocess
+        
+        async with ctx.typing():
+            # Call chatbot without server data
+            try:
+                print(f"📤 PRISM general question: {question[:100]}...")
+                result = subprocess.run(
+                    ['chatbot', 'ask', question],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                
+                if result.returncode == 0 and result.stdout:
+                    answer = result.stdout.strip()
+                    
+                    # Remove "Asking AI..." prefix if present
+                    if answer.startswith("Asking AI..."):
+                        answer = answer.replace("Asking AI...", "").strip()
+                    
+                    if answer and answer != 'null' and len(answer) > 0:
+                        # Send text
+                        embed = discord.Embed(
+                            title='🤖 P.R.I.S.M',
+                            description=answer,
+                            color=discord.Color.blue()
+                        )
+                        await ctx.send(embed=embed)
+                        
+                        # Speak answer if in voice
+                        await voice_handler.speak_response(ctx, answer)
+                        return
+                        
+            except Exception as e:
+                print(f"❌ PRISM error: {e}")
+            
+            await ctx.send("❌ P.R.I.S.M is not responding. Try again later.")
+    
     @bot.command(name='voiceask', help='Type question, PRISM speaks answer (RECOMMENDED)')
     async def voice_ask(ctx, *, question: str):
         """Ask P.R.I.S.M and get voice response - includes real server data"""
