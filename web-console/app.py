@@ -6,14 +6,24 @@ Web-based dashboard for managing Pterodactyl game servers
 
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_socketio import SocketIO, emit
+from werkzeug.middleware.proxy_fix import ProxyFix
 import requests
 import os
 from datetime import datetime
 import secrets
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
-socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Support for Cloudflare Tunnel and reverse proxies
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Configuration
 PTERODACTYL_URL = os.getenv('PTERODACTYL_URL', 'https://panel.yourdomain.com')
@@ -31,6 +41,32 @@ headers = {
 def check_auth():
     """Check if user is authenticated"""
     return session.get('authenticated', False)
+
+@app.route('/health')
+def health():
+    """Health check endpoint for monitoring"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'pterodactyl-web-console',
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
+@app.route('/api/status')
+def api_status():
+    """API status check"""
+    try:
+        # Test Pterodactyl API connection
+        response = requests.get(f'{PTERODACTYL_URL}/api/client', headers=headers, timeout=5)
+        api_working = response.status_code == 200
+    except Exception as e:
+        logger.error(f"API check failed: {e}")
+        api_working = False
+    
+    return jsonify({
+        'web_console': 'running',
+        'pterodactyl_api': 'connected' if api_working else 'disconnected',
+        'panel_url': PTERODACTYL_URL
+    }), 200
 
 @app.route('/')
 def index():
@@ -452,4 +488,13 @@ def handle_subscribe(data):
     emit('subscribed', {'server_id': server_id})
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False)
+    port = int(os.getenv('PORT', 8080))
+    logger.info(f"🚀 Starting Pterodactyl Web Console on port {port}")
+    logger.info(f"🔗 Panel URL: {PTERODACTYL_URL}")
+    logger.info(f"🌐 Access at: http://0.0.0.0:{port}")
+    
+    try:
+        socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
+    except Exception as e:
+        logger.error(f"❌ Failed to start server: {e}")
+        raise
