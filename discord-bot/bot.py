@@ -46,6 +46,25 @@ intents.voice_states = True  # Enable voice state tracking
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
+# Role check decorator
+def requires_prism_role():
+    """Decorator to check if user has PRISM role or admin permissions"""
+    async def predicate(ctx):
+        # Allow if user has admin permissions
+        if ctx.author.guild_permissions.administrator:
+            return True
+        
+        # Check for PRISM role (case insensitive)
+        for role in ctx.author.roles:
+            if role.name.lower() in ['prism', 'prism user', 'bot user', 'server admin']:
+                return True
+        
+        # Deny access
+        await ctx.send("❌ **Access Denied**\n\nYou need one of these roles to use PRISM:\n• `PRISM`\n• `PRISM User`\n• `Bot User`\n• `Server Admin`\n\nOr have Administrator permissions.")
+        return False
+    
+    return commands.check(predicate)
+
 # Import voice handler
 if ENABLE_VOICE:
     try:
@@ -178,6 +197,7 @@ async def send_with_delete(self, *args, **kwargs):
 commands.Context.send = send_with_delete
 
 @bot.command(name='servers', help='List all game servers')
+@requires_prism_role()
 async def list_servers(ctx):
     """List all servers with status"""
     servers = await PterodactylAPI.get_servers()
@@ -222,6 +242,7 @@ async def list_servers(ctx):
     await ctx.send(embed=embed)
 
 @bot.command(name='status', help='Get detailed server status')
+@requires_prism_role()
 async def server_status(ctx, server_id: str = None):
     """Get detailed status for a specific server"""
     if not server_id:
@@ -415,6 +436,7 @@ async def bot_info(ctx):
     await ctx.send(embed=embed)
 
 @bot.command(name='ask', help='Ask P.R.I.S.M AI about your servers')
+@requires_prism_role()
 async def ask_prism(ctx, *, question: str):
     """Ask P.R.I.S.M AI about server management"""
     # Try local chatbot first

@@ -360,10 +360,12 @@ If they're asking to perform an action, tell them what you're doing."""
 
 def setup_voice_commands(bot, prism_client=None):
     """Add voice commands to bot"""
+    from bot import requires_prism_role
     
     voice_handler = VoiceHandler(bot, prism_client)
     
     @bot.command(name='join', help='Join your voice channel')
+    @requires_prism_role()
     async def join_voice(ctx):
         """Join voice channel"""
         voice_client = await voice_handler.join_voice(ctx)
@@ -429,6 +431,7 @@ def setup_voice_commands(bot, prism_client=None):
         await voice_handler.speak_response(ctx, text)
     
     @bot.command(name='prism', help='Ask PRISM anything (general questions, with voice)')
+    @requires_prism_role()
     async def prism_general(ctx, *, question: str):
         """Ask P.R.I.S.M general questions - no server data, just AI chat"""
         import subprocess
@@ -470,6 +473,7 @@ def setup_voice_commands(bot, prism_client=None):
             await ctx.send("❌ P.R.I.S.M is not responding. Try again later.")
     
     @bot.command(name='voiceask', help='Type question, PRISM speaks answer (RECOMMENDED)')
+    @requires_prism_role()
     async def voice_ask(ctx, *, question: str):
         """Ask P.R.I.S.M and get voice response - includes real server data"""
         import subprocess
