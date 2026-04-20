@@ -46,6 +46,11 @@ intents.voice_states = True  # Enable voice state tracking
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
+# Crash detection settings
+MONITOR_INTERVAL = 120  # Check every 2 minutes
+ALERT_CHANNEL_ID = None  # Will be set via command
+server_states = {}  # Track server states: {server_id: {'status': 'running', 'last_check': timestamp}}
+
 # Role check decorator
 def requires_prism_role():
     """Decorator to check if user has PRISM role or admin permissions"""
@@ -345,43 +350,93 @@ async def broadcast_message(ctx, *, message: str):
     
     await ctx.send(f'✅ Broadcast sent to {success_count}/{len(servers)} servers')
 
-@tasks.loop(minutes=5)
+@tasks.loop(minutes=2)
 async def monitor_servers():
-    """Monitor servers and send alerts"""
+    """Monitor servers for crashes and send alerts"""
     global last_status
     
-    servers = await PterodactylAPI.get_servers()
-    
-    for server in servers:
-        server_id = server['attributes']['identifier']
-        server_name = server['attributes']['name']
+    try:
+        servers = await PterodactylAPI.get_servers()
+        if not servers:
+            return
         
-        status_data = await PterodactylAPI.get_server_status(server_id)
-        if not status_data:
-            continue
-        
-        current_state = status_data['attributes']['current_state']
-        
-        # Check for state changes
-        if server_id in last_status:
-            if last_status[server_id] != current_state:
-                # Server state changed - send alert
-                for guild in bot.guilds:
-                    # Find alerts channel
-                    channel = discord.utils.get(guild.text_channels, name='server-alerts')
-                    if channel:
-                        embed = discord.Embed(
-                            title=f'🔔 Server State Changed',
-                            description=f'**{server_name}** (`{server_id}`)',
-                            color=discord.Color.orange(),
-                            timestamp=datetime.utcnow()
-                        )
-                        embed.add_field(name='Previous State', value=last_status[server_id], inline=True)
-                        embed.add_field(name='Current State', value=current_state, inline=True)
+        for server in servers:
+            server_id = server['attributes']['identifier']
+            server_name = server['attributes']['name']
+            
+            status_data = await PterodactylAPI.get_server_status(server_id)
+            if not status_data:
+                continue
+            
+            current_state = status_data['attributes']['current_state']
+            
+            # Check for state changes
+            if server_id in last_status:
+                previous_state = last_status[server_id]
+                
+                if previous_state != current_state:
+                    # Detect crash (running -> offline/stopping)
+                    is_crash = previous_state == 'running' and current_state in ['offline', 'stopping']
+                    
+                    # Detect recovery (offline -> running)
+                    is_recovery = previous_state == 'offline' and current_state == 'running'
+                    
+                    # Send alert to all guilds
+                    for guild in bot.guilds:
+                        # Find alerts channel (server-alerts or general)
+                        channel = discord.utils.get(guild.text_channels, name='server-alerts')
+                        if not channel:
+                            channel = discord.utils.get(guild.text_channels, name='general')
                         
-                        await channel.send(embed=embed)
-        
-        last_status[server_id] = current_state
+                        if channel:
+                            if is_crash:
+                                # Crash alert
+                                embed = discord.Embed(
+                                    title='� Server Crash Detected!',
+                                    description=f'**{server_name}** has crashed or stopped unexpectedly',
+                                    color=discord.Color.red(),
+                                    timestamp=datetime.utcnow()
+                                )
+                                embed.add_field(name='Server ID', value=f'`{server_id}`', inline=True)
+                                embed.add_field(name='Previous State', value=f'✅ {previous_state}', inline=True)
+                                embed.add_field(name='Current State', value=f'❌ {current_state}', inline=True)
+                                embed.add_field(name='Quick Actions', value=f'`!start {server_id}` - Restart server\n`!status {server_id}` - Check details', inline=False)
+                                embed.set_footer(text='Auto-detected by P.R.I.S.M')
+                                
+                                await channel.send('@here', embed=embed)
+                            
+                            elif is_recovery:
+                                # Recovery alert
+                                embed = discord.Embed(
+                                    title='✅ Server Recovered',
+                                    description=f'**{server_name}** is back online!',
+                                    color=discord.Color.green(),
+                                    timestamp=datetime.utcnow()
+                                )
+                                embed.add_field(name='Server ID', value=f'`{server_id}`', inline=True)
+                                embed.add_field(name='Status', value=f'✅ {current_state}', inline=True)
+                                embed.set_footer(text='Auto-detected by P.R.I.S.M')
+                                
+                                await channel.send(embed=embed)
+                            
+                            else:
+                                # General state change
+                                embed = discord.Embed(
+                                    title='🔔 Server State Changed',
+                                    description=f'**{server_name}**',
+                                    color=discord.Color.orange(),
+                                    timestamp=datetime.utcnow()
+                                )
+                                embed.add_field(name='Server ID', value=f'`{server_id}`', inline=True)
+                                embed.add_field(name='Previous', value=previous_state, inline=True)
+                                embed.add_field(name='Current', value=current_state, inline=True)
+                                
+                                await channel.send(embed=embed)
+            
+            last_status[server_id] = current_state
+    
+    except Exception as e:
+        print(f'❌ Monitor error: {e}')
 
 @monitor_servers.before_loop
 async def before_monitor():
