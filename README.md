@@ -58,6 +58,16 @@ A comprehensive, interactive installation script for Pterodactyl Panel and Wings
 - **🛡️ Proactive Defense**: Detects and prevents issues before they become critical
 - **📊 Easy Control**: Simple `chatbot -enable/-disable` commands
 
+### Ollama + Open WebUI Setup (NEW!)
+- **🚀 One-Command Installation**: Automated setup of Ollama AI server with GPU support
+- **🌐 Cloudflare Tunnel Integration**: Secure external access via HTTPS
+- **💻 Open WebUI Interface**: Beautiful ChatGPT-like web interface
+- **🎮 GPU Auto-Detection**: Automatically uses NVIDIA GPU if available
+- **📦 Model Selection**: Interactive menu to choose AI models
+- **🔒 User Management**: Built-in authentication and multi-user support
+- **⚙️ Auto-Configuration**: Everything configured and ready to use
+- **📝 Comprehensive Logging**: Track installation and troubleshoot easily
+
 ## Requirements
 
 - Fresh Linux installation (Ubuntu 20.04+, Debian 11+, CentOS 8+, Rocky/Alma 8+)
@@ -69,13 +79,35 @@ A comprehensive, interactive installation script for Pterodactyl Panel and Wings
 
 ## Quick Start
 
-### Download and Run
+### Pterodactyl Installation
+
+#### Download and Run
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yourusername/pteroanyinstall/main/pteroanyinstall.sh -o pteroanyinstall.sh
+curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/pteroanyinstall.sh -o pteroanyinstall.sh
 chmod +x pteroanyinstall.sh
 sudo ./pteroanyinstall.sh
 ```
+
+### Ollama + Open WebUI Installation
+
+For a complete AI chatbot setup with GPU support:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ollama-setup/install-ollama.sh -o install-ollama.sh
+chmod +x install-ollama.sh
+./install-ollama.sh
+```
+
+Or download the full setup script directly:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ollama-setup/ollama-webui-setup.sh -o ollama-webui-setup.sh
+chmod +x ollama-webui-setup.sh
+./ollama-webui-setup.sh
+```
+
+**See [ollama-setup/README.md](ollama-setup/README.md) for complete documentation.**
 
 ### Installation Options
 
