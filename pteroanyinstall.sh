@@ -1882,21 +1882,197 @@ main() {
             echo "2) Wings only"
             echo "3) Full installation (Panel + Wings)"
             echo "4) Update existing installation"
-            echo "5) Exit"
+            echo "5) Additional Tools"
+            echo "6) Exit"
             echo ""
             
-            read -p "Enter choice [1-5]: " choice
+            read -p "Enter choice [1-6]: " choice
             
             case $choice in
                 1) main install-panel ;;
                 2) main install-wings ;;
                 3) main install-full ;;
                 4) main update ;;
-                5) exit 0 ;;
+                5) install_additional_tools ;;
+                6) exit 0 ;;
                 *) log_error "Invalid choice"; exit 1 ;;
             esac
             ;;
     esac
+}
+
+install_additional_tools() {
+    clear
+    echo ""
+    echo "=========================================="
+    echo "       Additional Tools & Services"
+    echo "=========================================="
+    echo ""
+    echo "Available installations:"
+    echo ""
+    echo "1) Ollama + Open WebUI"
+    echo "   • AI chatbot with GPU support"
+    echo "   • ChatGPT-like web interface"
+    echo "   • Run AI models locally (qwen, gemma, llama, etc.)"
+    echo "   • Secure access via Cloudflare tunnel"
+    echo "   • Perfect for AI assistance and automation"
+    echo ""
+    echo "2) File Sharing Panel"
+    echo "   • Web-based file manager (Filebrowser)"
+    echo "   • Upload/download files via browser"
+    echo "   • Share files with generated links"
+    echo "   • Multi-user support with permissions"
+    echo "   • Secure HTTPS access via Cloudflare"
+    echo ""
+    echo "3) Install Both"
+    echo "4) Back to main menu"
+    echo ""
+    
+    read -p "Enter choice [1-4]: " tool_choice
+    
+    case $tool_choice in
+        1)
+            install_ollama_webui
+            ;;
+        2)
+            install_file_share
+            ;;
+        3)
+            install_ollama_webui
+            echo ""
+            install_file_share
+            ;;
+        4)
+            main
+            ;;
+        *)
+            log_error "Invalid choice"
+            sleep 2
+            install_additional_tools
+            ;;
+    esac
+}
+
+install_ollama_webui() {
+    clear
+    echo ""
+    echo "=========================================="
+    echo "    Ollama + Open WebUI Setup"
+    echo "=========================================="
+    echo ""
+    log_info "This will install:"
+    echo "  • Ollama - AI model server with GPU support"
+    echo "  • Open WebUI - Beautiful ChatGPT-like interface"
+    echo "  • Cloudflared - Secure HTTPS tunnel"
+    echo "  • Auto-configuration for everything"
+    echo ""
+    log_info "Features:"
+    echo "  ✓ Run AI models locally (no API costs)"
+    echo "  ✓ GPU acceleration (if NVIDIA GPU available)"
+    echo "  ✓ Multiple models: qwen, gemma, llama, deepseek, etc."
+    echo "  ✓ Web interface accessible from anywhere"
+    echo "  ✓ Multi-user support"
+    echo "  ✓ Secure HTTPS via Cloudflare"
+    echo ""
+    log_info "Requirements:"
+    echo "  • Domain managed by Cloudflare"
+    echo "  • 8GB+ RAM (16GB recommended)"
+    echo "  • 50GB+ disk space for models"
+    echo "  • Optional: NVIDIA GPU for faster inference"
+    echo ""
+    
+    if ! prompt_yes_no "Continue with Ollama + Open WebUI installation?"; then
+        log_info "Installation cancelled"
+        return
+    fi
+    
+    log_info "Downloading Ollama setup script..."
+    
+    OLLAMA_SCRIPT_URL="https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ollama-setup/ollama-webui-setup.sh"
+    
+    if curl -fsSL "$OLLAMA_SCRIPT_URL" -o /tmp/ollama-webui-setup.sh; then
+        chmod +x /tmp/ollama-webui-setup.sh
+        log_success "Script downloaded successfully"
+        echo ""
+        log_info "Starting Ollama + Open WebUI installation..."
+        echo ""
+        /tmp/ollama-webui-setup.sh
+        rm -f /tmp/ollama-webui-setup.sh
+    else
+        log_error "Failed to download Ollama setup script"
+        echo ""
+        log_info "You can manually install with:"
+        echo "  curl -sSL $OLLAMA_SCRIPT_URL -o ollama-webui-setup.sh"
+        echo "  chmod +x ollama-webui-setup.sh"
+        echo "  ./ollama-webui-setup.sh"
+    fi
+    
+    echo ""
+    read -p "Press Enter to continue..."
+}
+
+install_file_share() {
+    clear
+    echo ""
+    echo "=========================================="
+    echo "      File Sharing Panel Setup"
+    echo "=========================================="
+    echo ""
+    log_info "This will install:"
+    echo "  • Filebrowser - Modern web-based file manager"
+    echo "  • Cloudflared - Secure HTTPS tunnel"
+    echo "  • Systemd services for auto-start"
+    echo ""
+    log_info "Features:"
+    echo "  ✓ Upload/download files via web browser"
+    echo "  ✓ Create and organize folders"
+    echo "  ✓ Share files with generated links"
+    echo "  ✓ File preview (images, videos, PDFs, code)"
+    echo "  ✓ Search functionality"
+    echo "  ✓ Multi-user support with permissions"
+    echo "  ✓ Mobile responsive interface"
+    echo "  ✓ Secure HTTPS via Cloudflare"
+    echo ""
+    log_info "Requirements:"
+    echo "  • Domain managed by Cloudflare"
+    echo "  • 1GB+ RAM"
+    echo "  • 10GB+ disk space (more for file storage)"
+    echo ""
+    log_info "Use cases:"
+    echo "  • Personal cloud storage"
+    echo "  • Team file sharing"
+    echo "  • Media library hosting"
+    echo "  • Document management"
+    echo ""
+    
+    if ! prompt_yes_no "Continue with File Sharing Panel installation?"; then
+        log_info "Installation cancelled"
+        return
+    fi
+    
+    log_info "Downloading File Share setup script..."
+    
+    FILE_SHARE_SCRIPT_URL="https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/file-share-setup.sh"
+    
+    if curl -fsSL "$FILE_SHARE_SCRIPT_URL" -o /tmp/file-share-setup.sh; then
+        chmod +x /tmp/file-share-setup.sh
+        log_success "Script downloaded successfully"
+        echo ""
+        log_info "Starting File Sharing Panel installation..."
+        echo ""
+        /tmp/file-share-setup.sh
+        rm -f /tmp/file-share-setup.sh
+    else
+        log_error "Failed to download File Share setup script"
+        echo ""
+        log_info "You can manually install with:"
+        echo "  curl -sSL $FILE_SHARE_SCRIPT_URL -o file-share-setup.sh"
+        echo "  chmod +x file-share-setup.sh"
+        echo "  sudo ./file-share-setup.sh"
+    fi
+    
+    echo ""
+    read -p "Press Enter to continue..."
 }
 
 main "$@"
