@@ -228,20 +228,45 @@ if [ "$CHECK_CONFLICTS" = true ]; then
     check_port_conflicts
 fi
 
-DOMAIN="cloudmc.online"
-SUBDOMAIN="share"
+echo ""
+echo "=== Step 1: Cloudflare Configuration ==="
+echo ""
+echo "📌 You need a Cloudflare domain to continue"
+echo "   Example: example.com"
+echo ""
+read -p "Enter your Cloudflare domain: " DOMAIN
+
+if [ -z "$DOMAIN" ]; then
+    error "Domain is required!"
+    exit 1
+fi
+
+echo ""
+echo "📌 Choose a subdomain for your file sharing panel"
+echo "   Example: share (will create share.${DOMAIN})"
+echo ""
+read -p "Enter subdomain: " SUBDOMAIN
+
+if [ -z "$SUBDOMAIN" ]; then
+    error "Subdomain is required!"
+    exit 1
+fi
+
 FULL_DOMAIN="${SUBDOMAIN}.${DOMAIN}"
+
+echo ""
+echo "✓ Your file panel will be accessible at: https://${FULL_DOMAIN}"
+echo ""
+read -p "Is this correct? (y/n): " CONFIRM
+if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
+    echo "Setup cancelled. Please run again."
+    exit 1
+fi
+
 STORAGE_PATH="/var/filebrowser"
 DB_PATH="/etc/filebrowser"
 
 echo "=== Configuration ==="
-read -p "Enter your domain (default: cloudmc.online): " DOMAIN_INPUT
-DOMAIN=${DOMAIN_INPUT:-$DOMAIN}
-
-read -p "Enter subdomain (default: share): " SUBDOMAIN_INPUT
-SUBDOMAIN=${SUBDOMAIN_INPUT:-$SUBDOMAIN}
-
-FULL_DOMAIN="${SUBDOMAIN}.${DOMAIN}"
 
 read -p "Enter storage path (default: /var/filebrowser): " STORAGE_INPUT
 STORAGE_PATH=${STORAGE_INPUT:-$STORAGE_PATH}
