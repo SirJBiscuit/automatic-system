@@ -296,12 +296,81 @@ else
 fi
 
 echo ""
+echo "=== Step 3.5: Installing ClamAV (Virus Scanner) ==="
+info "Installing ClamAV for file scanning..."
+
+# Ask user if they want virus scanning
+read -p "Enable virus scanning for uploaded files? [Y/n]: " ENABLE_CLAMAV
+if [[ ! "$ENABLE_CLAMAV" =~ ^[Nn]$ ]]; then
+    VIRUS_SCAN_ENABLED=true
+    
+    # Install ClamAV
+    apt-get install -y clamav clamav-daemon -qq
+    
+    # Stop the service to update
+    systemctl stop clamav-freshclam 2>/dev/null || true
+    
+    info "Updating virus definitions (this may take a few minutes)..."
+    freshclam 2>/dev/null || warn "Initial virus database update may need to complete in background"
+    
+    # Start services
+    systemctl enable clamav-daemon
+    systemctl enable clamav-freshclam
+    systemctl start clamav-daemon
+    systemctl start clamav-freshclam
+    
+    log "✓ ClamAV installed and running"
+    log "✓ Virus definitions will auto-update daily"
+else
+    VIRUS_SCAN_ENABLED=false
+    log "✓ Virus scanning disabled (skipped)"
+fi
+
+echo ""
 echo "=== Step 4: Creating Storage Directory ==="
 info "Setting up storage..."
 mkdir -p "$STORAGE_PATH"
 mkdir -p "$DB_PATH"
+mkdir -p "$STORAGE_PATH/quarantine"
 chmod 755 "$STORAGE_PATH"
+chmod 700 "$STORAGE_PATH/quarantine"
 log "✓ Storage directory created: $STORAGE_PATH"
+
+# Create virus scan script if enabled
+if [ "$VIRUS_SCAN_ENABLED" = true ]; then
+    info "Creating automated virus scan script..."
+    
+    cat > /usr/local/bin/filebrowser-scan.sh <<'EOF'
+#!/bin/bash
+
+SCAN_DIR="/var/filebrowser"
+QUARANTINE_DIR="/var/filebrowser/quarantine"
+LOG_FILE="/var/log/filebrowser-scan.log"
+
+echo "[$(date)] Starting virus scan..." >> "$LOG_FILE"
+
+# Scan the directory
+clamscan -r -i --move="$QUARANTINE_DIR" "$SCAN_DIR" >> "$LOG_FILE" 2>&1
+
+if [ $? -eq 1 ]; then
+    echo "[$(date)] ⚠️  INFECTED FILES FOUND AND QUARANTINED!" >> "$LOG_FILE"
+    # Optional: Send notification (email, webhook, etc.)
+else
+    echo "[$(date)] ✓ Scan complete - no threats found" >> "$LOG_FILE"
+fi
+EOF
+
+    # Update scan script with actual paths
+    sed -i "s|/var/filebrowser|$STORAGE_PATH|g" /usr/local/bin/filebrowser-scan.sh
+    chmod +x /usr/local/bin/filebrowser-scan.sh
+    
+    # Create daily cron job for scanning
+    echo "0 2 * * * root /usr/local/bin/filebrowser-scan.sh" > /etc/cron.d/filebrowser-scan
+    chmod 644 /etc/cron.d/filebrowser-scan
+    
+    log "✓ Automated daily virus scan configured (runs at 2 AM)"
+    log "✓ Infected files will be moved to: $STORAGE_PATH/quarantine"
+fi
 
 echo ""
 echo "=== Step 5: Configuring Filebrowser ==="
@@ -486,6 +555,11 @@ echo "  🔄 Restart Filebrowser:   sudo systemctl restart filebrowser"
 echo "  🔄 Restart Cloudflared:   sudo systemctl restart cloudflared"
 echo "  📝 View Filebrowser logs: sudo journalctl -u filebrowser -f"
 echo "  📝 View Cloudflared logs: sudo journalctl -u cloudflared -f"
+if [ "$VIRUS_SCAN_ENABLED" = true ]; then
+    echo "  🦠 Manual virus scan:     sudo /usr/local/bin/filebrowser-scan.sh"
+    echo "  📋 View scan logs:        sudo tail -f /var/log/filebrowser-scan.log"
+    echo "  🗂️  Check quarantine:      ls -lah $STORAGE_PATH/quarantine"
+fi
 echo ""
 echo -e "${GREEN}Features Available:${NC}"
 echo "  ✅ Upload/Download files"
@@ -495,6 +569,9 @@ echo "  ✅ File preview (images, videos, documents)"
 echo "  ✅ Search files"
 echo "  ✅ User management"
 echo "  ✅ Mobile responsive"
+if [ "$VIRUS_SCAN_ENABLED" = true ]; then
+    echo "  ✅ Virus scanning (ClamAV)"
+fi
 echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
 echo "  1. Visit https://${FULL_DOMAIN}"
