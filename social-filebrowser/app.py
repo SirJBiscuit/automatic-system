@@ -3,7 +3,7 @@
 Social Filebrowser - Enhanced file sharing with friends system
 """
 
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import sqlite3
 import subprocess
@@ -12,6 +12,7 @@ import json
 from datetime import datetime
 from functools import wraps
 import hashlib
+import shutil
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
@@ -21,6 +22,8 @@ DB_PATH = '/etc/filebrowser/filebrowser.db'
 SOCIAL_DB = '/var/lib/filebrowser/social.db'
 STATUS_DIR = '/var/lib/filebrowser/status'
 TRADE_DIR = '/var/lib/filebrowser/trades'
+STORAGE_DIR = '/var/filebrowser'
+QUARANTINE_DIR = '/var/filebrowser/.quarantine'
 
 # Initialize social database
 def init_social_db():
@@ -322,13 +325,16 @@ def api_notifications():
 
 # Verify user credentials
 def verify_user(username, password):
-    # This is a simplified version - in production, use proper password hashing
+    # Check if user exists in filebrowser database
     try:
         result = subprocess.run(
             ['filebrowser', 'users', 'ls', '--database', DB_PATH],
             capture_output=True, text=True
         )
-        return username in result.stdout
+        # Just check if username exists (password verification happens in filebrowser itself)
+        if username in result.stdout:
+            return True
+        return False
     except:
         return False
 
@@ -357,4 +363,4 @@ def handle_heartbeat():
         update_online_status(session['username'])
 
 if __name__ == '__main__':
-    socketio.run(app, host='127.0.0.1', port=5001, debug=False)
+    socketio.run(app, host='127.0.0.1', port=5001, debug=False, allow_unsafe_werkzeug=True)

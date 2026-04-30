@@ -16,6 +16,13 @@ apt-get install -y python3 python3-pip python3-venv
 APP_DIR="/opt/social-filebrowser"
 mkdir -p $APP_DIR
 
+# Create required directories
+echo "📁 Creating required directories..."
+mkdir -p /var/lib/filebrowser
+mkdir -p /var/lib/filebrowser/status
+mkdir -p /var/lib/filebrowser/trades
+chmod 755 /var/lib/filebrowser
+
 # Copy files
 echo "📁 Copying application files..."
 cp app.py $APP_DIR/
@@ -27,6 +34,7 @@ cd $APP_DIR
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+pip install pyyaml
 
 # Create systemd service
 echo "⚙️  Creating systemd service..."
