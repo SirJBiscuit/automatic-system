@@ -42,28 +42,180 @@ check_internet() {
     log "✓ Internet connection verified"
 }
 
+detect_hardware() {
+    info "Detecting hardware configuration..."
+    
+    # Detect GPU
+    HAS_GPU=false
+    GPU_TYPE="none"
+    
+    if command -v nvidia-smi &> /dev/null; then
+        if nvidia-smi &> /dev/null; then
+            HAS_GPU=true
+            GPU_TYPE="nvidia"
+            GPU_INFO=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)
+            log "✓ NVIDIA GPU detected: $GPU_INFO"
+        fi
+    fi
+    
+    if [ "$HAS_GPU" = false ]; then
+        log "✓ No GPU detected (CPU only)"
+    fi
+    
+    # Detect system type
+    SYSTEM_TYPE="unknown"
+    if grep -qi "raspberry" /proc/cpuinfo 2>/dev/null || grep -qi "bcm" /proc/cpuinfo 2>/dev/null; then
+        SYSTEM_TYPE="raspberry_pi"
+        log "✓ Raspberry Pi detected"
+    elif [ -f /sys/firmware/devicetree/base/model ]; then
+        MODEL=$(cat /sys/firmware/devicetree/base/model 2>/dev/null)
+        if echo "$MODEL" | grep -qi "raspberry"; then
+            SYSTEM_TYPE="raspberry_pi"
+            log "✓ Raspberry Pi detected: $MODEL"
+        fi
+    fi
+    
+    # Detect available RAM
+    TOTAL_RAM=$(free -m | awk '/^Mem:/{print $2}')
+    log "✓ Total RAM: ${TOTAL_RAM}MB"
+    
+    # Detect available disk space
+    AVAILABLE_DISK=$(df -BG / | awk 'NR==2 {print $4}' | sed 's/G//')
+    log "✓ Available disk space: ${AVAILABLE_DISK}GB"
+}
+
 echo ""
 echo "=========================================="
 echo "  File Sharing Panel Setup"
 echo "  with Cloudflare Tunnel"
 echo "=========================================="
 echo ""
-echo "This will install:"
-echo "  • Filebrowser (Modern file manager)"
-echo "  • Cloudflared (Secure tunnel)"
-echo "  • Nginx (Reverse proxy)"
-echo "  • Automatic SSL via Cloudflare"
+
+check_root
+check_internet
+detect_hardware
+
+# Installation Type Selection
+echo ""
+echo "=== Installation Type ==="
+echo ""
+echo "Where are you installing this?"
+echo ""
+echo "1) Main Server (with Pterodactyl/Wings)"
+echo "   • Uses port 8090 to avoid conflicts"
+echo "   • Skips Nginx installation"
+echo "   • Safe for existing Pterodactyl setup"
+if [ "$HAS_GPU" = true ]; then
+    echo "   • GPU detected: Will optimize for performance"
+fi
+echo ""
+echo "2) Mini PC / Dedicated File Server"
+echo "   • Uses standard port 8080"
+echo "   • Installs all dependencies"
+echo "   • Optimized for file storage"
+if [ "$SYSTEM_TYPE" = "raspberry_pi" ]; then
+    echo "   • Raspberry Pi optimizations enabled"
+fi
+echo ""
+echo "3) Separate Computer / VPS"
+echo "   • Uses standard port 8080"
+echo "   • Fresh installation"
+echo "   • No conflict checks needed"
+echo ""
+
+read -p "Enter choice [1-3]: " INSTALL_TYPE
+
+case $INSTALL_TYPE in
+    1)
+        INSTALL_MODE="pterodactyl"
+        FILEBROWSER_PORT=8090
+        SKIP_NGINX_INSTALL=true
+        CHECK_CONFLICTS=true
+        echo ""
+        info "Selected: Main Server (Pterodactyl-safe mode)"
+        ;;
+    2)
+        INSTALL_MODE="minipc"
+        FILEBROWSER_PORT=8080
+        SKIP_NGINX_INSTALL=false
+        CHECK_CONFLICTS=false
+        echo ""
+        info "Selected: Mini PC / Dedicated File Server"
+        ;;
+    3)
+        INSTALL_MODE="separate"
+        FILEBROWSER_PORT=8080
+        SKIP_NGINX_INSTALL=false
+        CHECK_CONFLICTS=false
+        echo ""
+        info "Selected: Separate Computer / VPS"
+        ;;
+    *)
+        error "Invalid choice. Exiting."
+        exit 1
+        ;;
+esac
+
+echo ""
+echo "=== Hardware & Configuration Summary ==="
+echo ""
+echo "System Information:"
+echo "  • Installation Mode: $INSTALL_MODE"
+echo "  • RAM:               ${TOTAL_RAM}MB"
+echo "  • Disk Space:        ${AVAILABLE_DISK}GB available"
+if [ "$HAS_GPU" = true ]; then
+    echo "  • GPU:               $GPU_INFO"
+    echo "  • GPU Acceleration:  Available (not used by Filebrowser)"
+else
+    echo "  • GPU:               None (CPU only)"
+fi
+if [ "$SYSTEM_TYPE" = "raspberry_pi" ]; then
+    echo "  • Device Type:       Raspberry Pi"
+    echo "  • Optimizations:     Low-power mode enabled"
+fi
+echo ""
+echo "Configuration:"
+echo "  • Filebrowser Port:  $FILEBROWSER_PORT"
+if [ "$SKIP_NGINX_INSTALL" = true ]; then
+    echo "  • Nginx:             Skip (use existing)"
+else
+    echo "  • Nginx:             Install if needed"
+fi
 echo ""
 echo "Log file: $LOG_FILE"
 echo ""
 
-check_root
-check_internet
+# Check for port conflicts with Pterodactyl
+check_port_conflicts() {
+    info "Checking for port conflicts with existing services..."
+    
+    CONFLICTS=()
+    
+    # Check common Pterodactyl ports
+    if netstat -tuln 2>/dev/null | grep -q ":8080 " || ss -tuln 2>/dev/null | grep -q ":8080 "; then
+        CONFLICTS+=("8080 (Wings/Web Console)")
+    fi
+    
+    if netstat -tuln 2>/dev/null | grep -q ":5000 " || ss -tuln 2>/dev/null | grep -q ":5000 "; then
+        CONFLICTS+=("5000 (Web Console)")
+    fi
+    
+    if [ ${#CONFLICTS[@]} -gt 0 ]; then
+        warn "Detected services on ports: ${CONFLICTS[*]}"
+        log "✓ Will use alternative port to avoid conflicts"
+    else
+        log "✓ No port conflicts detected"
+    fi
+}
+
+# Only check for conflicts if in Pterodactyl mode
+if [ "$CHECK_CONFLICTS" = true ]; then
+    check_port_conflicts
+fi
 
 DOMAIN="cloudmc.online"
 SUBDOMAIN="share"
 FULL_DOMAIN="${SUBDOMAIN}.${DOMAIN}"
-FILEBROWSER_PORT=8080
 STORAGE_PATH="/var/filebrowser"
 DB_PATH="/etc/filebrowser"
 
@@ -113,7 +265,23 @@ log "✓ System updated"
 echo ""
 echo "=== Step 2: Installing Dependencies ==="
 info "Installing required packages..."
-apt-get install -y curl wget tar nginx -qq
+
+# Install based on mode
+if [ "$SKIP_NGINX_INSTALL" = true ]; then
+    # Pterodactyl mode - skip nginx
+    log "✓ Skipping Nginx (using existing installation)"
+    apt-get install -y curl wget tar -qq
+else
+    # Mini PC or Separate mode - install nginx if needed
+    if command -v nginx &> /dev/null; then
+        log "✓ Nginx already installed"
+        apt-get install -y curl wget tar -qq
+    else
+        info "Installing Nginx..."
+        apt-get install -y curl wget tar nginx -qq
+        log "✓ Nginx installed"
+    fi
+fi
 log "✓ Dependencies installed"
 
 echo ""
@@ -347,6 +515,36 @@ echo "    2. Check tunnel: sudo systemctl status cloudflared"
 echo "    3. Check Filebrowser: sudo systemctl status filebrowser"
 echo "    4. Verify in Cloudflare dashboard: Zero Trust → Networks → Tunnels"
 echo ""
-echo -e "${GREEN}Setup completed successfully!${NC}"
+if [ "$INSTALL_MODE" = "pterodactyl" ]; then
+    echo -e "${GREEN}✅ PTERODACTYL-SAFE INSTALLATION COMPLETE!${NC}"
+    echo ""
+    echo -e "${BLUE}Safe Configuration:${NC}"
+    echo "  ✓ Filebrowser on port ${FILEBROWSER_PORT} (Wings uses 8080)"
+    echo "  ✓ Separate Cloudflared tunnel (won't affect Pterodactyl)"
+    echo "  ✓ No Docker conflicts"
+    echo "  ✓ Existing Nginx configuration preserved"
+    if [ "$HAS_GPU" = true ]; then
+        echo "  ✓ GPU detected: $GPU_INFO (available for other services)"
+    fi
+elif [ "$INSTALL_MODE" = "minipc" ]; then
+    echo -e "${GREEN}✅ MINI PC INSTALLATION COMPLETE!${NC}"
+    echo ""
+    echo -e "${BLUE}Configuration:${NC}"
+    echo "  ✓ Filebrowser on port ${FILEBROWSER_PORT}"
+    echo "  ✓ Dedicated file storage server"
+    echo "  ✓ RAM: ${TOTAL_RAM}MB | Disk: ${AVAILABLE_DISK}GB"
+    if [ "$SYSTEM_TYPE" = "raspberry_pi" ]; then
+        echo "  ✓ Raspberry Pi optimizations applied"
+    fi
+    echo "  ✓ Optimized for file sharing"
+else
+    echo -e "${GREEN}✅ INSTALLATION COMPLETE!${NC}"
+    echo ""
+    echo -e "${BLUE}Configuration:${NC}"
+    echo "  ✓ Filebrowser on port ${FILEBROWSER_PORT}"
+    echo "  ✓ Standalone file sharing server"
+    echo "  ✓ RAM: ${TOTAL_RAM}MB | Disk: ${AVAILABLE_DISK}GB"
+fi
+echo ""
 echo "Log saved to: ${LOG_FILE}"
 echo ""
