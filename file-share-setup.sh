@@ -84,12 +84,27 @@ detect_hardware() {
     log "✓ Available disk space: ${AVAILABLE_DISK}GB"
 }
 
+clear
 echo ""
 echo "=========================================="
-echo "  File Sharing Panel Setup"
+echo "  📁 File Sharing Panel Setup Wizard"
 echo "  with Cloudflare Tunnel"
 echo "=========================================="
 echo ""
+echo "👋 Welcome! This wizard will guide you through setting up"
+echo "   a professional file sharing system step-by-step."
+echo ""
+echo "📋 What you'll get:"
+echo "   • Secure web-based file manager"
+echo "   • User accounts with permissions"
+echo "   • Online status indicators"
+echo "   • File trading between users"
+echo "   • Automatic backups and security"
+echo "   • Beautiful modern interface"
+echo ""
+echo "⏱️  Estimated time: 10-15 minutes"
+echo ""
+read -p "Press Enter to begin setup..."
 
 check_root
 check_internet
@@ -559,9 +574,511 @@ filebrowser config init --database="${DB_PATH}/filebrowser.db"
 filebrowser config set --address 127.0.0.1 --port ${FILEBROWSER_PORT} --database="${DB_PATH}/filebrowser.db"
 filebrowser config set --root "${STORAGE_PATH}" --database="${DB_PATH}/filebrowser.db"
 filebrowser config set --log /var/log/filebrowser/access.log --database="${DB_PATH}/filebrowser.db"
-filebrowser users add "${ADMIN_USER}" "${ADMIN_PASS}" --perm.admin --database="${DB_PATH}/filebrowser.db" 2>/dev/null || warn "User may already exist"
 
-log "✓ Filebrowser configured"
+# Enable all features
+filebrowser config set --branding.name "File Share Portal" --database="${DB_PATH}/filebrowser.db"
+filebrowser config set --branding.disableExternal --database="${DB_PATH}/filebrowser.db"
+filebrowser config set --branding.files "${DB_PATH}/branding" --database="${DB_PATH}/filebrowser.db"
+filebrowser config set --signup false --database="${DB_PATH}/filebrowser.db"
+filebrowser config set --createUserDir false --database="${DB_PATH}/filebrowser.db"
+
+# Create admin user with full permissions
+filebrowser users add "${ADMIN_USER}" "${ADMIN_PASS}" \
+    --perm.admin \
+    --perm.create \
+    --perm.delete \
+    --perm.download \
+    --perm.execute \
+    --perm.modify \
+    --perm.rename \
+    --perm.share \
+    --database="${DB_PATH}/filebrowser.db" 2>/dev/null || warn "User may already exist"
+
+log "✓ Filebrowser configured with full permissions and branding"
+
+# Create custom CSS for enhanced UI
+info "Creating enhanced UI customizations..."
+mkdir -p "${DB_PATH}/branding"
+
+cat > "${DB_PATH}/branding/custom.css" <<'EOFCSS'
+/* Enhanced File Browser UI with Animations and Modern Effects */
+
+:root {
+    --primary-color: #4f46e5;
+    --secondary-color: #06b6d4;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --dark-bg: #1f2937;
+    --light-bg: #f9fafb;
+    --border-radius: 12px;
+    --transition-speed: 0.3s;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+}
+
+/* Smooth animations for all transitions */
+* {
+    transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced header with gradient */
+header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(10px);
+}
+
+/* Animated file list items */
+.item {
+    border-radius: var(--border-radius);
+    margin: 4px 0;
+    padding: 12px;
+    background: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    background: linear-gradient(to right, #f9fafb, #ffffff);
+}
+
+/* Upload progress indicator with animation */
+.upload-progress {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: white;
+    padding: 16px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    animation: slideInRight 0.3s ease-out;
+    z-index: 1000;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Progress bar animation */
+.progress-bar {
+    height: 6px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    border-radius: 3px;
+    animation: shimmer 1.5s infinite;
+    background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Enhanced buttons with hover effects */
+button, .button {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+button:hover, .button:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+button:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* File type indicators with icons */
+.item[data-type="image"]::before {
+    content: "🖼️";
+    margin-right: 8px;
+}
+
+.item[data-type="video"]::before {
+    content: "🎬";
+    margin-right: 8px;
+}
+
+.item[data-type="audio"]::before {
+    content: "🎵";
+    margin-right: 8px;
+}
+
+.item[data-type="document"]::before {
+    content: "📄";
+    margin-right: 8px;
+}
+
+.item[data-type="archive"]::before {
+    content: "📦";
+    margin-right: 8px;
+}
+
+.item[data-type="folder"]::before {
+    content: "📁";
+    margin-right: 8px;
+}
+
+/* Status indicators */
+.status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+}
+
+.status-online { background: var(--success-color); }
+.status-uploading { background: var(--warning-color); }
+.status-error { background: var(--danger-color); }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Modal animations */
+.modal {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Notification toast */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    padding: 16px 24px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    animation: slideInRight 0.3s ease-out;
+    border-left: 4px solid var(--primary-color);
+}
+
+.notification.success { border-left-color: var(--success-color); }
+.notification.error { border-left-color: var(--danger-color); }
+.notification.warning { border-left-color: var(--warning-color); }
+
+/* Loading spinner */
+.spinner {
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Breadcrumb navigation */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: var(--light-bg);
+    border-radius: var(--border-radius);
+    margin-bottom: 16px;
+}
+
+.breadcrumb-item {
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+
+.breadcrumb-item:hover {
+    background: white;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Search bar enhancement */
+.search-bar {
+    border-radius: 24px;
+    padding: 12px 24px;
+    border: 2px solid transparent;
+    background: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.search-bar:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    outline: none;
+}
+
+/* Grid view with cards */
+.grid-view .item {
+    display: inline-block;
+    width: 200px;
+    margin: 12px;
+    text-align: center;
+    vertical-align: top;
+}
+
+.grid-view .item:hover {
+    transform: translateY(-4px) scale(1.02);
+}
+
+/* Thumbnail preview */
+.thumbnail {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+/* Context menu */
+.context-menu {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    padding: 8px 0;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.context-menu-item {
+    padding: 10px 20px;
+}
+
+.context-menu-item:hover {
+    background: var(--light-bg);
+}
+
+/* Drag and drop zone */
+.drop-zone {
+    border: 3px dashed var(--primary-color);
+    border-radius: var(--border-radius);
+    padding: 40px;
+    text-align: center;
+    background: rgba(79, 70, 229, 0.05);
+    transition: all 0.3s ease;
+}
+
+.drop-zone.active {
+    background: rgba(79, 70, 229, 0.1);
+    transform: scale(1.02);
+}
+
+/* Sidebar navigation */
+.sidebar {
+    background: var(--dark-bg);
+    color: white;
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+}
+
+.sidebar-item {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 4px 0;
+}
+
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(4px);
+}
+
+.sidebar-item.active {
+    background: var(--primary-color);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .grid-view .item {
+        width: calc(50% - 24px);
+    }
+}
+
+@media (max-width: 480px) {
+    .grid-view .item {
+        width: calc(100% - 24px);
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --light-bg: #1f2937;
+        --dark-bg: #111827;
+    }
+    
+    body {
+        background: var(--dark-bg);
+        color: #f9fafb;
+    }
+    
+    .item {
+        background: #374151;
+        color: #f9fafb;
+    }
+}
+
+/* Performance optimizations */
+.item, button, .modal {
+    will-change: transform;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--light-bg);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-color);
+}
+EOFCSS
+
+log "✓ Enhanced UI with animations and modern effects created"
+
+# Create custom JavaScript for additional features
+cat > "${DB_PATH}/branding/custom.js" <<'EOFJS'
+// Enhanced File Browser Features
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add upload progress indicators
+    const addUploadIndicator = () => {
+        const indicator = document.createElement('div');
+        indicator.className = 'upload-progress';
+        indicator.innerHTML = `
+            <div class="status-indicator status-uploading"></div>
+            <span>Uploading files...</span>
+            <div class="progress-bar"></div>
+        `;
+        document.body.appendChild(indicator);
+        
+        setTimeout(() => {
+            indicator.style.opacity = '0';
+            setTimeout(() => indicator.remove(), 300);
+        }, 3000);
+    };
+
+    // Add notification system
+    window.showNotification = (message, type = 'success') => {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    };
+
+    // Enhance drag and drop
+    const dropZone = document.querySelector('.drop-zone') || document.body;
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('active');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('active');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('active');
+        addUploadIndicator();
+        showNotification('Files uploaded successfully!', 'success');
+    });
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        // Ctrl/Cmd + U for upload
+        if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+            e.preventDefault();
+            document.querySelector('input[type="file"]')?.click();
+        }
+        
+        // Ctrl/Cmd + F for search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            e.preventDefault();
+            document.querySelector('.search-bar')?.focus();
+        }
+    });
+
+    // Add file type detection
+    document.querySelectorAll('.item').forEach(item => {
+        const filename = item.textContent.toLowerCase();
+        if (filename.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+            item.setAttribute('data-type', 'image');
+        } else if (filename.match(/\.(mp4|avi|mkv|mov)$/)) {
+            item.setAttribute('data-type', 'video');
+        } else if (filename.match(/\.(mp3|wav|flac)$/)) {
+            item.setAttribute('data-type', 'audio');
+        } else if (filename.match(/\.(pdf|doc|docx|txt)$/)) {
+            item.setAttribute('data-type', 'document');
+        } else if (filename.match(/\.(zip|rar|7z|tar|gz)$/)) {
+            item.setAttribute('data-type', 'archive');
+        }
+    });
+
+    console.log('✅ Enhanced File Browser UI loaded');
+});
+EOFJS
+
+log "✓ Enhanced JavaScript features created"
 
 echo ""
 echo "=== Step 5.5: Creating Admin Management Scripts ==="
@@ -1200,6 +1717,358 @@ chmod +x /usr/local/bin/filebrowser-health.sh
 echo "*/10 * * * * root /usr/local/bin/filebrowser-health.sh >> /var/log/filebrowser/health.log 2>&1" > /etc/cron.d/filebrowser-health
 log "✓ Health monitoring script created (runs every 10 minutes)"
 
+# Online Status System
+info "Creating online status tracking system..."
+mkdir -p /var/lib/filebrowser/status
+cat > /usr/local/bin/filebrowser-status.sh <<'EOFSTATUS'
+#!/bin/bash
+# Online Status Management System
+
+STATUS_DIR="/var/lib/filebrowser/status"
+TIMEOUT=300  # 5 minutes
+
+case "$1" in
+    online)
+        # Mark user as online
+        if [ -z "$2" ]; then
+            echo "Usage: $0 online <username>"
+            exit 1
+        fi
+        
+        USERNAME="$2"
+        echo "$(date +%s)" > "$STATUS_DIR/$USERNAME.status"
+        echo "✓ $USERNAME marked as online"
+        ;;
+        
+    offline)
+        # Mark user as offline
+        if [ -z "$2" ]; then
+            echo "Usage: $0 offline <username>"
+            exit 1
+        fi
+        
+        USERNAME="$2"
+        rm -f "$STATUS_DIR/$USERNAME.status"
+        echo "✓ $USERNAME marked as offline"
+        ;;
+        
+    check)
+        # Check if user is online
+        if [ -z "$2" ]; then
+            echo "Usage: $0 check <username>"
+            exit 1
+        fi
+        
+        USERNAME="$2"
+        STATUS_FILE="$STATUS_DIR/$USERNAME.status"
+        
+        if [ ! -f "$STATUS_FILE" ]; then
+            echo "🔴 $USERNAME is offline"
+            exit 1
+        fi
+        
+        LAST_SEEN=$(cat "$STATUS_FILE")
+        CURRENT_TIME=$(date +%s)
+        DIFF=$((CURRENT_TIME - LAST_SEEN))
+        
+        if [ $DIFF -gt $TIMEOUT ]; then
+            echo "🔴 $USERNAME is offline (last seen $((DIFF/60)) minutes ago)"
+            rm -f "$STATUS_FILE"
+            exit 1
+        else
+            echo "🟢 $USERNAME is online"
+            exit 0
+        fi
+        ;;
+        
+    list)
+        # List all online users
+        echo "📊 Online Users:"
+        CURRENT_TIME=$(date +%s)
+        
+        for status_file in "$STATUS_DIR"/*.status; do
+            if [ -f "$status_file" ]; then
+                USERNAME=$(basename "$status_file" .status)
+                LAST_SEEN=$(cat "$status_file")
+                DIFF=$((CURRENT_TIME - LAST_SEEN))
+                
+                if [ $DIFF -le $TIMEOUT ]; then
+                    MINUTES_AGO=$((DIFF/60))
+                    if [ $MINUTES_AGO -eq 0 ]; then
+                        echo "  🟢 $USERNAME (active now)"
+                    else
+                        echo "  🟢 $USERNAME (active ${MINUTES_AGO}m ago)"
+                    fi
+                else
+                    rm -f "$status_file"
+                fi
+            fi
+        done
+        ;;
+        
+    cleanup)
+        # Clean up stale status files
+        CURRENT_TIME=$(date +%s)
+        for status_file in "$STATUS_DIR"/*.status; do
+            if [ -f "$status_file" ]; then
+                LAST_SEEN=$(cat "$status_file")
+                DIFF=$((CURRENT_TIME - LAST_SEEN))
+                if [ $DIFF -gt $TIMEOUT ]; then
+                    rm -f "$status_file"
+                fi
+            fi
+        done
+        ;;
+        
+    *)
+        echo "Usage: $0 {online|offline|check|list|cleanup} [username]"
+        echo ""
+        echo "Examples:"
+        echo "  $0 online john       # Mark john as online"
+        echo "  $0 check john        # Check if john is online"
+        echo "  $0 list              # List all online users"
+        echo "  $0 offline john      # Mark john as offline"
+        exit 1
+        ;;
+esac
+EOFSTATUS
+chmod +x /usr/local/bin/filebrowser-status.sh
+echo "*/2 * * * * root /usr/local/bin/filebrowser-status.sh cleanup" > /etc/cron.d/filebrowser-status
+log "✓ Online status tracking system created"
+
+# File Trading System
+info "Creating file trading/exchange system..."
+mkdir -p /var/lib/filebrowser/trades
+cat > /usr/local/bin/filebrowser-trade.sh <<'EOFTRADE'
+#!/bin/bash
+# File Trading System - Exchange files between users
+
+TRADE_DIR="/var/lib/filebrowser/trades"
+STORAGE_DIR="/var/filebrowser"
+
+case "$1" in
+    offer)
+        # Create a trade offer
+        if [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+            echo "Usage: $0 offer <from_user> <to_user> <file_path>"
+            exit 1
+        fi
+        
+        FROM_USER="$2"
+        TO_USER="$3"
+        FILE_PATH="$4"
+        TRADE_ID=$(uuidgen | cut -d'-' -f1)
+        
+        if [ ! -f "$FILE_PATH" ]; then
+            echo "❌ Error: File not found: $FILE_PATH"
+            exit 1
+        fi
+        
+        # Create trade offer
+        cat > "$TRADE_DIR/$TRADE_ID.trade" <<EOF
+FROM_USER=$FROM_USER
+TO_USER=$TO_USER
+FILE_PATH=$FILE_PATH
+FILE_NAME=$(basename "$FILE_PATH")
+FILE_SIZE=$(du -h "$FILE_PATH" | cut -f1)
+CREATED=$(date +%Y-%m-%d\ %H:%M:%S)
+STATUS=pending
+EOF
+        
+        echo "✅ Trade offer created!"
+        echo "   Trade ID: $TRADE_ID"
+        echo "   From: $FROM_USER"
+        echo "   To: $TO_USER"
+        echo "   File: $(basename "$FILE_PATH") ($FILE_SIZE)"
+        echo ""
+        echo "📧 Notify $TO_USER to accept with:"
+        echo "   filebrowser-trade.sh accept $TRADE_ID"
+        ;;
+        
+    list)
+        # List trade offers
+        if [ -z "$2" ]; then
+            echo "Usage: $0 list <username>"
+            exit 1
+        fi
+        
+        USERNAME="$2"
+        echo "📦 Trade Offers for $USERNAME:"
+        echo ""
+        
+        FOUND=false
+        for trade_file in "$TRADE_DIR"/*.trade; do
+            if [ -f "$trade_file" ]; then
+                source "$trade_file"
+                TRADE_ID=$(basename "$trade_file" .trade)
+                
+                if [ "$TO_USER" = "$USERNAME" ] && [ "$STATUS" = "pending" ]; then
+                    FOUND=true
+                    echo "  📨 Incoming Trade #$TRADE_ID"
+                    echo "     From: $FROM_USER"
+                    echo "     File: $FILE_NAME ($FILE_SIZE)"
+                    echo "     Date: $CREATED"
+                    echo "     Action: filebrowser-trade.sh accept $TRADE_ID"
+                    echo ""
+                fi
+                
+                if [ "$FROM_USER" = "$USERNAME" ]; then
+                    FOUND=true
+                    echo "  📤 Outgoing Trade #$TRADE_ID"
+                    echo "     To: $TO_USER"
+                    echo "     File: $FILE_NAME ($FILE_SIZE)"
+                    echo "     Status: $STATUS"
+                    echo "     Date: $CREATED"
+                    echo ""
+                fi
+            fi
+        done
+        
+        if [ "$FOUND" = false ]; then
+            echo "  No active trades"
+        fi
+        ;;
+        
+    accept)
+        # Accept a trade offer
+        if [ -z "$2" ]; then
+            echo "Usage: $0 accept <trade_id>"
+            exit 1
+        fi
+        
+        TRADE_ID="$2"
+        TRADE_FILE="$TRADE_DIR/$TRADE_ID.trade"
+        
+        if [ ! -f "$TRADE_FILE" ]; then
+            echo "❌ Error: Trade not found: $TRADE_ID"
+            exit 1
+        fi
+        
+        source "$TRADE_FILE"
+        
+        if [ "$STATUS" != "pending" ]; then
+            echo "❌ Error: Trade already $STATUS"
+            exit 1
+        fi
+        
+        # Copy file to recipient's area
+        DEST_DIR="$STORAGE_DIR/trades/$TO_USER"
+        mkdir -p "$DEST_DIR"
+        
+        cp "$FILE_PATH" "$DEST_DIR/$FILE_NAME"
+        
+        if [ $? -eq 0 ]; then
+            # Update trade status
+            sed -i "s/STATUS=pending/STATUS=completed/" "$TRADE_FILE"
+            
+            echo "✅ Trade completed!"
+            echo "   File received: $FILE_NAME"
+            echo "   Location: $DEST_DIR/$FILE_NAME"
+            echo "   From: $FROM_USER"
+            
+            # Log the trade
+            echo "$(date +%s)|$TRADE_ID|$FROM_USER|$TO_USER|$FILE_NAME|completed" >> /var/log/filebrowser/trades.log
+        else
+            echo "❌ Error: Failed to copy file"
+            exit 1
+        fi
+        ;;
+        
+    reject)
+        # Reject a trade offer
+        if [ -z "$2" ]; then
+            echo "Usage: $0 reject <trade_id>"
+            exit 1
+        fi
+        
+        TRADE_ID="$2"
+        TRADE_FILE="$TRADE_DIR/$TRADE_ID.trade"
+        
+        if [ ! -f "$TRADE_FILE" ]; then
+            echo "❌ Error: Trade not found: $TRADE_ID"
+            exit 1
+        fi
+        
+        source "$TRADE_FILE"
+        sed -i "s/STATUS=pending/STATUS=rejected/" "$TRADE_FILE"
+        
+        echo "❌ Trade rejected"
+        echo "   Trade ID: $TRADE_ID"
+        echo "   From: $FROM_USER"
+        
+        # Log the rejection
+        echo "$(date +%s)|$TRADE_ID|$FROM_USER|$TO_USER|$FILE_NAME|rejected" >> /var/log/filebrowser/trades.log
+        ;;
+        
+    cancel)
+        # Cancel your own trade offer
+        if [ -z "$2" ]; then
+            echo "Usage: $0 cancel <trade_id>"
+            exit 1
+        fi
+        
+        TRADE_ID="$2"
+        TRADE_FILE="$TRADE_DIR/$TRADE_ID.trade"
+        
+        if [ ! -f "$TRADE_FILE" ]; then
+            echo "❌ Error: Trade not found: $TRADE_ID"
+            exit 1
+        fi
+        
+        rm "$TRADE_FILE"
+        echo "✅ Trade offer cancelled"
+        ;;
+        
+    history)
+        # View trade history
+        if [ -z "$2" ]; then
+            echo "Usage: $0 history <username>"
+            exit 1
+        fi
+        
+        USERNAME="$2"
+        echo "📜 Trade History for $USERNAME:"
+        echo ""
+        
+        if [ -f /var/log/filebrowser/trades.log ]; then
+            grep -E "$USERNAME" /var/log/filebrowser/trades.log | tail -20 | while IFS='|' read timestamp trade_id from_user to_user file_name status; do
+                DATE=$(date -d "@$timestamp" "+%Y-%m-%d %H:%M")
+                if [ "$from_user" = "$USERNAME" ]; then
+                    echo "  📤 Sent to $to_user: $file_name [$status] - $DATE"
+                else
+                    echo "  📥 Received from $from_user: $file_name [$status] - $DATE"
+                fi
+            done
+        else
+            echo "  No trade history"
+        fi
+        ;;
+        
+    *)
+        echo "📦 File Trading System"
+        echo ""
+        echo "Usage: $0 {offer|list|accept|reject|cancel|history} [options]"
+        echo ""
+        echo "Commands:"
+        echo "  offer <from> <to> <file>  - Offer a file to another user"
+        echo "  list <username>           - List trade offers for user"
+        echo "  accept <trade_id>         - Accept a trade offer"
+        echo "  reject <trade_id>         - Reject a trade offer"
+        echo "  cancel <trade_id>         - Cancel your trade offer"
+        echo "  history <username>        - View trade history"
+        echo ""
+        echo "Examples:"
+        echo "  $0 offer john mary /var/filebrowser/document.pdf"
+        echo "  $0 list mary"
+        echo "  $0 accept a1b2c3d4"
+        echo "  $0 history john"
+        exit 1
+        ;;
+esac
+EOFTRADE
+chmod +x /usr/local/bin/filebrowser-trade.sh
+log "✓ File trading system created"
+
 log "✓ All advanced features and admin management scripts created"
 
 echo ""
@@ -1385,15 +2254,37 @@ echo "  🔔 Webhooks:              Edit /etc/filebrowser/webhooks.conf"
 echo "  📊 Analytics:             sudo filebrowser-analytics.sh [stats|dashboard]"
 echo "  📈 Metrics:               sudo filebrowser-metrics.sh"
 echo "  🏥 Health Check:          sudo filebrowser-health.sh"
+echo "  🟢 Online Status:         sudo filebrowser-status.sh [list|check|online|offline]"
+echo "  🔄 File Trading:          sudo filebrowser-trade.sh [offer|list|accept|reject]"
 echo ""
-echo -e "${GREEN}Features Available:${NC}"
-echo "  ✅ Upload/Download files"
-echo "  ✅ Create folders"
+echo -e "${GREEN}✨ UI/UX Features:${NC}"
+echo "  ✅ Modern gradient header with glassmorphism"
+echo "  ✅ Smooth animations (300ms cubic-bezier transitions)"
+echo "  ✅ File type indicators (🖼️ 🎬 🎵 📄 📦 📁)"
+echo "  ✅ Upload progress indicators with shimmer effect"
+echo "  ✅ Toast notifications (success/error/warning)"
+echo "  ✅ Drag & drop with visual feedback"
+echo "  ✅ Hover effects on all interactive elements"
+echo "  ✅ Custom scrollbars with smooth animations"
+echo "  ✅ Dark mode support (auto-detects system preference)"
+echo "  ✅ Responsive grid/list views"
+echo "  ✅ Keyboard shortcuts (Ctrl+U upload, Ctrl+F search)"
+echo "  ✅ Loading spinners and status indicators"
+echo "  ✅ Context menus with fade-in animations"
+echo "  ✅ Breadcrumb navigation"
+echo "  ✅ Enhanced search bar with focus effects"
+echo ""
+echo -e "${GREEN}Core Features:${NC}"
+echo "  ✅ Multi-user system with individual accounts"
+echo "  ✅ Granular permissions (create, delete, download, share, etc.)"
+echo "  ✅ Admin panel for user/settings management"
+echo "  ✅ Upload/Download files with progress tracking"
+echo "  ✅ Create folders and organize files"
 echo "  ✅ Share files (password-protected, expiring links)"
-echo "  ✅ File preview (images, videos, documents)"
-echo "  ✅ Search files"
-echo "  ✅ User management with storage quotas"
-echo "  ✅ Mobile responsive"
+echo "  ✅ File preview (images, videos, documents, audio)"
+echo "  ✅ Advanced search with filters"
+echo "  ✅ Storage quotas per user (admin-controlled)"
+echo "  ✅ Mobile responsive design"
 echo "  ✅ FTP/SFTP access (port 21/22, passive 40000-40100)"
 echo "  ✅ WebDAV support (mount as network drive)"
 echo "  ✅ Automatic deduplication (weekly)"
@@ -1410,6 +2301,8 @@ echo "  ✅ Webhook notifications"
 echo "  ✅ Usage analytics & statistics"
 echo "  ✅ Prometheus metrics export"
 echo "  ✅ Health monitoring (every 10 min)"
+echo "  ✅ Online status tracking (see who's active)"
+echo "  ✅ File trading system (exchange files between users)"
 if [ "$VIRUS_SCAN_ENABLED" = true ]; then
     echo "  ✅ Virus scanning (ClamAV, daily scans)"
 fi
@@ -1494,4 +2387,334 @@ else
 fi
 echo ""
 echo "Log saved to: ${LOG_FILE}"
+echo ""
+
+# Display comprehensive user guide
+cat <<'EOFGUIDE'
+
+╔══════════════════════════════════════════════════════════════════╗
+║                    📚 USER GUIDE - READ THIS!                    ║
+╚══════════════════════════════════════════════════════════════════╝
+
+🎯 GETTING STARTED (For New Users)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  ACCESS YOUR FILE PANEL
+   • Open your web browser (Chrome, Firefox, Safari, Edge)
+   • Go to: https://FULL_DOMAIN (shown above)
+   • You'll see a login page
+
+2️⃣  LOG IN FOR THE FIRST TIME
+   • Username: (shown in "Admin Credentials" above)
+   • Password: (shown in "Admin Credentials" above)
+   • Click "Login"
+
+3️⃣  UPLOAD YOUR FIRST FILE
+   • Click the "Upload" button (top right)
+   • OR drag and drop files into the browser window
+   • Wait for the green "Upload complete!" notification
+   • Your file now appears in the list!
+
+4️⃣  CREATE FOLDERS
+   • Click the "New Folder" button
+   • Type a folder name (e.g., "My Documents")
+   • Press Enter
+   • Double-click to open the folder
+
+5️⃣  SHARE FILES WITH OTHERS
+   • Right-click on any file
+   • Select "Share"
+   • Copy the link and send it to anyone!
+
+
+👥 USER MANAGEMENT (For Admins)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 CREATE A NEW USER
+   Run this command on the server:
+   
+   sudo filebrowser users add USERNAME PASSWORD \
+       --perm.create \
+       --perm.download \
+       --perm.share \
+       --database=/etc/filebrowser/filebrowser.db
+   
+   Example:
+   sudo filebrowser users add john MyPassword123 \
+       --perm.create --perm.download --perm.share \
+       --database=/etc/filebrowser/filebrowser.db
+
+💾 SET STORAGE QUOTA FOR A USER
+   
+   sudo filebrowser-quota.sh set USERNAME SIZE_IN_MB
+   
+   Example (give john 5GB):
+   sudo filebrowser-quota.sh set john 5000
+
+📊 CHECK USER'S QUOTA USAGE
+   
+   sudo filebrowser-quota.sh check USERNAME
+   
+   Example:
+   sudo filebrowser-quota.sh check john
+
+📋 LIST ALL USER QUOTAS
+   
+   sudo filebrowser-quota.sh list
+
+
+🟢 ONLINE STATUS SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👀 SEE WHO'S ONLINE
+   
+   sudo filebrowser-status.sh list
+   
+   This shows all users currently active (within last 5 minutes)
+
+✅ MARK YOURSELF ONLINE (automatic when you log in)
+   
+   sudo filebrowser-status.sh online USERNAME
+
+🔴 MARK YOURSELF OFFLINE
+   
+   sudo filebrowser-status.sh offline USERNAME
+
+🔍 CHECK IF SOMEONE IS ONLINE
+   
+   sudo filebrowser-status.sh check USERNAME
+   
+   Example:
+   sudo filebrowser-status.sh check mary
+
+
+🔄 FILE TRADING SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📤 OFFER A FILE TO ANOTHER USER
+   
+   sudo filebrowser-trade.sh offer YOUR_USERNAME THEIR_USERNAME /path/to/file
+   
+   Example (john sends document.pdf to mary):
+   sudo filebrowser-trade.sh offer john mary /var/filebrowser/document.pdf
+   
+   You'll get a Trade ID like: a1b2c3d4
+
+📨 CHECK YOUR TRADE OFFERS
+   
+   sudo filebrowser-trade.sh list YOUR_USERNAME
+   
+   Example:
+   sudo filebrowser-trade.sh list mary
+   
+   This shows:
+   • Incoming trades (files offered to you)
+   • Outgoing trades (files you offered to others)
+
+✅ ACCEPT A TRADE
+   
+   sudo filebrowser-trade.sh accept TRADE_ID
+   
+   Example:
+   sudo filebrowser-trade.sh accept a1b2c3d4
+   
+   The file will be copied to: /var/filebrowser/trades/YOUR_USERNAME/
+
+❌ REJECT A TRADE
+   
+   sudo filebrowser-trade.sh reject TRADE_ID
+
+🗑️  CANCEL YOUR TRADE OFFER
+   
+   sudo filebrowser-trade.sh cancel TRADE_ID
+
+📜 VIEW TRADE HISTORY
+   
+   sudo filebrowser-trade.sh history YOUR_USERNAME
+   
+   Shows last 20 trades (sent and received)
+
+
+🔒 SECURITY FEATURES (For Admins)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛡️  WHITELIST AN IP ADDRESS
+   
+   sudo filebrowser-ipwhitelist.sh enable
+   sudo filebrowser-ipwhitelist.sh add 192.168.1.0/24
+   
+   Only whitelisted IPs can access the file panel
+
+🔗 CREATE PASSWORD-PROTECTED SHARE LINK
+   
+   sudo filebrowser-shares.sh create /path/to/file \
+       --expire-days 7 \
+       --password MySecret123
+   
+   Link expires in 7 days and requires password
+
+🔐 ENCRYPT SENSITIVE FILES
+   
+   sudo filebrowser-encrypt.sh encrypt /var/filebrowser/secret.pdf
+   
+   File is encrypted with AES256 and moved to .encrypted folder
+
+
+📊 MONITORING & ANALYTICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📈 VIEW STATISTICS
+   
+   sudo filebrowser-analytics.sh stats
+   
+   Shows:
+   • Total files and storage used
+   • Most active users
+   • Most downloaded files
+
+🏥 CHECK SYSTEM HEALTH
+   
+   sudo filebrowser-health.sh
+   
+   Checks:
+   • Disk space usage
+   • Service status
+   • Automatically restarts failed services
+
+
+⌨️  KEYBOARD SHORTCUTS (In Web Browser)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ctrl + U  →  Upload files
+Ctrl + F  →  Search files
+Ctrl + N  →  New folder
+Escape    →  Close dialogs
+
+
+🆘 TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❓ Can't access the website?
+   1. Wait 2-3 minutes for DNS to update
+   2. Check services:
+      sudo systemctl status filebrowser
+      sudo systemctl status cloudflared
+   3. Restart if needed:
+      sudo systemctl restart filebrowser
+      sudo systemctl restart cloudflared
+
+❓ Forgot your password?
+   Reset it with:
+   sudo filebrowser users update USERNAME \
+       --password NEW_PASSWORD \
+       --database=/etc/filebrowser/filebrowser.db
+
+❓ Need more storage space?
+   Check disk usage:
+   df -h /var/filebrowser
+   
+   Increase quota:
+   sudo filebrowser-quota.sh set USERNAME NEW_SIZE_MB
+
+❓ File upload failed?
+   • Check file size (max 2GB by default)
+   • Check your quota: filebrowser-quota.sh check USERNAME
+   • Check disk space: df -h
+
+❓ Want to see logs?
+   sudo journalctl -u filebrowser -f
+   sudo tail -f /var/log/filebrowser/access.log
+
+
+📞 QUICK REFERENCE CARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+COMMON TASKS                          COMMAND
+────────────────────────────────────────────────────────────────────
+Create user                           filebrowser users add USERNAME PASSWORD --database=/etc/filebrowser/filebrowser.db
+Set quota                             filebrowser-quota.sh set USER SIZE_MB
+Check who's online                    filebrowser-status.sh list
+Send file to user                     filebrowser-trade.sh offer FROM TO FILE
+Check trade offers                    filebrowser-trade.sh list USERNAME
+Accept trade                          filebrowser-trade.sh accept TRADE_ID
+View statistics                       filebrowser-analytics.sh stats
+Check system health                   filebrowser-health.sh
+View logs                             journalctl -u filebrowser -f
+
+
+💡 TIPS & BEST PRACTICES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Set reasonable quotas to prevent disk filling up
+✅ Use password-protected shares for sensitive files
+✅ Enable virus scanning for public-facing instances
+✅ Regular backups are automatic (check /var/filebrowser/.versions)
+✅ Monitor disk space weekly: df -h
+✅ Check online users before sending trade offers
+✅ Use file encryption for highly sensitive documents
+✅ Review trade history monthly for security audits
+
+
+📖 NEED MORE HELP?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+View this guide anytime:
+cat /usr/local/share/filebrowser-guide.txt
+
+Check the setup log:
+cat LOG_FILE_PATH
+
+╔══════════════════════════════════════════════════════════════════╗
+║              🎉 Enjoy your new File Sharing System! 🎉           ║
+╚══════════════════════════════════════════════════════════════════╝
+
+EOFGUIDE
+
+# Save the guide to a file for future reference
+cat > /usr/local/share/filebrowser-guide.txt <<'EOFGUIDEFILE'
+FILE SHARING PANEL - USER GUIDE
+================================
+
+This guide explains how to use your file sharing system.
+
+QUICK START
+-----------
+1. Open browser and go to your domain
+2. Log in with your credentials
+3. Upload files by dragging and dropping
+4. Create folders with "New Folder" button
+5. Share files by right-clicking and selecting "Share"
+
+For complete instructions, run:
+cat /usr/local/share/filebrowser-guide.txt
+
+COMMON COMMANDS
+---------------
+Create user:        filebrowser users add USERNAME PASSWORD --database=/etc/filebrowser/filebrowser.db
+Set quota:          filebrowser-quota.sh set USERNAME SIZE_MB
+Who's online:       filebrowser-status.sh list
+Send file:          filebrowser-trade.sh offer FROM TO FILE_PATH
+Check trades:       filebrowser-trade.sh list USERNAME
+Accept trade:       filebrowser-trade.sh accept TRADE_ID
+View stats:         filebrowser-analytics.sh stats
+Health check:       filebrowser-health.sh
+
+SUPPORT
+-------
+View logs:          journalctl -u filebrowser -f
+Check status:       systemctl status filebrowser
+Restart service:    systemctl restart filebrowser
+
+For detailed help, see the full guide above.
+EOFGUIDEFILE
+
+chmod 644 /usr/local/share/filebrowser-guide.txt
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "📖 User guide saved to: /usr/local/share/filebrowser-guide.txt"
+echo "   View anytime with: cat /usr/local/share/filebrowser-guide.txt"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
