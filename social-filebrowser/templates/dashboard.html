@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social File Share - {{ username }}</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Friends Sidebar */
+        .friends-sidebar {
+            width: 280px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .user-status {
+            font-size: 12px;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .friends-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .friend-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+        }
+
+        .friend-item:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateX(5px);
+        }
+
+        .friend-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .friend-online-indicator {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid #667eea;
+        }
+
+        .friend-online-indicator.online {
+            background: #4ade80;
+        }
+
+        .friend-online-indicator.offline {
+            background: #94a3b8;
+        }
+
+        .friend-info {
+            flex: 1;
+        }
+
+        .friend-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .friend-status-text {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .add-friend-btn {
+            margin: 10px;
+            padding: 12px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .add-friend-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            background: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-bar h1 {
+            font-size: 24px;
+            color: #1e293b;
+        }
+
+        .notifications-btn {
+            position: relative;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .notifications-btn:hover {
+            background: #5568d3;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .filebrowser-frame {
+            flex: 1;
+            border: none;
+            background: white;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 8px 0;
+            min-width: 200px;
+            z-index: 10000;
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background 0.2s;
+        }
+
+        .context-menu-item:hover {
+            background: #f1f5f9;
+        }
+
+        .context-menu-item .icon {
+            font-size: 18px;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 4px 0;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1e293b;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* Transfer notification */
+        .transfer-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 20px;
+            max-width: 350px;
+            z-index: 9998;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .transfer-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1e293b;
+        }
+
+        .transfer-info {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 15px;
+        }
+
+        .transfer-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Friends Sidebar -->
+        <div class="friends-sidebar">
+            <div class="sidebar-header">
+                <h2>👥 Friends</h2>
+                <div class="user-status">
+                    <span class="status-dot"></span>
+                    <span>{{ username }}</span>
+                </div>
+            </div>
+            
+            <div class="friends-list" id="friendsList">
+                <!-- Friends will be loaded here -->
+            </div>
+            
+            <button class="add-friend-btn" onclick="showAddFriendModal()">
+                ➕ Add Friend
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="top-bar">
+                <h1>📁 File Share Portal</h1>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="notifications-btn" onclick="showNotifications()">
+                        🔔 Notifications
+                        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                    </button>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </div>
+            
+            <iframe src="http://localhost:8090" class="filebrowser-frame" id="filebrowserFrame"></iframe>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" onclick="sendFile()">
+            <span class="icon">📤</span>
+            <span>Send File</span>
+        </div>
+        <div class="context-menu-item" onclick="shareFile()">
+            <span class="icon">🔗</span>
+            <span>Share Link</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="viewProfile()">
+            <span class="icon">👤</span>
+            <span>View Profile</span>
+        </div>
+        <div class="context-menu-item" onclick="removeFriend()">
+            <span class="icon">❌</span>
+            <span>Remove Friend</span>
+        </div>
+    </div>
+
+    <!-- Add Friend Modal -->
+    <div class="modal" id="addFriendModal">
+        <div class="modal-content">
+            <div class="modal-header">Add Friend</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="friendUsername" placeholder="Enter username">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addFriendModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addFriend()">Add Friend</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send File Modal -->
+    <div class="modal" id="sendFileModal">
+        <div class="modal-content">
+            <div class="modal-header">Send File to <span id="sendToUsername"></span></div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>File Path</label>
+                    <input type="text" id="filePath" placeholder="/var/filebrowser/myfile.pdf">
+                </div>
+                <div class="form-group">
+                    <label>Message (optional)</label>
+                    <textarea id="fileMessage" placeholder="Add a message..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('sendFileModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmSendFile()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div class="modal" id="notificationsModal">
+        <div class="modal-content">
+            <div class="modal-header">Notifications</div>
+            <div class="modal-body" id="notificationsList">
+                <!-- Notifications will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('notificationsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentContextFriend = null;
+        let friends = [];
+
+        // Connect to socket
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            startHeartbeat();
+        });
+
+        // Heartbeat to keep online status
+        function startHeartbeat() {
+            setInterval(() => {
+                socket.emit('heartbeat');
+            }, 60000); // Every minute
+        }
+
+        // Load friends
+        function loadFriends() {
+            fetch('/api/friends')
+                .then(r => r.json())
+                .then(data => {
+                    friends = data;
+                    renderFriends();
+                });
+        }
+
+        // Render friends list
+        function renderFriends() {
+            const list = document.getElementById('friendsList');
+            list.innerHTML = '';
+            
+            friends.forEach(friend => {
+                const div = document.createElement('div');
+                div.className = 'friend-item';
+                div.innerHTML = `
+                    <div class="friend-avatar">
+                        ${friend.username.charAt(0).toUpperCase()}
+                        <div class="friend-online-indicator ${friend.online ? 'online' : 'offline'}"></div>
+                    </div>
+                    <div class="friend-info">
+                        <div class="friend-name">${friend.username}</div>
+                        <div class="friend-status-text">${friend.online ? 'Online' : 'Offline'}</div>
+                    </div>
+                `;
+                
+                div.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    showContextMenu(e.pageX, e.pageY, friend);
+                });
+                
+                list.appendChild(div);
+            });
+        }
+
+        // Show context menu
+        function showContextMenu(x, y, friend) {
+            currentContextFriend = friend;
+            const menu = document.getElementById('contextMenu');
+            menu.style.display = 'block';
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+        }
+
+        // Hide context menu
+        document.addEventListener('click', () => {
+            document.getElementById('contextMenu').style.display = 'none';
+        });
+
+        // Send file
+        function sendFile() {
+            if (!currentContextFriend) return;
+            document.getElementById('sendToUsername').textContent = currentContextFriend.username;
+            showModal('sendFileModal');
+        }
+
+        function confirmSendFile() {
+            const filePath = document.getElementById('filePath').value;
+            const message = document.getElementById('fileMessage').value;
+            
+            fetch('/api/transfers/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    to_user: currentContextFriend.username,
+                    file_path: filePath,
+                    message: message
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('File sent successfully!');
+                    closeModal('sendFileModal');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+
+        // Add friend
+        function showAddFriendModal() {
+            showModal('addFriendModal');
+        }
+
+        function addFriend() {
+            const username = document.getElementById('friendUsername').value;
+            
+            fetch('/api/friends/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Friend request sent!');
+                    closeModal('addFriendModal');
+                    loadFriends();
+                }
+            });
+        }
+
+        // Notifications
+        function showNotifications() {
+            fetch('/api/notifications')
+                .then(r => r.json())
+                .then(data => {
+                    const list = document.getElementById('notificationsList');
+                    list.innerHTML = '';
+                    
+                    data.forEach(notif => {
+                        const div = document.createElement('div');
+                        div.style.padding = '10px';
+                        div.style.borderBottom = '1px solid #e2e8f0';
+                        div.innerHTML = `
+                            <div style="font-weight: 600;">${notif.message}</div>
+                            <div style="font-size: 12px; color: #64748b;">${notif.created_at}</div>
+                        `;
+                        list.appendChild(div);
+                    });
+                    
+                    showModal('notificationsModal');
+                });
+        }
+
+        // Load pending transfers
+        function loadPendingTransfers() {
+            fetch('/api/transfers/pending')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        document.getElementById('notificationBadge').style.display = 'flex';
+                        document.getElementById('notificationBadge').textContent = data.length;
+                    }
+                });
+        }
+
+        // Socket events
+        socket.on('file_transfer', (data) => {
+            showTransferNotification(data);
+        });
+
+        socket.on('friend_online', (data) => {
+            loadFriends();
+        });
+
+        function showTransferNotification(data) {
+            const notif = document.createElement('div');
+            notif.className = 'transfer-notification';
+            notif.innerHTML = `
+                <div class="transfer-header">📥 File Transfer</div>
+                <div class="transfer-info">
+                    <strong>${data.from}</strong> sent you <strong>${data.file_name}</strong>
+                    ${data.message ? '<br>' + data.message : ''}
+                </div>
+                <div class="transfer-actions">
+                    <button class="btn btn-primary" onclick="acceptTransfer(${data.transfer_id}, this.parentElement.parentElement)">Accept</button>
+                    <button class="btn btn-secondary" onclick="rejectTransfer(${data.transfer_id}, this.parentElement.parentElement)">Reject</button>
+                </div>
+            `;
+            document.body.appendChild(notif);
+        }
+
+        function acceptTransfer(id, element) {
+            fetch(`/api/transfers/accept/${id}`, {method: 'POST'})
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('File accepted! Check your trades folder.');
+                        element.remove();
+                        loadPendingTransfers();
+                    }
+                });
+        }
+
+        function rejectTransfer(id, element) {
+            fetch(`/api/transfers/reject/${id}`, {method: 'POST'})
+                .then(r => r.json())
+                .then(() => {
+                    element.remove();
+                    loadPendingTransfers();
+                });
+        }
+
+        // Modal helpers
+        function showModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function logout() {
+            window.location.href = '/logout';
+        }
+
+        // Initialize
+        loadFriends();
+        loadPendingTransfers();
+        setInterval(loadFriends, 30000); // Refresh every 30 seconds
+        setInterval(loadPendingTransfers, 10000); // Check transfers every 10 seconds
+    </script>
+</body>
+</html>
