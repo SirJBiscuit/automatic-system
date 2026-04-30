@@ -2069,6 +2069,294 @@ EOFTRADE
 chmod +x /usr/local/bin/filebrowser-trade.sh
 log "✓ File trading system created"
 
+# Invite System
+info "Creating user invite system..."
+mkdir -p /var/lib/filebrowser/invites
+cat > /usr/local/bin/filebrowser-invite.sh <<'EOFINVITE'
+#!/bin/bash
+# User Invite System - Admin generates invite links for new users
+
+INVITE_DIR="/var/lib/filebrowser/invites"
+INVITE_EXPIRY=86400  # 24 hours in seconds
+
+case "$1" in
+    create)
+        # Create an invite link
+        if [ -z "$2" ]; then
+            echo "Usage: $0 create <admin_username> [--expires-hours N]"
+            exit 1
+        fi
+        
+        ADMIN_USER="$2"
+        INVITE_CODE=$(uuidgen | tr -d '-' | head -c 16)
+        EXPIRES_HOURS=24
+        
+        shift 2
+        while [ $# -gt 0 ]; do
+            case "$1" in
+                --expires-hours)
+                    EXPIRES_HOURS="$2"
+                    shift 2
+                    ;;
+                *)
+                    shift
+                    ;;
+            esac
+        done
+        
+        EXPIRES_AT=$(($(date +%s) + (EXPIRES_HOURS * 3600)))
+        
+        # Create invite file
+        cat > "$INVITE_DIR/$INVITE_CODE.invite" <<EOF
+CREATED_BY=$ADMIN_USER
+CREATED_AT=$(date +%Y-%m-%d\ %H:%M:%S)
+EXPIRES_AT=$EXPIRES_AT
+USED=false
+EOF
+        
+        echo "✅ Invite link created!"
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📧 Send this link to your friend:"
+        echo ""
+        echo "   https://YOUR_DOMAIN/signup?invite=$INVITE_CODE"
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "⏰ Expires: $(date -d "@$EXPIRES_AT" "+%Y-%m-%d %H:%M")"
+        echo "👤 Created by: $ADMIN_USER"
+        echo "🔑 Invite code: $INVITE_CODE"
+        echo ""
+        echo "💡 They can use this link to create their account"
+        echo "   After $EXPIRES_HOURS hours, the link will expire"
+        ;;
+        
+    list)
+        # List all active invites
+        echo "📋 Active Invite Links:"
+        echo ""
+        
+        CURRENT_TIME=$(date +%s)
+        FOUND=false
+        
+        for invite_file in "$INVITE_DIR"/*.invite; do
+            if [ -f "$invite_file" ]; then
+                source "$invite_file"
+                INVITE_CODE=$(basename "$invite_file" .invite)
+                
+                if [ "$USED" = "false" ] && [ $EXPIRES_AT -gt $CURRENT_TIME ]; then
+                    FOUND=true
+                    EXPIRES_IN=$(( (EXPIRES_AT - CURRENT_TIME) / 3600 ))
+                    
+                    echo "  🔗 Invite Code: $INVITE_CODE"
+                    echo "     Created by: $CREATED_BY"
+                    echo "     Created: $CREATED_AT"
+                    echo "     Expires in: ${EXPIRES_IN} hours"
+                    echo "     Link: https://YOUR_DOMAIN/signup?invite=$INVITE_CODE"
+                    echo ""
+                fi
+            fi
+        done
+        
+        if [ "$FOUND" = false ]; then
+            echo "  No active invites"
+        fi
+        ;;
+        
+    validate)
+        # Validate an invite code
+        if [ -z "$2" ]; then
+            echo "Usage: $0 validate <invite_code>"
+            exit 1
+        fi
+        
+        INVITE_CODE="$2"
+        INVITE_FILE="$INVITE_DIR/$INVITE_CODE.invite"
+        
+        if [ ! -f "$INVITE_FILE" ]; then
+            echo "❌ Invalid invite code"
+            exit 1
+        fi
+        
+        source "$INVITE_FILE"
+        CURRENT_TIME=$(date +%s)
+        
+        if [ "$USED" = "true" ]; then
+            echo "❌ Invite already used"
+            exit 1
+        fi
+        
+        if [ $EXPIRES_AT -lt $CURRENT_TIME ]; then
+            echo "❌ Invite expired"
+            exit 1
+        fi
+        
+        echo "✅ Valid invite code"
+        exit 0
+        ;;
+        
+    use)
+        # Mark invite as used
+        if [ -z "$2" ] || [ -z "$3" ]; then
+            echo "Usage: $0 use <invite_code> <new_username>"
+            exit 1
+        fi
+        
+        INVITE_CODE="$2"
+        NEW_USERNAME="$3"
+        INVITE_FILE="$INVITE_DIR/$INVITE_CODE.invite"
+        
+        if [ ! -f "$INVITE_FILE" ]; then
+            echo "❌ Invalid invite code"
+            exit 1
+        fi
+        
+        source "$INVITE_FILE"
+        
+        # Mark as used
+        sed -i "s/USED=false/USED=true/" "$INVITE_FILE"
+        echo "USED_BY=$NEW_USERNAME" >> "$INVITE_FILE"
+        echo "USED_AT=$(date +%Y-%m-%d\ %H:%M:%S)" >> "$INVITE_FILE"
+        
+        echo "✅ Invite marked as used by $NEW_USERNAME"
+        
+        # Log the signup
+        echo "$(date +%s)|$INVITE_CODE|$CREATED_BY|$NEW_USERNAME|signup" >> /var/log/filebrowser/invites.log
+        ;;
+        
+    revoke)
+        # Revoke an invite
+        if [ -z "$2" ]; then
+            echo "Usage: $0 revoke <invite_code>"
+            exit 1
+        fi
+        
+        INVITE_CODE="$2"
+        INVITE_FILE="$INVITE_DIR/$INVITE_CODE.invite"
+        
+        if [ ! -f "$INVITE_FILE" ]; then
+            echo "❌ Invite not found"
+            exit 1
+        fi
+        
+        rm "$INVITE_FILE"
+        echo "✅ Invite revoked"
+        ;;
+        
+    cleanup)
+        # Clean up expired invites
+        CURRENT_TIME=$(date +%s)
+        CLEANED=0
+        
+        for invite_file in "$INVITE_DIR"/*.invite; do
+            if [ -f "$invite_file" ]; then
+                source "$invite_file"
+                if [ $EXPIRES_AT -lt $CURRENT_TIME ] || [ "$USED" = "true" ]; then
+                    rm "$invite_file"
+                    ((CLEANED++))
+                fi
+            fi
+        done
+        
+        if [ $CLEANED -gt 0 ]; then
+            echo "✓ Cleaned up $CLEANED expired/used invites"
+        fi
+        ;;
+        
+    history)
+        # View invite history
+        echo "📜 Invite History:"
+        echo ""
+        
+        if [ -f /var/log/filebrowser/invites.log ]; then
+            tail -50 /var/log/filebrowser/invites.log | while IFS='|' read timestamp invite_code created_by new_user action; do
+                DATE=$(date -d "@$timestamp" "+%Y-%m-%d %H:%M")
+                echo "  ✅ $new_user signed up (invited by $created_by) - $DATE"
+            done
+        else
+            echo "  No invite history"
+        fi
+        ;;
+        
+    *)
+        echo "📧 User Invite System"
+        echo ""
+        echo "Usage: $0 {create|list|validate|use|revoke|cleanup|history} [options]"
+        echo ""
+        echo "Commands:"
+        echo "  create <admin> [--expires-hours N]  - Create invite link (default 24h)"
+        echo "  list                                - List active invites"
+        echo "  validate <code>                     - Check if invite is valid"
+        echo "  use <code> <username>               - Mark invite as used"
+        echo "  revoke <code>                       - Revoke an invite"
+        echo "  cleanup                             - Remove expired invites"
+        echo "  history                             - View signup history"
+        echo ""
+        echo "Examples:"
+        echo "  $0 create admin                     # Create 24-hour invite"
+        echo "  $0 create admin --expires-hours 48  # Create 48-hour invite"
+        echo "  $0 list                             # Show all active invites"
+        echo "  $0 revoke abc123def456              # Cancel an invite"
+        exit 1
+        ;;
+esac
+EOFINVITE
+chmod +x /usr/local/bin/filebrowser-invite.sh
+echo "0 */6 * * * root /usr/local/bin/filebrowser-invite.sh cleanup" > /etc/cron.d/filebrowser-invites
+log "✓ User invite system created"
+
+# Create signup page handler
+info "Creating signup page handler..."
+cat > /usr/local/bin/filebrowser-signup.sh <<'EOFSIGNUP'
+#!/bin/bash
+# Signup page handler - processes new user registrations with invite codes
+
+DB_PATH="/etc/filebrowser"
+
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    echo "Usage: $0 <invite_code> <username> <password>"
+    exit 1
+fi
+
+INVITE_CODE="$1"
+USERNAME="$2"
+PASSWORD="$3"
+
+# Validate invite
+/usr/local/bin/filebrowser-invite.sh validate "$INVITE_CODE"
+if [ $? -ne 0 ]; then
+    echo "ERROR: Invalid or expired invite code"
+    exit 1
+fi
+
+# Create the user with standard permissions (not admin)
+filebrowser users add "$USERNAME" "$PASSWORD" \
+    --perm.create \
+    --perm.delete \
+    --perm.download \
+    --perm.modify \
+    --perm.rename \
+    --perm.share \
+    --database="${DB_PATH}/filebrowser.db"
+
+if [ $? -eq 0 ]; then
+    # Mark invite as used
+    /usr/local/bin/filebrowser-invite.sh use "$INVITE_CODE" "$USERNAME"
+    
+    # Set default quota (5GB)
+    /usr/local/bin/filebrowser-quota.sh set "$USERNAME" 5000
+    
+    echo "SUCCESS: Account created for $USERNAME"
+    echo "Default quota: 5GB"
+    exit 0
+else
+    echo "ERROR: Failed to create user (username may already exist)"
+    exit 1
+fi
+EOFSIGNUP
+chmod +x /usr/local/bin/filebrowser-signup.sh
+log "✓ Signup handler created"
+
 log "✓ All advanced features and admin management scripts created"
 
 echo ""
@@ -2256,6 +2544,7 @@ echo "  📈 Metrics:               sudo filebrowser-metrics.sh"
 echo "  🏥 Health Check:          sudo filebrowser-health.sh"
 echo "  🟢 Online Status:         sudo filebrowser-status.sh [list|check|online|offline]"
 echo "  🔄 File Trading:          sudo filebrowser-trade.sh [offer|list|accept|reject]"
+echo "  📧 User Invites:          sudo filebrowser-invite.sh [create|list|revoke|history]"
 echo ""
 echo -e "${GREEN}✨ UI/UX Features:${NC}"
 echo "  ✅ Modern gradient header with glassmorphism"
@@ -2303,6 +2592,8 @@ echo "  ✅ Prometheus metrics export"
 echo "  ✅ Health monitoring (every 10 min)"
 echo "  ✅ Online status tracking (see who's active)"
 echo "  ✅ File trading system (exchange files between users)"
+echo "  ✅ Invite system (admins send invite links to friends)"
+echo "  ✅ Secure signup (no public registration, invite-only)"
 if [ "$VIRUS_SCAN_ENABLED" = true ]; then
     echo "  ✅ Virus scanning (ClamAV, daily scans)"
 fi
@@ -2430,7 +2721,35 @@ cat <<'EOFGUIDE'
 👥 USER MANAGEMENT (For Admins)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📝 CREATE A NEW USER
+� INVITE A FRIEND (RECOMMENDED METHOD)
+   
+   Step 1: Create an invite link
+   sudo filebrowser-invite.sh create admin
+   
+   This generates a special link like:
+   https://yourdomain.com/signup?invite=abc123def456
+   
+   Step 2: Send the link to your friend
+   They click it and can create their own username/password
+   
+   ⏰ Invite expires in 24 hours by default
+   🔒 Without an invite link, people just see the login screen
+   
+   Custom expiry:
+   sudo filebrowser-invite.sh create admin --expires-hours 48
+
+📋 MANAGE INVITES
+   
+   List active invites:
+   sudo filebrowser-invite.sh list
+   
+   Revoke an invite:
+   sudo filebrowser-invite.sh revoke INVITE_CODE
+   
+   View signup history:
+   sudo filebrowser-invite.sh history
+
+�� CREATE A USER MANUALLY (Alternative Method)
    Run this command on the server:
    
    sudo filebrowser users add USERNAME PASSWORD \
