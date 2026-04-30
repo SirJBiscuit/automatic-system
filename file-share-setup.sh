@@ -1,14 +1,118 @@
 #!/bin/bash
 
+# File Sharing Panel Setup Script with Cloudflare Tunnel
+# Supports multiple installation modes and hardware detection
+
 set -e
 
+# Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+NC='\033[0m' # No Color
 
-LOG_FILE="/tmp/file-share-setup-$(date +%Y%m%d-%H%M%S).log"
+LOG_FILE="/var/log/filebrowser-setup.log"
+
+# Check for uninstall flag
+if [ "$1" = "--uninstall" ]; then
+    echo ""
+    echo "=========================================="
+    echo "  🗑️  File Sharing Panel Uninstaller"
+    echo "=========================================="
+    echo ""
+    echo "⚠️  WARNING: This will remove:"
+    echo "   • All file sharing panel software"
+    echo "   • Cloudflare tunnel configuration"
+    echo "   • System services"
+    echo "   • Management scripts"
+    echo ""
+    echo "❌ This will NOT remove:"
+    echo "   • Your uploaded files (/var/filebrowser)"
+    echo "   • Database and user accounts"
+    echo "   • Log files"
+    echo ""
+    read -p "Are you sure you want to uninstall? (type 'yes' to confirm): " CONFIRM
+    
+    if [ "$CONFIRM" != "yes" ]; then
+        echo "Uninstall cancelled."
+        exit 0
+    fi
+    
+    echo ""
+    echo "🗑️  Uninstalling File Sharing Panel..."
+    echo ""
+    
+    # Stop services
+    echo "Stopping services..."
+    systemctl stop filebrowser 2>/dev/null || true
+    systemctl stop cloudflared 2>/dev/null || true
+    systemctl disable filebrowser 2>/dev/null || true
+    systemctl disable cloudflared 2>/dev/null || true
+    
+    # Remove systemd services
+    echo "Removing systemd services..."
+    rm -f /etc/systemd/system/filebrowser.service
+    rm -f /etc/systemd/system/cloudflared.service
+    systemctl daemon-reload
+    
+    # Remove binaries
+    echo "Removing binaries..."
+    rm -f /usr/local/bin/filebrowser
+    rm -f /usr/local/bin/cloudflared
+    
+    # Remove management scripts
+    echo "Removing management scripts..."
+    rm -f /usr/local/bin/filebrowser-*.sh
+    
+    # Remove cron jobs
+    echo "Removing cron jobs..."
+    rm -f /etc/cron.d/filebrowser-*
+    
+    # Remove configuration (but keep data)
+    echo "Removing configuration files..."
+    rm -rf /etc/filebrowser
+    rm -rf /var/lib/filebrowser
+    
+    # Remove Cloudflare config
+    echo "Removing Cloudflare tunnel config..."
+    rm -rf ~/.cloudflared
+    
+    # Remove user guide
+    rm -f /usr/local/share/filebrowser-guide.txt
+    
+    # Optional: Remove data
+    echo ""
+    read -p "Do you want to delete all uploaded files and database? (yes/no): " DELETE_DATA
+    if [ "$DELETE_DATA" = "yes" ]; then
+        echo "Deleting all data..."
+        rm -rf /var/filebrowser
+        rm -rf /var/log/filebrowser
+        echo "✓ All data deleted"
+    else
+        echo "✓ Data preserved at /var/filebrowser"
+    fi
+    
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "✅ File Sharing Panel has been uninstalled!"
+    echo ""
+    if [ "$DELETE_DATA" != "yes" ]; then
+        echo "📁 Your files are still at: /var/filebrowser"
+        echo "📊 Your database is still at: /var/filebrowser"
+        echo "📝 Logs are still at: /var/log/filebrowser"
+        echo ""
+        echo "To completely remove everything, run:"
+        echo "  sudo rm -rf /var/filebrowser /var/log/filebrowser"
+    fi
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    exit 0
+fi
 
 log() {
     echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1" | tee -a "$LOG_FILE"
