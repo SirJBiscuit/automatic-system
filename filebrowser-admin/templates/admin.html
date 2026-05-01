@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filebrowser Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #1e293b;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .card-header h2 {
+            color: #334155;
+            font-size: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-ok {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1e293b;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛠️ Filebrowser Admin Panel</h1>
+
+        <!-- Status Overview -->
+        <div class="grid">
+            <div class="stat-card">
+                <div class="stat-value" id="userCount">-</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="serviceStatus">-</div>
+                <div class="stat-label">Service Status</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="socialStatus">-</div>
+                <div class="stat-label">Social Plugin</div>
+            </div>
+        </div>
+
+        <!-- Database Management -->
+        <div class="card">
+            <div class="card-header">
+                <h2>💾 Database Management</h2>
+                <button class="btn btn-danger" onclick="resetDatabase()">Reset Database</button>
+            </div>
+            <div id="dbStatus"></div>
+        </div>
+
+        <!-- Service Management -->
+        <div class="card">
+            <div class="card-header">
+                <h2>⚙️ Service Management</h2>
+                <button class="btn btn-primary" onclick="restartService()">Restart Filebrowser</button>
+            </div>
+            <div id="serviceInfo"></div>
+        </div>
+
+        <!-- Social Plugin -->
+        <div class="card">
+            <div class="card-header">
+                <h2>👥 Social Plugin</h2>
+                <button class="btn btn-success" onclick="installSocial()" id="installSocialBtn">Install/Reinstall</button>
+            </div>
+            <div id="socialInfo"></div>
+        </div>
+
+        <!-- User Management -->
+        <div class="card">
+            <div class="card-header">
+                <h2>👤 User Management</h2>
+                <button class="btn btn-primary" onclick="showAddUser()">Add User</button>
+            </div>
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersBody">
+                    <tr><td colspan="3">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal" id="addUserModal">
+        <div class="modal-content">
+            <div class="modal-header">Add New User</div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="newUsername" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="newPassword" placeholder="Enter password (min 12 chars)">
+            </div>
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="newAdmin">
+                    <label>Administrator</label>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="addUser()">Create User</button>
+                <button class="btn" onclick="closeModal('addUserModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal" id="changePasswordModal">
+        <div class="modal-content">
+            <div class="modal-header">Change Password</div>
+            <div class="form-group">
+                <label>New Password</label>
+                <input type="password" id="changePassword" placeholder="Enter new password (min 12 chars)">
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
+                <button class="btn" onclick="closeModal('changePasswordModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        // Load initial data
+        loadUsers();
+        loadDatabaseStatus();
+        loadServiceStatus();
+        loadSocialStatus();
+
+        function loadUsers() {
+            fetch('/api/users')
+                .then(r => r.json())
+                .then(users => {
+                    document.getElementById('userCount').textContent = users.length;
+                    const tbody = document.getElementById('usersBody');
+                    tbody.innerHTML = users.map(user => `
+                        <tr>
+                            <td>${user.username}</td>
+                            <td>${user.admin ? '<span class="status-badge status-ok">Admin</span>' : 'User'}</td>
+                            <td class="actions">
+                                <button class="btn btn-primary" onclick="showChangePassword('${user.username}')">Change Password</button>
+                                <button class="btn btn-danger" onclick="deleteUser('${user.username}')">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                });
+        }
+
+        function loadDatabaseStatus() {
+            fetch('/api/database/status')
+                .then(r => r.json())
+                .then(data => {
+                    const status = document.getElementById('dbStatus');
+                    if (data.valid) {
+                        status.innerHTML = `<span class="status-badge status-ok">Database OK</span> - ${data.users} users`;
+                    } else {
+                        status.innerHTML = `<span class="status-badge status-error">Database ${data.status}</span>`;
+                    }
+                });
+        }
+
+        function loadServiceStatus() {
+            fetch('/api/service/status')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('serviceStatus').textContent = data.active ? '✅ Active' : '❌ Inactive';
+                    document.getElementById('serviceInfo').innerHTML = 
+                        `<span class="status-badge ${data.active ? 'status-ok' : 'status-error'}">${data.status}</span>`;
+                });
+        }
+
+        function loadSocialStatus() {
+            fetch('/api/social/status')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('socialStatus').textContent = data.installed ? '✅ Installed' : '❌ Not Installed';
+                    document.getElementById('socialInfo').innerHTML = 
+                        `<span class="status-badge ${data.installed ? 'status-ok' : 'status-error'}">
+                            ${data.installed ? 'Installed' : 'Not Installed'}
+                        </span>`;
+                });
+        }
+
+        function showAddUser() {
+            document.getElementById('addUserModal').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function addUser() {
+            const username = document.getElementById('newUsername').value;
+            const password = document.getElementById('newPassword').value;
+            const admin = document.getElementById('newAdmin').checked;
+
+            if (!username || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            if (password.length < 12) {
+                alert('Password must be at least 12 characters');
+                return;
+            }
+
+            fetch('/api/users/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username, password, admin})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('User created successfully!');
+                    closeModal('addUserModal');
+                    loadUsers();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+
+        function showChangePassword(username) {
+            currentUser = username;
+            document.getElementById('changePasswordModal').classList.add('active');
+        }
+
+        function changePassword() {
+            const password = document.getElementById('changePassword').value;
+
+            if (password.length < 12) {
+                alert('Password must be at least 12 characters');
+                return;
+            }
+
+            fetch('/api/users/password', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: currentUser, password})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Password updated successfully!');
+                    closeModal('changePasswordModal');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+
+        function deleteUser(username) {
+            if (!confirm(`Delete user ${username}?`)) return;
+
+            fetch(`/api/users/delete/${username}`, {method: 'DELETE'})
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('User deleted!');
+                        loadUsers();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+        }
+
+        function resetDatabase() {
+            if (!confirm('This will reset the database and delete all users! Continue?')) return;
+
+            fetch('/api/database/reset', {method: 'POST'})
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Database reset successfully!');
+                        loadUsers();
+                        loadDatabaseStatus();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+        }
+
+        function restartService() {
+            fetch('/api/service/restart', {method: 'POST'})
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Filebrowser restarted!');
+                        setTimeout(loadServiceStatus, 2000);
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+        }
+
+        function installSocial() {
+            if (!confirm('Install/reinstall social plugin?')) return;
+
+            document.getElementById('installSocialBtn').disabled = true;
+            document.getElementById('installSocialBtn').textContent = 'Installing...';
+
+            fetch('/api/social/install', {method: 'POST'})
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Social plugin installed! Clear browser cache and reload filebrowser.');
+                        loadSocialStatus();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .finally(() => {
+                    document.getElementById('installSocialBtn').disabled = false;
+                    document.getElementById('installSocialBtn').textContent = 'Install/Reinstall';
+                });
+        }
+
+        // Auto-refresh status every 30 seconds
+        setInterval(() => {
+            loadServiceStatus();
+        }, 30000);
+    </script>
+</body>
+</html>
