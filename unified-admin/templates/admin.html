@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
+        .btn-white {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-white:hover {
+            background: #f8fafc;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .card-header h2 {
+            color: #334155;
+            font-size: 18px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-ok {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .service-item:last-child {
+            border-bottom: none;
+        }
+
+        .service-name {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .quick-btn {
+            padding: 16px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .quick-btn:hover {
+            border-color: #667eea;
+            background: #f8fafc;
+            transform: translateY(-2px);
+        }
+
+        .quick-btn .icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1e293b;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .logs-container {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .shortcut-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .shortcut-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .shortcut-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .shortcut-card .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .shortcut-card .title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .shortcut-card .subtitle {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛠️ Server Admin Panel</h1>
+        <div class="header-right">
+            <span id="username"></span>
+            <button class="btn btn-white" onclick="showSettings()">⚙️ Settings</button>
+            <button class="btn btn-white" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- System Stats -->
+        <div class="grid">
+            <div class="stat-card">
+                <div class="stat-value" id="uptime">-</div>
+                <div class="stat-label">Server Uptime</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="cpuLoad">-</div>
+                <div class="stat-label">CPU Load Average</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="memoryUsed">-</div>
+                <div class="stat-label">Memory Used</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="diskUsed">-</div>
+                <div class="stat-label">Disk Used</div>
+            </div>
+        </div>
+
+        <!-- Quick Shortcuts -->
+        <div class="card">
+            <div class="card-header">
+                <h2>🚀 Quick Access</h2>
+            </div>
+            <div class="shortcut-grid">
+                <div class="shortcut-card" onclick="window.open('https://share.cloudmc.online', '_blank')">
+                    <div class="icon">📁</div>
+                    <div class="title">Pingvin Share</div>
+                    <div class="subtitle">File Sharing</div>
+                </div>
+                <div class="shortcut-card" onclick="window.open('https://next.cloudmc.online', '_blank')">
+                    <div class="icon">☁️</div>
+                    <div class="title">Nextcloud</div>
+                    <div class="subtitle">Cloud Storage</div>
+                </div>
+                <div class="shortcut-card" onclick="window.open('https://filesettings.cloudmc.online', '_blank')">
+                    <div class="icon">🗂️</div>
+                    <div class="title">Filebrowser</div>
+                    <div class="subtitle">File Manager</div>
+                </div>
+                <div class="shortcut-card" onclick="window.open('https://panel.cloudmc.online', '_blank')">
+                    <div class="icon">🎮</div>
+                    <div class="title">Pterodactyl</div>
+                    <div class="subtitle">Game Panel</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h2>⚡ Quick Actions</h2>
+            </div>
+            <div class="quick-actions">
+                <button class="quick-btn" onclick="quickRestartAll()">
+                    <div class="icon">🔄</div>
+                    Restart All Services
+                </button>
+                <button class="quick-btn" onclick="quickFixDatabase()">
+                    <div class="icon">🔧</div>
+                    Fix Database
+                </button>
+                <button class="quick-btn" onclick="quickHealthCheck()">
+                    <div class="icon">❤️</div>
+                    Health Check
+                </button>
+                <button class="quick-btn" onclick="showLogs()">
+                    <div class="icon">📋</div>
+                    View Logs
+                </button>
+            </div>
+        </div>
+
+        <!-- Services Status -->
+        <div class="card">
+            <div class="card-header">
+                <h2>⚙️ Services</h2>
+                <button class="btn btn-primary" onclick="refreshServices()">Refresh</button>
+            </div>
+            <div id="servicesList">
+                <div class="service-item">
+                    <span class="service-name">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs for Advanced Features -->
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('filebrowser')">Filebrowser Users</div>
+                <div class="tab" onclick="switchTab('storage')">Storage</div>
+                <div class="tab" onclick="switchTab('system')">System</div>
+            </div>
+
+            <!-- Filebrowser Users Tab -->
+            <div class="tab-content active" id="filebrowser-tab">
+                <div class="card-header">
+                    <h2>👤 Filebrowser Users</h2>
+                    <button class="btn btn-primary" onclick="showAddUser()">Add User</button>
+                </div>
+                <div id="usersList"></div>
+            </div>
+
+            <!-- Storage Tab -->
+            <div class="tab-content" id="storage-tab">
+                <div class="card-header">
+                    <h2>💾 Storage Configuration</h2>
+                    <button class="btn btn-primary" onclick="refreshDisks()">Refresh</button>
+                </div>
+                <div id="disksList"></div>
+                <button class="btn btn-success" onclick="showStorageConfig()" style="margin-top: 20px;">Configure Storage Paths</button>
+            </div>
+
+            <!-- System Tab -->
+            <div class="tab-content" id="system-tab">
+                <div class="card-header">
+                    <h2>🖥️ System Control</h2>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <button class="btn btn-warning" onclick="confirmReboot()">🔄 Reboot Server</button>
+                    <button class="btn btn-danger" onclick="confirmShutdown()">🛑 Shutdown Server</button>
+                </div>
+                <div class="alert alert-warning" style="margin-top: 20px;">
+                    ⚠️ These actions will affect all services. All Docker containers and systemd services will be stopped gracefully before reboot/shutdown.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal" id="addUserModal">
+        <div class="modal-content">
+            <div class="modal-header">Add Filebrowser User</div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="newUsername" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="newPassword" placeholder="Enter password">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="newAdmin"> Administrator
+                </label>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="addUser()">Create User</button>
+                <button class="btn" onclick="closeModal('addUserModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Modal -->
+    <div class="modal" id="logsModal">
+        <div class="modal-content">
+            <div class="modal-header">Service Logs</div>
+            <div class="form-group">
+                <label>Select Service</label>
+                <select id="logService">
+                    <option value="filebrowser">Filebrowser</option>
+                    <option value="cloudflared">Cloudflare Tunnel</option>
+                    <option value="pingvin">Pingvin Share</option>
+                    <option value="nextcloud">Nextcloud</option>
+                    <option value="wings">Wings</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="loadLogs()" style="margin-bottom: 15px;">Load Logs</button>
+            <div class="logs-container" id="logsContent">Select a service and click Load Logs</div>
+            <button class="btn" onclick="closeModal('logsModal')" style="margin-top: 15px;">Close</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">Admin Settings</div>
+            <h3 style="margin-bottom: 15px;">Change Password</h3>
+            <div class="form-group">
+                <label>Current Password</label>
+                <input type="password" id="currentPassword">
+            </div>
+            <div class="form-group">
+                <label>New Password</label>
+                <input type="password" id="newAdminPassword">
+            </div>
+            <button class="btn btn-primary" onclick="changePassword()" style="margin-bottom: 30px;">Change Password</button>
+            
+            <h3 style="margin-bottom: 15px;">Change Username</h3>
+            <div class="form-group">
+                <label>New Username</label>
+                <input type="text" id="newAdminUsername">
+            </div>
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <input type="password" id="confirmPassword">
+            </div>
+            <button class="btn btn-primary" onclick="changeUsername()">Change Username</button>
+            
+            <button class="btn" onclick="closeModal('settingsModal')" style="margin-top: 20px;">Close</button>
+        </div>
+    </div>
+
+    <!-- Storage Config Modal -->
+    <div class="modal" id="storageModal">
+        <div class="modal-content">
+            <div class="modal-header">Configure Storage Paths</div>
+            <div class="alert alert-warning">
+                This will update storage paths for Pingvin Share and Nextcloud. Make sure the path exists and has proper permissions.
+            </div>
+            <div class="form-group">
+                <label>Storage Path (e.g., /mnt/storage)</label>
+                <input type="text" id="storagePath" placeholder="/mnt/storage">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-success" onclick="configureStorage()">Apply</button>
+                <button class="btn" onclick="closeModal('storageModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load initial data
+        loadSystemStatus();
+        loadServices();
+        loadFilebrowserUsers();
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            loadSystemStatus();
+            loadServices();
+        }, 30000);
+
+        async function loadSystemStatus() {
+            try {
+                const response = await fetch('/api/system/status');
+                const data = await response.json();
+                
+                document.getElementById('uptime').textContent = data.uptime || '-';
+                document.getElementById('cpuLoad').textContent = data.load ? data.load[0] : '-';
+                document.getElementById('memoryUsed').textContent = data.memory ? data.memory.used : '-';
+                document.getElementById('diskUsed').textContent = data.disk ? data.disk.percent : '-';
+            } catch (error) {
+                console.error('Failed to load system status:', error);
+            }
+        }
+
+        async function loadServices() {
+            try {
+                const response = await fetch('/api/services/status');
+                const services = await response.json();
+                
+                const list = document.getElementById('servicesList');
+                list.innerHTML = Object.entries(services).map(([name, active]) => `
+                    <div class="service-item">
+                        <span class="service-name">${name}</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span class="status-badge ${active ? 'status-ok' : 'status-error'}">
+                                ${active ? '✅ Running' : '❌ Stopped'}
+                            </span>
+                            <button class="btn btn-primary" onclick="restartService('${name}')">Restart</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load services:', error);
+            }
+        }
+
+        async function loadFilebrowserUsers() {
+            try {
+                const response = await fetch('/api/filebrowser/users');
+                const users = await response.json();
+                
+                const list = document.getElementById('usersList');
+                list.innerHTML = users.map(user => `
+                    <div class="service-item">
+                        <span class="service-name">${user.username}</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            ${user.admin ? '<span class="status-badge status-ok">Admin</span>' : ''}
+                            <button class="btn btn-danger" onclick="deleteUser('${user.username}')">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load users:', error);
+            }
+        }
+
+        async function restartService(service) {
+            if (!confirm(`Restart ${service}?`)) return;
+            
+            try {
+                const response = await fetch(`/api/services/restart/${service}`, {method: 'POST'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`${service} restarted successfully!`);
+                    loadServices();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to restart service');
+            }
+        }
+
+        async function quickRestartAll() {
+            if (!confirm('Restart all services?')) return;
+            
+            try {
+                const response = await fetch('/api/quick/restart-all', {method: 'POST'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('All services restarted!');
+                    loadServices();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to restart services');
+            }
+        }
+
+        async function quickFixDatabase() {
+            if (!confirm('Reset filebrowser database? This will delete all users!')) return;
+            
+            try {
+                const response = await fetch('/api/quick/fix-database', {method: 'POST'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Database fixed! Create a new admin user.');
+                    loadFilebrowserUsers();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to fix database');
+            }
+        }
+
+        async function quickHealthCheck() {
+            try {
+                const response = await fetch('/api/quick/check-health');
+                const health = await response.json();
+                
+                let message = 'Health Check Results:\n\n';
+                message += 'Services:\n';
+                Object.entries(health.services).forEach(([name, active]) => {
+                    message += `  ${name}: ${active ? '✅ Running' : '❌ Stopped'}\n`;
+                });
+                message += `\nDisk: ${health.disk_space.used} used, ${health.disk_space.available} available\n`;
+                message += `Memory: ${health.memory.used} / ${health.memory.total}`;
+                
+                alert(message);
+            } catch (error) {
+                alert('Health check failed');
+            }
+        }
+
+        function showAddUser() {
+            document.getElementById('addUserModal').classList.add('active');
+        }
+
+        async function addUser() {
+            const username = document.getElementById('newUsername').value;
+            const password = document.getElementById('newPassword').value;
+            const admin = document.getElementById('newAdmin').checked;
+            
+            if (!username || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/filebrowser/users/add', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password, admin})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('User created!');
+                    closeModal('addUserModal');
+                    loadFilebrowserUsers();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to create user');
+            }
+        }
+
+        async function deleteUser(username) {
+            if (!confirm(`Delete user ${username}?`)) return;
+            
+            try {
+                const response = await fetch(`/api/filebrowser/users/delete/${username}`, {method: 'DELETE'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('User deleted!');
+                    loadFilebrowserUsers();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to delete user');
+            }
+        }
+
+        function showLogs() {
+            document.getElementById('logsModal').classList.add('active');
+        }
+
+        async function loadLogs() {
+            const service = document.getElementById('logService').value;
+            
+            try {
+                const response = await fetch(`/api/logs/${service}?lines=100`);
+                const data = await response.json();
+                
+                document.getElementById('logsContent').textContent = data.logs || 'No logs available';
+            } catch (error) {
+                document.getElementById('logsContent').textContent = 'Failed to load logs';
+            }
+        }
+
+        function showSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        async function changePassword() {
+            const current = document.getElementById('currentPassword').value;
+            const newPass = document.getElementById('newAdminPassword').value;
+            
+            if (!current || !newPass) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/change-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({current_password: current, new_password: newPass})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Password changed successfully!');
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newAdminPassword').value = '';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to change password');
+            }
+        }
+
+        async function changeUsername() {
+            const username = document.getElementById('newAdminUsername').value;
+            const password = document.getElementById('confirmPassword').value;
+            
+            if (!username || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/change-username', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Username changed successfully!');
+                    document.getElementById('newAdminUsername').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to change username');
+            }
+        }
+
+        function showStorageConfig() {
+            document.getElementById('storageModal').classList.add('active');
+        }
+
+        async function configureStorage() {
+            const path = document.getElementById('storagePath').value;
+            
+            if (!path) {
+                alert('Please enter a storage path');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/storage/configure', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Storage configured! Restart services for changes to take effect.');
+                    closeModal('storageModal');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to configure storage');
+            }
+        }
+
+        async function confirmReboot() {
+            if (!confirm('Are you sure you want to reboot the server? All services will be stopped gracefully.')) return;
+            
+            try {
+                const response = await fetch('/api/system/reboot', {method: 'POST'});
+                const data = await response.json();
+                
+                alert(data.message || 'Server rebooting...');
+            } catch (error) {
+                alert('Failed to initiate reboot');
+            }
+        }
+
+        async function confirmShutdown() {
+            if (!confirm('Are you sure you want to shutdown the server? All services will be stopped gracefully.')) return;
+            
+            try {
+                const response = await fetch('/api/system/shutdown', {method: 'POST'});
+                const data = await response.json();
+                
+                alert(data.message || 'Server shutting down...');
+            } catch (error) {
+                alert('Failed to initiate shutdown');
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/logout', {method: 'POST'});
+                window.location.href = '/';
+            } catch (error) {
+                window.location.href = '/';
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + '-tab').classList.add('active');
+        }
+
+        function refreshServices() {
+            loadServices();
+        }
+
+        function refreshDisks() {
+            // Implement disk refresh
+            alert('Disk refresh not yet implemented');
+        }
+    </script>
+</body>
+</html>

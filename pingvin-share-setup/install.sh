@@ -32,7 +32,7 @@ services:
     image: stonith404/pingvin-share:latest
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "5050:3000"
     volumes:
       - ./data:/opt/app/backend/data
       - ./data/images:/opt/app/frontend/public/img
@@ -62,10 +62,10 @@ if docker-compose ps | grep -q "Up"; then
     echo ""
     echo "✅ Pingvin Share installed successfully!"
     echo ""
-    echo "🌐 Access at: http://localhost:3000"
+    echo "🌐 Access at: http://localhost:5050"
     echo ""
     echo "📋 Next Steps:"
-    echo "   1. Add to Cloudflare tunnel (share.cloudmc.online → localhost:3000)"
+    echo "   1. Add to Cloudflare tunnel (share.cloudmc.online → localhost:5050)"
     echo "   2. Create admin account on first visit"
     echo "   3. Start sharing files!"
     echo ""
@@ -86,7 +86,7 @@ if docker-compose ps | grep -q "Up"; then
     echo ""
     echo "🔧 Update Cloudflare tunnel:"
     echo "   Edit: /root/.cloudflared/config.yml"
-    echo "   Change: service: http://localhost:3000"
+    echo "   Change: service: http://localhost:5050"
     echo "   Then: sudo systemctl restart cloudflared"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
