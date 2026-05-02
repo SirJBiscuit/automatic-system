@@ -587,6 +587,71 @@
         .heartbeat-text {
             font-weight: 600;
         }
+
+        /* Iframe Styles */
+        .iframe-container {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        body.dark-mode .iframe-container {
+            border-color: #4a5568;
+        }
+
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .service-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .service-btn {
+            padding: 12px 24px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .service-btn:hover {
+            border-color: #667eea;
+            background: #f8fafc;
+        }
+
+        .service-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        body.dark-mode .service-btn {
+            background: #16213e;
+            color: #e2e8f0;
+            border-color: #4a5568;
+        }
+
+        body.dark-mode .service-btn:hover {
+            background: #1e293b;
+            border-color: #667eea;
+        }
+
+        body.dark-mode .service-btn.active {
+            background: #667eea;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -732,6 +797,7 @@
         <div class="card">
             <div class="tabs">
                 <div class="tab active" onclick="switchTab('filebrowser')">Filebrowser Users</div>
+                <div class="tab" onclick="switchTab('services')">Quick Access</div>
                 <div class="tab" onclick="switchTab('storage')">Storage</div>
                 <div class="tab" onclick="switchTab('system')">System</div>
             </div>
@@ -744,6 +810,27 @@
                 </div>
                 <p class="help-text">Manage users for the Filebrowser service. Admin users have full access to all files and settings.</p>
                 <div id="usersList"></div>
+            </div>
+
+            <!-- Quick Access Tab -->
+            <div class="tab-content" id="services-tab">
+                <div class="card-header">
+                    <h2>🚀 Quick Access</h2>
+                </div>
+                <p class="help-text">Access all services in one place. Sessions automatically logout when you leave the admin panel.</p>
+                <div class="service-selector">
+                    <button class="service-btn active" onclick="loadService('pingvin')">📁 Pingvin Share</button>
+                    <button class="service-btn" onclick="loadService('nextcloud')">☁️ Nextcloud</button>
+                    <button class="service-btn" onclick="loadService('webui')">🤖 Open WebUI</button>
+                    <button class="service-btn" onclick="loadService('console')">💻 Web Console</button>
+                    <button class="service-btn" onclick="loadService('pterodactyl')">🎮 Pterodactyl</button>
+                </div>
+                <div class="iframe-container">
+                    <iframe id="serviceFrame" src="https://share.cloudmc.online" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+                </div>
+                <div class="alert alert-warning">
+                    ⚠️ Sessions in these services will be automatically cleared when you logout from the admin panel.
+                </div>
             </div>
 
             <!-- Storage Tab -->
@@ -1263,6 +1350,9 @@
         }
 
         async function logout() {
+            // Clear iframe sessions before logging out
+            clearServiceSessions();
+            
             try {
                 await fetch('/logout', {method: 'POST'});
                 window.location.href = '/';
@@ -1270,6 +1360,39 @@
                 window.location.href = '/';
             }
         }
+
+        function loadService(service) {
+            const serviceUrls = {
+                'pingvin': 'https://share.cloudmc.online',
+                'nextcloud': 'https://next.cloudmc.online',
+                'webui': 'https://ui.cloudmc.online',
+                'console': 'https://console.cloudmc.online',
+                'pterodactyl': 'https://panel.cloudmc.online'
+            };
+            
+            const iframe = document.getElementById('serviceFrame');
+            iframe.src = serviceUrls[service];
+            
+            // Update active button
+            document.querySelectorAll('.service-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function clearServiceSessions() {
+            // Clear iframe by reloading with about:blank
+            const iframe = document.getElementById('serviceFrame');
+            if (iframe) {
+                iframe.src = 'about:blank';
+            }
+            
+            // Clear any stored session data
+            sessionStorage.clear();
+        }
+
+        // Auto-logout on page unload
+        window.addEventListener('beforeunload', function() {
+            clearServiceSessions();
+        });
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
