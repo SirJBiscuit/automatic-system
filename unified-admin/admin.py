@@ -426,6 +426,7 @@ def get_memory_usage():
 # ============================================================================
 
 @app.route('/api/logs/<service>', methods=['GET'])
+@login_required
 def get_logs(service):
     """Get logs for a service"""
     lines = request.args.get('lines', 50, type=int)
@@ -438,6 +439,61 @@ def get_logs(service):
             result = subprocess.run(['journalctl', '-u', service, '-n', str(lines), '--no-pager'], 
                                   capture_output=True, text=True)
         return jsonify({'logs': result.stdout})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================================
+# SELF-UPDATE
+# ============================================================================
+
+@app.route('/api/update/self', methods=['POST'])
+@login_required
+def self_update():
+    """Update admin panel from GitHub"""
+    try:
+        # Clone latest version
+        subprocess.run(['rm', '-rf', '/tmp/automatic-system'], check=False)
+        subprocess.run(['git', 'clone', 'https://github.com/SirJBiscuit/automatic-system.git', '/tmp/automatic-system'], check=True)
+        
+        # Copy updated files
+        subprocess.run(['cp', '-r', '/tmp/automatic-system/unified-admin/templates/', '/opt/unified-admin/'], check=True)
+        subprocess.run(['cp', '/tmp/automatic-system/unified-admin/admin.py', '/opt/unified-admin/'], check=True)
+        
+        # Restart service
+        subprocess.Popen(['systemctl', 'restart', 'unified-admin'])
+        
+        return jsonify({'success': True, 'message': 'Admin panel updated! Refreshing in 3 seconds...'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/update/service/<service>', methods=['POST'])
+@login_required
+def update_service(service):
+    """Update a specific service from GitHub"""
+    try:
+        service_map = {
+            'pingvin': {'dir': PINGVIN_DIR, 'source': 'pingvin-share-setup'},
+            'nextcloud': {'dir': NEXTCLOUD_DIR, 'source': 'nextcloud-setup'}
+        }
+        
+        if service not in service_map:
+            return jsonify({'error': 'Unknown service'}), 400
+        
+        # Clone latest version
+        subprocess.run(['rm', '-rf', '/tmp/automatic-system'], check=False)
+        subprocess.run(['git', 'clone', 'https://github.com/SirJBiscuit/automatic-system.git', '/tmp/automatic-system'], check=True)
+        
+        # Stop service
+        subprocess.run(['docker-compose', 'down'], cwd=service_map[service]['dir'], check=False)
+        
+        # Update docker-compose.yml
+        subprocess.run(['cp', f'/tmp/automatic-system/{service_map[service]["source"]}/docker-compose.yml', 
+                       f'{service_map[service]["dir"]}/'], check=True)
+        
+        # Start service
+        subprocess.run(['docker-compose', 'up', '-d'], cwd=service_map[service]['dir'], check=True)
+        
+        return jsonify({'success': True, 'message': f'{service} updated successfully!'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

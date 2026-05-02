@@ -364,12 +364,240 @@
         .tab-content.active {
             display: block;
         }
+
+        /* Dark Mode */
+        body.dark-mode {
+            background: #1a1a2e;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .header {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+        }
+
+        body.dark-mode .card {
+            background: #16213e;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .card-header h2 {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .service-name,
+        body.dark-mode .form-group label,
+        body.dark-mode .quick-btn {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .quick-btn {
+            background: #16213e;
+            border-color: #4a5568;
+        }
+
+        body.dark-mode .quick-btn:hover {
+            background: #1e293b;
+            border-color: #667eea;
+        }
+
+        body.dark-mode .service-item {
+            border-bottom-color: #4a5568;
+        }
+
+        body.dark-mode .form-group input,
+        body.dark-mode .form-group select {
+            background: #1e293b;
+            border-color: #4a5568;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .modal-content {
+            background: #16213e;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .modal-header {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .tab {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .tab.active {
+            color: #667eea;
+        }
+
+        /* Tooltips */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip-icon {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 18px;
+            font-size: 12px;
+            margin-left: 6px;
+            font-weight: bold;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            width: 300px;
+            background-color: #1e293b;
+            color: #e2e8f0;
+            text-align: left;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            z-index: 1001;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -150px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 13px;
+            line-height: 1.5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+        }
+
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        body.dark-mode .help-text {
+            color: #94a3b8;
+        }
+
+        .theme-toggle {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Pulsing Status Indicators */
+        .pulse-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            position: relative;
+        }
+
+        .pulse-indicator.online {
+            background: #10b981;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse-green 2s infinite;
+        }
+
+        .pulse-indicator.offline {
+            background: #ef4444;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            animation: pulse-red 2s infinite;
+        }
+
+        .pulse-indicator.checking {
+            background: #f59e0b;
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+            animation: pulse-yellow 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        @keyframes pulse-yellow {
+            0% {
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+            }
+        }
+
+        .server-heartbeat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .heartbeat-text {
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🛠️ Server Admin Panel</h1>
         <div class="header-right">
+            <div class="server-heartbeat">
+                <span class="pulse-indicator checking" id="serverPulse"></span>
+                <span class="heartbeat-text" id="serverStatus">Checking...</span>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙</button>
             <span id="username"></span>
             <button class="btn btn-white" onclick="showSettings()">⚙️ Settings</button>
             <button class="btn btn-white" onclick="logout()">Logout</button>
@@ -434,25 +662,56 @@
         <!-- Quick Actions -->
         <div class="card">
             <div class="card-header">
-                <h2>⚡ Quick Actions</h2>
+                <h2>⚡ Quick Actions
+                    <span class="tooltip-container">
+                        <span class="tooltip-icon">?</span>
+                        <span class="tooltip-text">Quick shortcuts for common administrative tasks. Hover over each button for more details.</span>
+                    </span>
+                </h2>
             </div>
             <div class="quick-actions">
-                <button class="quick-btn" onclick="quickRestartAll()">
-                    <div class="icon">🔄</div>
-                    Restart All Services
-                </button>
-                <button class="quick-btn" onclick="quickFixDatabase()">
-                    <div class="icon">🔧</div>
-                    Fix Database
-                </button>
-                <button class="quick-btn" onclick="quickHealthCheck()">
-                    <div class="icon">❤️</div>
-                    Health Check
-                </button>
-                <button class="quick-btn" onclick="showLogs()">
-                    <div class="icon">📋</div>
-                    View Logs
-                </button>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="quickRestartAll()" style="width: 100%;">
+                        <div class="icon">🔄</div>
+                        Restart All Services
+                    </button>
+                    <span class="tooltip-text">Restarts Filebrowser, Cloudflared, Pingvin Share, and Nextcloud. Use this when services are unresponsive.</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="quickFixDatabase()" style="width: 100%;">
+                        <div class="icon">🔧</div>
+                        Fix Database
+                    </button>
+                    <span class="tooltip-text">Resets corrupted Filebrowser database. WARNING: This deletes all users! You'll need to recreate them.</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="quickHealthCheck()" style="width: 100%;">
+                        <div class="icon">❤️</div>
+                        Health Check
+                    </button>
+                    <span class="tooltip-text">Displays quick overview of all service statuses, disk space, and memory usage.</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="showLogs()" style="width: 100%;">
+                        <div class="icon">📋</div>
+                        View Logs
+                    </button>
+                    <span class="tooltip-text">View recent logs from any service for debugging and monitoring.</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="selfUpdate()" style="width: 100%;">
+                        <div class="icon">⬆️</div>
+                        Update Admin Panel
+                    </button>
+                    <span class="tooltip-text">Pulls latest admin panel code from GitHub and restarts. Page will refresh automatically.</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="showUpdateServices()" style="width: 100%;">
+                        <div class="icon">📦</div>
+                        Update Services
+                    </button>
+                    <span class="tooltip-text">Update Pingvin Share or Nextcloud from GitHub. Services will restart automatically.</span>
+                </span>
             </div>
         </div>
 
@@ -483,6 +742,7 @@
                     <h2>👤 Filebrowser Users</h2>
                     <button class="btn btn-primary" onclick="showAddUser()">Add User</button>
                 </div>
+                <p class="help-text">Manage users for the Filebrowser service. Admin users have full access to all files and settings.</p>
                 <div id="usersList"></div>
             </div>
 
@@ -492,6 +752,7 @@
                     <h2>💾 Storage Configuration</h2>
                     <button class="btn btn-primary" onclick="refreshDisks()">Refresh</button>
                 </div>
+                <p class="help-text">Configure where Pingvin Share and Nextcloud store their data. Point to your 8TB drive for maximum storage capacity.</p>
                 <div id="disksList"></div>
                 <button class="btn btn-success" onclick="showStorageConfig()" style="margin-top: 20px;">Configure Storage Paths</button>
             </div>
@@ -501,9 +762,16 @@
                 <div class="card-header">
                     <h2>🖥️ System Control</h2>
                 </div>
-                <div style="display: flex; gap: 15px;">
-                    <button class="btn btn-warning" onclick="confirmReboot()">🔄 Reboot Server</button>
-                    <button class="btn btn-danger" onclick="confirmShutdown()">🛑 Shutdown Server</button>
+                <p class="help-text">Safely reboot or shutdown the server. All services will be stopped gracefully to prevent data loss.</p>
+                <div style="display: flex; gap: 15px; margin-top: 15px;">
+                    <span class="tooltip-container">
+                        <button class="btn btn-warning" onclick="confirmReboot()">🔄 Reboot Server</button>
+                        <span class="tooltip-text">Gracefully stops all services, syncs filesystems, and reboots. Services will auto-start on boot.</span>
+                    </span>
+                    <span class="tooltip-container">
+                        <button class="btn btn-danger" onclick="confirmShutdown()">🛑 Shutdown Server</button>
+                        <span class="tooltip-text">Gracefully stops all services, syncs filesystems, and powers off. You'll need physical access to restart.</span>
+                    </span>
                 </div>
                 <div class="alert alert-warning" style="margin-top: 20px;">
                     ⚠️ These actions will affect all services. All Docker containers and systemd services will be stopped gracefully before reboot/shutdown.
@@ -604,7 +872,52 @@
         </div>
     </div>
 
+    <!-- Update Services Modal -->
+    <div class="modal" id="updateServicesModal">
+        <div class="modal-content">
+            <div class="modal-header">Update Services from GitHub</div>
+            <div class="alert alert-warning">
+                This will pull the latest version from GitHub and restart the service.
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn btn-primary" onclick="updateService('pingvin')">Update Pingvin Share</button>
+                <button class="btn btn-primary" onclick="updateService('nextcloud')">Update Nextcloud</button>
+            </div>
+            <button class="btn" onclick="closeModal('updateServicesModal')" style="margin-top: 15px;">Close</button>
+        </div>
+    </div>
+
     <script>
+        // Theme Management
+        function toggleTheme() {
+            const body = document.body;
+            const themeToggle = document.getElementById('themeToggle');
+            
+            body.classList.toggle('dark-mode');
+            
+            if (body.classList.contains('dark-mode')) {
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Load saved theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const themeToggle = document.getElementById('themeToggle');
+            
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeToggle.textContent = '☀️';
+            }
+        }
+
+        // Load theme on page load
+        loadTheme();
+
         // Load initial data
         loadSystemStatus();
         loadServices();
@@ -617,6 +930,9 @@
         }, 30000);
 
         async function loadSystemStatus() {
+            const serverPulse = document.getElementById('serverPulse');
+            const serverStatus = document.getElementById('serverStatus');
+            
             try {
                 const response = await fetch('/api/system/status');
                 const data = await response.json();
@@ -625,8 +941,14 @@
                 document.getElementById('cpuLoad').textContent = data.load ? data.load[0] : '-';
                 document.getElementById('memoryUsed').textContent = data.memory ? data.memory.used : '-';
                 document.getElementById('diskUsed').textContent = data.disk ? data.disk.percent : '-';
+                
+                // Update server heartbeat
+                serverPulse.className = 'pulse-indicator online';
+                serverStatus.textContent = 'Server Online';
             } catch (error) {
                 console.error('Failed to load system status:', error);
+                serverPulse.className = 'pulse-indicator offline';
+                serverStatus.textContent = 'Server Offline';
             }
         }
 
@@ -638,10 +960,13 @@
                 const list = document.getElementById('servicesList');
                 list.innerHTML = Object.entries(services).map(([name, active]) => `
                     <div class="service-item">
-                        <span class="service-name">${name}</span>
+                        <div style="display: flex; align-items: center;">
+                            <span class="pulse-indicator ${active ? 'online' : 'offline'}"></span>
+                            <span class="service-name">${name}</span>
+                        </div>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <span class="status-badge ${active ? 'status-ok' : 'status-error'}">
-                                ${active ? '✅ Running' : '❌ Stopped'}
+                                ${active ? 'Running' : 'Stopped'}
                             </span>
                             <button class="btn btn-primary" onclick="restartService('${name}')">Restart</button>
                         </div>
@@ -965,6 +1290,47 @@
         function refreshDisks() {
             // Implement disk refresh
             alert('Disk refresh not yet implemented');
+        }
+
+        async function selfUpdate() {
+            if (!confirm('Update admin panel from GitHub? The page will refresh automatically.')) return;
+            
+            try {
+                const response = await fetch('/api/update/self', {method: 'POST'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    setTimeout(() => window.location.reload(), 3000);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to update admin panel');
+            }
+        }
+
+        function showUpdateServices() {
+            document.getElementById('updateServicesModal').classList.add('active');
+        }
+
+        async function updateService(service) {
+            if (!confirm(`Update ${service} from GitHub? This will restart the service.`)) return;
+            
+            try {
+                const response = await fetch(`/api/update/service/${service}`, {method: 'POST'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    closeModal('updateServicesModal');
+                    loadServices();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to update service');
+            }
         }
     </script>
 </body>
