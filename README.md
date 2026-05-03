@@ -85,7 +85,9 @@ A comprehensive, interactive installation script for Pterodactyl Panel and Wings
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/pteroanyinstall.sh -o pteroanyinstall.sh
+
 chmod +x pteroanyinstall.sh
+
 sudo ./pteroanyinstall.sh
 ```
 
@@ -95,7 +97,9 @@ For a complete AI chatbot setup with GPU support:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ollama-setup/install-ollama.sh -o install-ollama.sh
+
 chmod +x install-ollama.sh
+
 ./install-ollama.sh
 ```
 
@@ -103,7 +107,9 @@ Or download the full setup script directly:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ollama-setup/ollama-webui-setup.sh -o ollama-webui-setup.sh
+
 chmod +x ollama-webui-setup.sh
+
 ./ollama-webui-setup.sh
 ```
 
