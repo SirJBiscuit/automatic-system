@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SSH Web Terminal</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <script src="https://unpkg.com/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css" />
     <style>
         :root {
             --primary-color: #667eea;
@@ -316,12 +316,12 @@
         </div>
 
         <div class="sidebar" id="sidebar">
-            <div class="sidebar-section">
+            <div class="sidebar-section" style="flex: 1; display: flex; flex-direction: column;">
                 <h3>🤖 AI Assistant</h3>
                 <div class="ai-chat">
                     <div class="chat-messages" id="chatMessages">
                         <div class="message ai">
-                            👋 Hi! I'm powered by <strong>Qwen2.5:7b</strong> via Open WebUI!<br><br>
+                            👋 Hi! I'm powered by <strong>Qwen2.5:7b</strong>!<br><br>
                             I can help you with:<br>
                             • 💻 Linux commands & troubleshooting<br>
                             • 🐛 Debug code & fix errors<br>
@@ -334,20 +334,6 @@
                     <div class="chat-input">
                         <input type="text" id="aiInput" placeholder="Ask AI for help..." onkeypress="handleAIInput(event)">
                     </div>
-                </div>
-            </div>
-
-            <div class="sidebar-section">
-                <h3>⚡ Quick Commands</h3>
-                <div class="quick-commands">
-                    <div class="quick-cmd" onclick="sendCommand('ls -la')">📁 ls -la</div>
-                    <div class="quick-cmd" onclick="sendCommand('df -h')">💾 df -h</div>
-                    <div class="quick-cmd" onclick="sendCommand('free -h')">🧠 free -h</div>
-                    <div class="quick-cmd" onclick="sendCommand('top')">📊 top</div>
-                    <div class="quick-cmd" onclick="sendCommand('htop')">📈 htop</div>
-                    <div class="quick-cmd" onclick="sendCommand('docker ps')">🐳 docker ps</div>
-                    <div class="quick-cmd" onclick="sendCommand('systemctl status')">⚙️ systemctl status</div>
-                    <div class="quick-cmd" onclick="sendCommand('netstat -tulpn')">🌐 netstat -tulpn</div>
                 </div>
             </div>
         </div>
@@ -436,7 +422,7 @@
         });
 
         // Handle terminal resize
-        const fitAddon = new FitAddon();
+        const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
         
         window.addEventListener('resize', () => {
