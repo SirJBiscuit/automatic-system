@@ -240,9 +240,11 @@ class Terminal:
             }
             subprocess.run(['/bin/bash', '-l'], env=env)
         else:
-            # Parent process - set terminal to raw mode
-            import tty
-            tty.setraw(self.fd)
+            # Parent process - set terminal attributes for proper echo
+            attr = termios.tcgetattr(self.fd)
+            # Enable echo and canonical mode
+            attr[3] = attr[3] | termios.ECHO | termios.ICANON
+            termios.tcsetattr(self.fd, termios.TCSANOW, attr)
             self.set_size(24, 80)
             
     def set_size(self, rows, cols):
