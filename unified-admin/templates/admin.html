@@ -780,9 +780,9 @@
                 <span class="tooltip-container" style="width: 100%;">
                     <button class="quick-btn" onclick="syncPterodactyl()" style="width: 100%;">
                         <div class="icon">🔗</div>
-                        Sync Pterodactyl Node
+                        Configure Pterodactyl
                     </button>
-                    <span class="tooltip-text">Automatically configures Wings and Cloudflare tunnel for Pterodactyl. Fixes connection issues.</span>
+                    <span class="tooltip-text">Auto-configures Wings (port 8083, HTTP) and Cloudflare tunnel. Use this if Wings won't connect or after server reboot.</span>
                 </span>
             </div>
         </div>
@@ -1464,20 +1464,20 @@
         }
 
         async function syncPterodactyl() {
-            if (!confirm('Sync Pterodactyl Wings configuration? This will update cloudflared config and restart services.')) return;
+            if (!confirm('Configure Pterodactyl Wings? This will set Wings to port 8083 (HTTP) and update Cloudflare tunnel.')) return;
             
             try {
                 const response = await fetch('/api/pterodactyl/sync', {method: 'POST'});
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert(data.message + '\n\nReminder: In Pterodactyl Panel, set:\n- FQDN: wings.cloudmc.online\n- Port: 443\n- SSL: ON\n- Behind Proxy: ON');
+                    alert(data.message + '\n\n✅ Next Steps in Pterodactyl Panel:\n\n1. Go to Admin → Nodes → Your Node\n2. Set these values:\n   • FQDN: wings.cloudmc.online\n   • Daemon Port: 443\n   • SSL: ✓ ON\n   • Behind Proxy: ✓ ON\n3. Save and wait 30 seconds\n\nThe node heartbeat should turn green!');
                     loadServices();
                 } else {
                     alert('Error: ' + data.error);
                 }
             } catch (error) {
-                alert('Failed to sync Pterodactyl');
+                alert('Failed to configure Pterodactyl');
             }
         }
     </script>
