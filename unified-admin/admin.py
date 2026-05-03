@@ -968,6 +968,43 @@ def execute_terminal_command():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/network/speedtest', methods=['GET'])
+@login_required
+def network_speedtest():
+    """Run internet speed test using speedtest-cli"""
+    try:
+        # Check if speedtest-cli is installed
+        check = subprocess.run(['which', 'speedtest-cli'], capture_output=True)
+        if check.returncode != 0:
+            return jsonify({'error': 'speedtest-cli not installed. Run: apt install speedtest-cli'}), 500
+        
+        # Run speed test
+        result = subprocess.run(
+            ['speedtest-cli', '--simple'],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        if result.returncode == 0:
+            lines = result.stdout.strip().split('\n')
+            download = upload = '0'
+            
+            for line in lines:
+                if 'Download:' in line:
+                    download = line.split(':')[1].strip().split()[0]
+                elif 'Upload:' in line:
+                    upload = line.split(':')[1].strip().split()[0]
+            
+            return jsonify({'download': download, 'upload': upload})
+        else:
+            return jsonify({'error': 'Speed test failed'}), 500
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Speed test timed out'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Initialize admin credentials on first run
     init_admin_credentials()

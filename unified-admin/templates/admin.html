@@ -822,8 +822,15 @@
     </div>
 
     <div class="container">
+        <!-- Live Details Header -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+                <h2>📊 Live Details</h2>
+            </div>
+        </div>
+
         <!-- System Stats -->
-        <div class="grid">
+        <div class="grid" style="margin-top: 10px;">
             <span class="tooltip-container" style="width: 100%;">
                 <div class="stat-card">
                     <div class="stat-value" id="uptime">-</div>
@@ -841,14 +848,14 @@
             <span class="tooltip-container" style="width: 100%;">
                 <div class="stat-card">
                     <div class="stat-value" id="memoryUsed">-</div>
-                    <div class="stat-label">Memory Used</div>
+                    <div class="stat-label">Memory Used / Total</div>
                 </div>
                 <span class="tooltip-text">🧠 RAM usage percentage. <70% = healthy, 70-90% = moderate, >90% = critical. High memory usage can cause services to crash.</span>
             </span>
             <span class="tooltip-container" style="width: 100%;">
                 <div class="stat-card">
                     <div class="stat-value" id="diskUsed">-</div>
-                    <div class="stat-label">Disk Used</div>
+                    <div class="stat-label">Disk Used / Total</div>
                 </div>
                 <span class="tooltip-text">💾 Storage space used. <80% = healthy, 80-95% = warning, >95% = critical. Free up space if getting full!</span>
             </span>
@@ -878,6 +885,14 @@
                     <div class="stat-label">Ping (8.8.8.8)</div>
                 </div>
                 <span class="tooltip-text">🌐 Network latency to Google DNS. <50ms = excellent, 50-100ms = good, >100ms = slow. "Timeout" means no internet connection!</span>
+            </span>
+            <span class="tooltip-container" style="width: 100%;">
+                <div class="stat-card">
+                    <div class="stat-value" id="speedTest">-</div>
+                    <div class="stat-label">Internet Speed Test</div>
+                    <button class="btn btn-primary" onclick="runSpeedTest()" style="margin-top: 10px; padding: 8px 16px; font-size: 12px;">🚀 Run Test</button>
+                </div>
+                <span class="tooltip-text">🚀 Test your actual internet speed! Click "Run Test" to measure real download/upload speeds. Takes ~30 seconds. Shows Mbps speeds.</span>
             </span>
         </div>
 
@@ -1341,7 +1356,7 @@
             </div>
             
             <h3 style="margin-top: 20px; margin-bottom: 10px;">Current Schedules</h3>
-            <div id="schedulesList" style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; max-height: 200px; overflow-y: auto;">
+            <div id="schedulesList" style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; max-height: 200px; overflow-y: auto; color: #334155;">
                 Loading...
             </div>
             
@@ -1485,6 +1500,16 @@
         }
         
         body.dark-mode #healthDetails {
+            background: #1e293b !important;
+            color: #e2e8f0 !important;
+        }
+        
+        body.dark-mode #schedulesList {
+            background: #1e293b !important;
+            color: #e2e8f0 !important;
+        }
+        
+        body.dark-mode #backupsList {
             background: #1e293b !important;
             color: #e2e8f0 !important;
         }
@@ -2367,8 +2392,12 @@
                 const data = await response.json();
                 
                 const list = document.getElementById('schedulesList');
+                const isDark = document.body.classList.contains('dark-mode');
+                const itemBg = isDark ? '#0f172a' : 'white';
+                const textColor = isDark ? '#e2e8f0' : '#334155';
+                
                 if (data.schedules && data.schedules.length > 0) {
-                    list.innerHTML = data.schedules.map(s => `<div style="padding: 8px; background: white; border-radius: 6px; margin-bottom: 8px;">${s}</div>`).join('');
+                    list.innerHTML = data.schedules.map(s => `<div style="padding: 10px; background: ${itemBg}; color: ${textColor}; border-radius: 6px; margin-bottom: 8px; border: 1px solid ${isDark ? '#334155' : '#e2e8f0'};">${s}</div>`).join('');
                 } else {
                     list.innerHTML = '<div style="color: #64748b;">No scheduled reboots</div>';
                 }
@@ -2645,6 +2674,26 @@
 
         function clearTerminal() {
             document.getElementById('terminalOutput').innerHTML = '';
+        }
+
+        // Speed Test Function
+        async function runSpeedTest() {
+            const speedTestEl = document.getElementById('speedTest');
+            speedTestEl.textContent = 'Testing...';
+            
+            try {
+                const response = await fetch('/api/network/speedtest');
+                const data = await response.json();
+                
+                if (data.download && data.upload) {
+                    speedTestEl.innerHTML = `↓ ${data.download} Mbps<br>↑ ${data.upload} Mbps`;
+                } else {
+                    speedTestEl.textContent = data.error || 'Test Failed';
+                }
+            } catch (error) {
+                speedTestEl.textContent = 'Error';
+                console.error('Speed test failed:', error);
+            }
         }
 
         // Load customization on page load
