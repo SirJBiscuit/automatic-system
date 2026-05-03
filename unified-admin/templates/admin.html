@@ -1413,7 +1413,7 @@
             </div>
             
             <h3 style="margin-bottom: 10px;">Detailed Status</h3>
-            <div id="healthDetails" style="background: #f8fafc; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+            <div id="healthDetails" style="background: #f8fafc; padding: 20px; border-radius: 12px; max-height: 400px; overflow-y: auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.8;">
                 Running diagnostics...
             </div>
             
@@ -1482,6 +1482,11 @@
         
         body.dark-mode .health-card h4 {
             color: #e2e8f0;
+        }
+        
+        body.dark-mode #healthDetails {
+            background: #1e293b !important;
+            color: #e2e8f0 !important;
         }
     </style>
 
@@ -2463,9 +2468,9 @@
             document.getElementById('healthServices').innerHTML = '<span class="loading">Checking...</span>';
             document.getElementById('healthStorage').innerHTML = '<span class="loading">Checking...</span>';
             document.getElementById('healthNetwork').innerHTML = '<span class="loading">Checking...</span>';
-            document.getElementById('healthDetails').innerHTML = 'Running diagnostics...\n';
+            document.getElementById('healthDetails').innerHTML = '<div style="text-align: center; padding: 20px;">Running diagnostics...</div>';
             
-            let details = '';
+            let detailsHTML = '';
             
             // Check System
             try {
@@ -2479,7 +2484,17 @@
                 if (cpuLoad > 8 || memPercent > 95) sysStatus = '❌ Critical';
                 
                 document.getElementById('healthSystem').innerHTML = `<span class="health-status-${cpuLoad < 4 ? 'ok' : cpuLoad < 8 ? 'warning' : 'error'}">${sysStatus}</span>`;
-                details += `🖥️ SYSTEM:\n  CPU Load: ${cpuLoad}\n  Memory: ${sysData.memory.used}\n  Uptime: ${sysData.uptime}\n\n`;
+                
+                detailsHTML += `
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border-left: 4px solid #667eea;">
+                        <h4 style="margin-bottom: 10px; color: #667eea;">🖥️ SYSTEM</h4>
+                        <div style="display: grid; grid-template-columns: 150px 1fr; gap: 8px;">
+                            <strong>CPU Load:</strong> <span>${cpuLoad}</span>
+                            <strong>Memory Used:</strong> <span>${sysData.memory.used}</span>
+                            <strong>Uptime:</strong> <span>${sysData.uptime}</span>
+                        </div>
+                    </div>
+                `;
             } catch (e) {
                 document.getElementById('healthSystem').innerHTML = '<span class="health-status-error">❌ Error</span>';
             }
@@ -2493,11 +2508,26 @@
                 
                 let svcStatus = activeCount === totalCount ? '✅ All Running' : `⚠️ ${activeCount}/${totalCount} Running`;
                 document.getElementById('healthServices').innerHTML = `<span class="health-status-${activeCount === totalCount ? 'ok' : 'warning'}">${svcStatus}</span>`;
-                details += `⚙️ SERVICES:\n`;
+                
+                let servicesList = '';
                 Object.entries(svcData).forEach(([name, active]) => {
-                    details += `  ${active ? '✅' : '❌'} ${name}\n`;
+                    const statusColor = active ? '#10b981' : '#ef4444';
+                    const statusIcon = active ? '✅' : '❌';
+                    servicesList += `
+                        <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: ${active ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; border-radius: 6px; margin-bottom: 6px;">
+                            <span style="font-size: 16px;">${statusIcon}</span>
+                            <strong style="flex: 1;">${name}</strong>
+                            <span style="color: ${statusColor}; font-weight: 600;">${active ? 'Running' : 'Stopped'}</span>
+                        </div>
+                    `;
                 });
-                details += '\n';
+                
+                detailsHTML += `
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 4px solid #10b981;">
+                        <h4 style="margin-bottom: 10px; color: #10b981;">⚙️ SERVICES</h4>
+                        ${servicesList}
+                    </div>
+                `;
             } catch (e) {
                 document.getElementById('healthServices').innerHTML = '<span class="health-status-error">❌ Error</span>';
             }
@@ -2513,7 +2543,20 @@
                 if (diskPercent > 95) diskStatus = '❌ Critical';
                 
                 document.getElementById('healthStorage').innerHTML = `<span class="health-status-${diskPercent < 80 ? 'ok' : diskPercent < 95 ? 'warning' : 'error'}">${diskStatus}</span>`;
-                details += `💾 STORAGE:\n  Disk Usage: ${diskData.disk.percent}\n  Available: ${diskData.disk.free}\n\n`;
+                
+                const diskColor = diskPercent < 80 ? '#10b981' : diskPercent < 95 ? '#f59e0b' : '#ef4444';
+                detailsHTML += `
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(139, 92, 246, 0.1); border-radius: 8px; border-left: 4px solid #8b5cf6;">
+                        <h4 style="margin-bottom: 10px; color: #8b5cf6;">💾 STORAGE</h4>
+                        <div style="display: grid; grid-template-columns: 150px 1fr; gap: 8px;">
+                            <strong>Disk Usage:</strong> <span style="color: ${diskColor}; font-weight: 600;">${diskData.disk.percent}</span>
+                            <strong>Available:</strong> <span>${diskData.disk.free || 'N/A'}</span>
+                        </div>
+                        <div style="margin-top: 10px; background: #e2e8f0; border-radius: 8px; height: 12px; overflow: hidden;">
+                            <div style="width: ${diskPercent}%; height: 100%; background: ${diskColor}; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                `;
             } catch (e) {
                 document.getElementById('healthStorage').innerHTML = '<span class="health-status-error">❌ Error</span>';
             }
@@ -2525,12 +2568,22 @@
                 
                 let netStatus = netData.ping !== 'Timeout' ? '✅ Connected' : '❌ No Connection';
                 document.getElementById('healthNetwork').innerHTML = `<span class="health-status-${netData.ping !== 'Timeout' ? 'ok' : 'error'}">${netStatus}</span>`;
-                details += `🌐 NETWORK:\n  Ping: ${netData.ping}\n  Download: ${netData.download.current}\n  Upload: ${netData.upload.current}\n\n`;
+                
+                detailsHTML += `
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(6, 182, 212, 0.1); border-radius: 8px; border-left: 4px solid #06b6d4;">
+                        <h4 style="margin-bottom: 10px; color: #06b6d4;">🌐 NETWORK</h4>
+                        <div style="display: grid; grid-template-columns: 150px 1fr; gap: 8px;">
+                            <strong>Ping:</strong> <span>${netData.ping}</span>
+                            <strong>Download:</strong> <span>${netData.download.current}</span>
+                            <strong>Upload:</strong> <span>${netData.upload.current}</span>
+                        </div>
+                    </div>
+                `;
             } catch (e) {
                 document.getElementById('healthNetwork').innerHTML = '<span class="health-status-error">❌ Error</span>';
             }
             
-            document.getElementById('healthDetails').textContent = details;
+            document.getElementById('healthDetails').innerHTML = detailsHTML;
         }
 
         // SSH Terminal Functions

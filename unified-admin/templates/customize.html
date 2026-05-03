@@ -373,27 +373,52 @@
             <!-- Animations Panel -->
             <div class="panel">
                 <h2>🎬 Animations</h2>
+                
+                <h3 style="font-size: 16px; margin-bottom: 10px; color: #64748b;">Button Animations</h3>
                 <div class="form-group">
-                    <label>Hover Animation</label>
-                    <select id="hoverAnimation" onchange="updatePreview()">
+                    <label>Button Hover Effect</label>
+                    <select id="buttonHoverAnimation" onchange="updatePreview()">
                         <option value="translateY(-2px)">Lift Up</option>
                         <option value="scale(1.05)">Scale Up</option>
                         <option value="rotate(2deg)">Rotate</option>
                         <option value="translateY(-2px) scale(1.02)">Lift & Scale</option>
+                        <option value="translateY(-4px) rotate(1deg)">Lift & Rotate</option>
                         <option value="none">None</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label>Button Animation Speed: <span class="value-display" id="buttonSpeedValue">0.3s</span></label>
+                    <input type="range" id="buttonAnimationSpeed" min="0.1" max="1" step="0.1" value="0.3" oninput="updatePreview()">
+                </div>
+                
+                <h3 style="font-size: 16px; margin: 20px 0 10px; color: #64748b;">Widget Animations</h3>
+                <div class="form-group">
+                    <label>Widget Entrance</label>
+                    <select id="widgetAnimation" onchange="updatePreview()">
+                        <option value="fadeIn">Fade In</option>
+                        <option value="slideUp">Slide Up</option>
+                        <option value="slideDown">Slide Down</option>
+                        <option value="scaleIn">Scale In</option>
+                        <option value="none">None</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Widget Animation Strength: <span class="value-display" id="widgetStrengthValue">Medium</span></label>
+                    <input type="range" id="widgetAnimationStrength" min="1" max="3" value="2" oninput="updatePreview()">
+                </div>
+                
+                <h3 style="font-size: 16px; margin: 20px 0 10px; color: #64748b;">Special Effects</h3>
                 <div class="checkbox-group">
                     <input type="checkbox" id="enablePulse" onchange="updatePreview()">
                     <label for="enablePulse">Pulse Animation on Stats</label>
                 </div>
                 <div class="checkbox-group">
-                    <input type="checkbox" id="enableFadeIn" checked onchange="updatePreview()">
-                    <label for="enableFadeIn">Fade-in on Load</label>
+                    <input type="checkbox" id="enableParticles" onchange="updatePreview()">
+                    <label for="enableParticles">Floating Particles Background</label>
                 </div>
                 <div class="checkbox-group">
-                    <input type="checkbox" id="enableSlide" onchange="updatePreview()">
-                    <label for="enableSlide">Slide-in Cards</label>
+                    <input type="checkbox" id="enableRipple" checked onchange="updatePreview()">
+                    <label for="enableRipple">Ripple Effect on Click</label>
                 </div>
             </div>
         </div>
@@ -451,6 +476,8 @@
             const shadow = document.getElementById('shadowIntensity').value;
             const enable3D = document.getElementById('enable3D').checked;
             const fontWeight = document.getElementById('fontWeight').value;
+            const buttonSpeed = document.getElementById('buttonAnimationSpeed').value;
+            const widgetStrength = document.getElementById('widgetAnimationStrength').value;
 
             const shadowLevels = [
                 'none',
@@ -459,18 +486,21 @@
                 '0 12px 36px rgba(102, 126, 234, 0.5)'
             ];
 
+            const strengthNames = ['Light', 'Medium', 'Strong'];
             const shadowNames = ['None', 'Light', 'Medium', 'Strong'];
             document.getElementById('shadowValue').textContent = shadowNames[shadow];
             document.getElementById('radiusValue').textContent = radius + 'px';
             document.getElementById('speedValue').textContent = speed + 's';
             document.getElementById('fontWeightValue').textContent = fontWeight;
+            document.getElementById('buttonSpeedValue').textContent = buttonSpeed + 's';
+            document.getElementById('widgetStrengthValue').textContent = strengthNames[widgetStrength - 1];
 
             const preview = document.getElementById('previewButton');
             preview.style.setProperty('--preview-primary', primary);
             preview.style.setProperty('--preview-secondary', secondary);
             preview.style.setProperty('--preview-radius', radius + 'px');
-            preview.style.setProperty('--preview-speed', speed + 's');
-            preview.style.setProperty('--preview-font', buttonFont);
+            preview.style.setProperty('--preview-speed', buttonSpeed + 's');
+            preview.style.setProperty('--preview-font', buttonFont === 'inherit' ? font : buttonFont);
             preview.style.setProperty('--preview-shadow', shadowLevels[shadow]);
             preview.style.fontWeight = fontWeight;
             
@@ -505,10 +535,13 @@
                 enable3D: document.getElementById('enable3D').checked,
                 enableGlow: document.getElementById('enableGlow').checked,
                 enableGradients: document.getElementById('enableGradients').checked,
-                hoverAnimation: document.getElementById('hoverAnimation').value,
+                buttonHoverAnimation: document.getElementById('buttonHoverAnimation').value,
+                buttonAnimationSpeed: document.getElementById('buttonAnimationSpeed').value,
+                widgetAnimation: document.getElementById('widgetAnimation').value,
+                widgetAnimationStrength: document.getElementById('widgetAnimationStrength').value,
                 enablePulse: document.getElementById('enablePulse').checked,
-                enableFadeIn: document.getElementById('enableFadeIn').checked,
-                enableSlide: document.getElementById('enableSlide').checked
+                enableParticles: document.getElementById('enableParticles').checked,
+                enableRipple: document.getElementById('enableRipple').checked
             };
 
             try {
@@ -545,10 +578,13 @@
                 document.getElementById('enable3D').checked = false;
                 document.getElementById('enableGlow').checked = false;
                 document.getElementById('enableGradients').checked = true;
-                document.getElementById('hoverAnimation').value = 'translateY(-2px)';
+                document.getElementById('buttonHoverAnimation').value = 'translateY(-2px)';
+                document.getElementById('buttonAnimationSpeed').value = '0.3';
+                document.getElementById('widgetAnimation').value = 'fadeIn';
+                document.getElementById('widgetAnimationStrength').value = '2';
                 document.getElementById('enablePulse').checked = false;
-                document.getElementById('enableFadeIn').checked = true;
-                document.getElementById('enableSlide').checked = false;
+                document.getElementById('enableParticles').checked = false;
+                document.getElementById('enableRipple').checked = true;
                 updatePreview();
             }
         }
