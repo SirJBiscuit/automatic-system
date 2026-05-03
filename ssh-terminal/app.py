@@ -125,6 +125,35 @@ def save_customization():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/execute', methods=['POST'])
+@login_required
+def execute_command():
+    """Execute a command and return output (for Open WebUI integration)"""
+    try:
+        data = request.json
+        command = data.get('command', '')
+        
+        if not command:
+            return jsonify({'error': 'No command provided'}), 400
+        
+        # Execute command
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        return jsonify({
+            'output': result.stdout + result.stderr,
+            'returncode': result.returncode
+        })
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Command timed out'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/ai/chat', methods=['POST'])
 @login_required
 def ai_chat():
@@ -139,7 +168,8 @@ def ai_chat():
         if context:
             full_prompt = f"Context:\n```\n{context}\n```\n\nQuestion: {message}"
         
-        # Try direct Ollama endpoint first (bypasses Open WebUI auth)
+        # Use Open WebUI on localhost:3000 or direct Ollama on 11434
+        # Try Ollama directly first (no auth needed)
         ollama_url = "http://localhost:11434/api/generate"
         
         payload = {
