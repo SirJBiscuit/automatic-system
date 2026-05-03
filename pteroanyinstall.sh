@@ -1939,11 +1939,17 @@ install_additional_tools() {
     echo "   • Web-based file manager"
     echo "   • Upload/download files via browser"
     echo ""
-    echo "6) Install All Recommended (Pingvin + Nextcloud + Admin Panel)"
-    echo "7) Back to main menu"
+    echo "6) SSH Web Terminal"
+    echo "   • Beautiful web-based SSH terminal"
+    echo "   • AI assistant integration"
+    echo "   • Quick commands & customization"
+    echo "   • Access from anywhere (ssh.cloudmc.online)"
+    echo ""
+    echo "7) Install All Recommended (Pingvin + Nextcloud + Admin Panel + SSH Terminal)"
+    echo "8) Back to main menu"
     echo ""
     
-    read -p "Enter choice [1-7]: " tool_choice
+    read -p "Enter choice [1-8]: " tool_choice
     
     case $tool_choice in
         1)
@@ -1962,14 +1968,19 @@ install_additional_tools() {
             install_file_share
             ;;
         6)
+            install_ssh_terminal
+            ;;
+        7)
             log_info "Installing recommended services..."
             install_pingvin_share
             echo ""
             install_nextcloud
             echo ""
             install_admin_panel
+            echo ""
+            install_ssh_terminal
             ;;
-        7)
+        8)
             main
             ;;
         *)
@@ -2237,6 +2248,57 @@ install_admin_panel() {
         rm -f /tmp/admin-setup.sh
     else
         log_error "Failed to download Admin Panel setup script"
+    fi
+    
+    echo ""
+    read -p "Press Enter to continue..."
+}
+
+install_ssh_terminal() {
+    clear
+    echo ""
+    echo "=========================================="
+    echo "      SSH Web Terminal Setup"
+    echo "=========================================="
+    echo ""
+    log_info "This will install:"
+    echo "  • SSH Web Terminal - Beautiful web-based SSH"
+    echo "  • Python Flask + SocketIO application"
+    echo "  • Xterm.js terminal emulator"
+    echo "  • Systemd service"
+    echo ""
+    log_info "Features:"
+    echo "  ✓ Full PTY-based terminal in browser"
+    echo "  ✓ AI assistant integration (Open WebUI ready)"
+    echo "  ✓ Quick command shortcuts"
+    echo "  ✓ Customizable themes (shares with admin panel)"
+    echo "  ✓ Mobile-responsive"
+    echo "  ✓ Secure session-based auth"
+    echo ""
+    log_info "Access:"
+    echo "  • Local: http://localhost:5003"
+    echo "  • Remote: Configure Cloudflare Tunnel for ssh.cloudmc.online"
+    echo ""
+    
+    if ! prompt_yes_no "Continue with SSH Terminal installation?"; then
+        log_info "Installation cancelled"
+        return
+    fi
+    
+    log_info "Downloading SSH Terminal setup script..."
+    
+    SSH_SCRIPT_URL="https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ssh-terminal/install.sh"
+    
+    if curl -fsSL "$SSH_SCRIPT_URL" -o /tmp/ssh-terminal-setup.sh; then
+        chmod +x /tmp/ssh-terminal-setup.sh
+        log_success "Script downloaded successfully"
+        echo ""
+        log_info "Starting SSH Terminal installation..."
+        echo ""
+        /tmp/ssh-terminal-setup.sh
+        rm -f /tmp/ssh-terminal-setup.sh
+    else
+        log_error "Failed to download SSH Terminal setup script"
     fi
     
     echo ""

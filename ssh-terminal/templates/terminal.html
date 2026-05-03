@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSH Web Terminal</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --background-color: #0f172a;
+            --card-background: #1e293b;
+            --text-color: #e2e8f0;
+            --border-radius: 12px;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--background-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-white {
+            background: white;
+            color: var(--primary-color);
+        }
+
+        .btn-white:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255,255,255,0.3);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            height: calc(100vh - 70px);
+            gap: 0;
+        }
+
+        .terminal-panel {
+            background: var(--card-background);
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            background: var(--background-color);
+            border-left: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-section {
+            padding: 20px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .sidebar-section h3 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            font-size: 16px;
+        }
+
+        #terminal {
+            width: 100%;
+            height: 100%;
+        }
+
+        .ai-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 12px;
+            max-width: 90%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            align-self: flex-end;
+        }
+
+        .message.ai {
+            background: #334155;
+            color: #e2e8f0;
+            align-self: flex-start;
+        }
+
+        .chat-input {
+            padding: 15px;
+            background: var(--card-background);
+            border-top: 1px solid #334155;
+        }
+
+        .chat-input input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: var(--background-color);
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .quick-commands {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .quick-cmd {
+            padding: 10px;
+            background: var(--card-background);
+            border-radius: 8px;
+            border: 1px solid #334155;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .quick-cmd:hover {
+            background: #334155;
+            border-color: var(--primary-color);
+            transform: translateX(5px);
+        }
+
+        .status-bar {
+            padding: 10px 20px;
+            background: var(--card-background);
+            border-top: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .toggle-sidebar {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+                position: fixed;
+                right: 0;
+                top: 70px;
+                width: 100%;
+                max-width: 350px;
+                height: calc(100vh - 70px);
+                z-index: 999;
+            }
+            
+            .sidebar.active {
+                display: flex;
+            }
+            
+            .toggle-sidebar {
+                display: flex;
+            }
+        }
+
+        /* Xterm.js customization */
+        .xterm {
+            padding: 10px;
+        }
+
+        .xterm-viewport {
+            background-color: transparent !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <span>💻</span>
+            SSH Web Terminal
+        </h1>
+        <div class="header-right">
+            <span id="username"></span>
+            <button class="btn btn-white" onclick="window.open('/customize', '_blank')">🎨 Customize</button>
+            <button class="btn btn-white" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="terminal-panel">
+            <div id="terminal"></div>
+        </div>
+
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-section">
+                <h3>🤖 AI Assistant</h3>
+                <div class="ai-chat">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message ai">
+                            Hi! I'm your AI assistant. Ask me anything about Linux commands or let me help you with tasks!
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="aiInput" placeholder="Ask AI for help..." onkeypress="handleAIInput(event)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>⚡ Quick Commands</h3>
+                <div class="quick-commands">
+                    <div class="quick-cmd" onclick="sendCommand('ls -la')">📁 ls -la</div>
+                    <div class="quick-cmd" onclick="sendCommand('df -h')">💾 df -h</div>
+                    <div class="quick-cmd" onclick="sendCommand('free -h')">🧠 free -h</div>
+                    <div class="quick-cmd" onclick="sendCommand('top')">📊 top</div>
+                    <div class="quick-cmd" onclick="sendCommand('htop')">📈 htop</div>
+                    <div class="quick-cmd" onclick="sendCommand('docker ps')">🐳 docker ps</div>
+                    <div class="quick-cmd" onclick="sendCommand('systemctl status')">⚙️ systemctl status</div>
+                    <div class="quick-cmd" onclick="sendCommand('netstat -tulpn')">🌐 netstat -tulpn</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-indicator"></div>
+            <span>Connected</span>
+        </div>
+        <div class="status-item">
+            <span id="sessionInfo">Session: Loading...</span>
+        </div>
+    </div>
+
+    <button class="toggle-sidebar" onclick="toggleSidebar()">🤖</button>
+
+    <script>
+        // Load customization
+        async function loadCustomization() {
+            try {
+                const response = await fetch('/api/customization/load');
+                const data = await response.json();
+                
+                if (data.primaryColor) {
+                    document.documentElement.style.setProperty('--primary-color', data.primaryColor);
+                    document.documentElement.style.setProperty('--secondary-color', data.secondaryColor);
+                    document.documentElement.style.setProperty('--font-family', data.mainFont || data.fontFamily);
+                    document.documentElement.style.setProperty('--border-radius', data.borderRadius + 'px');
+                }
+            } catch (error) {
+                console.error('Failed to load customization:', error);
+            }
+        }
+
+        // Initialize terminal
+        const term = new Terminal({
+            cursorBlink: true,
+            fontSize: 14,
+            fontFamily: '"Cascadia Code", "Fira Code", "Courier New", monospace',
+            theme: {
+                background: '#1e293b',
+                foreground: '#e2e8f0',
+                cursor: '#667eea',
+                black: '#0f172a',
+                red: '#ef4444',
+                green: '#10b981',
+                yellow: '#f59e0b',
+                blue: '#3b82f6',
+                magenta: '#a855f7',
+                cyan: '#06b6d4',
+                white: '#e2e8f0',
+                brightBlack: '#475569',
+                brightRed: '#f87171',
+                brightGreen: '#34d399',
+                brightYellow: '#fbbf24',
+                brightBlue: '#60a5fa',
+                brightMagenta: '#c084fc',
+                brightCyan: '#22d3ee',
+                brightWhite: '#f8fafc'
+            }
+        });
+
+        term.open(document.getElementById('terminal'));
+
+        // WebSocket connection
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        socket.on('connected', (data) => {
+            document.getElementById('sessionInfo').textContent = `Session: ${data.session_id.substring(0, 8)}`;
+        });
+
+        socket.on('output', (data) => {
+            term.write(data.data);
+        });
+
+        term.onData((data) => {
+            socket.emit('input', { data });
+        });
+
+        // Handle terminal resize
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        
+        window.addEventListener('resize', () => {
+            fitAddon.fit();
+            socket.emit('resize', {
+                rows: term.rows,
+                cols: term.cols
+            });
+        });
+
+        setTimeout(() => {
+            fitAddon.fit();
+            socket.emit('resize', {
+                rows: term.rows,
+                cols: term.cols
+            });
+        }, 100);
+
+        // Quick commands
+        function sendCommand(cmd) {
+            socket.emit('input', { data: cmd + '\n' });
+        }
+
+        // AI Assistant
+        async function handleAIInput(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('aiInput');
+                const message = input.value.trim();
+                
+                if (!message) return;
+                
+                // Add user message
+                addChatMessage(message, 'user');
+                input.value = '';
+                
+                try {
+                    const response = await fetch('/api/ai/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    // Add AI response
+                    addChatMessage(data.response, 'ai');
+                    
+                    // Show suggestions if any
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        const suggestionsMsg = '💡 Suggestions:\n' + data.suggestions.join('\n');
+                        addChatMessage(suggestionsMsg, 'ai');
+                    }
+                } catch (error) {
+                    addChatMessage('Sorry, I encountered an error. Please try again.', 'ai');
+                }
+            }
+        }
+
+        function addChatMessage(text, type) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Sidebar toggle
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        // Logout
+        async function logout() {
+            try {
+                await fetch('/logout', { method: 'POST' });
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
+
+        // Load customization on page load
+        loadCustomization();
+    </script>
+</body>
+</html>
