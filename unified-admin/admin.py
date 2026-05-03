@@ -525,6 +525,107 @@ def sync_pterodactyl():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/docker/containers', methods=['GET'])
+@login_required
+def get_docker_containers():
+    """Get all Docker containers with status"""
+    try:
+        result = subprocess.run(['docker', 'ps', '-a', '--format', '{{.ID}}|{{.Names}}|{{.Status}}|{{.Image}}'], 
+                              capture_output=True, text=True)
+        containers = []
+        for line in result.stdout.strip().split('\n'):
+            if line:
+                id, name, status, image = line.split('|')
+                containers.append({
+                    'id': id,
+                    'name': name,
+                    'status': status,
+                    'image': image,
+                    'running': 'Up' in status
+                })
+        return jsonify({'containers': containers})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/docker/container/<container_id>/<action>', methods=['POST'])
+@login_required
+def docker_container_action(container_id, action):
+    """Perform action on Docker container (start/stop/restart)"""
+    try:
+        if action not in ['start', 'stop', 'restart']:
+            return jsonify({'error': 'Invalid action'}), 400
+        
+        subprocess.run(['docker', action, container_id], check=True)
+        return jsonify({'success': True, 'message': f'Container {action}ed successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/docker/container/<container_id>/logs', methods=['GET'])
+@login_required
+def get_container_logs(container_id):
+    """Get Docker container logs"""
+    try:
+        result = subprocess.run(['docker', 'logs', '--tail', '100', container_id], 
+                              capture_output=True, text=True)
+        return jsonify({'logs': result.stdout + result.stderr})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/disk/health', methods=['GET'])
+@login_required
+def get_disk_health():
+    """Get SMART disk health status"""
+    try:
+        disks = []
+        
+        # Check NVMe drive
+        nvme_result = subprocess.run(['smartctl', '-H', '/dev/nvme0n1'], 
+                                    capture_output=True, text=True)
+        nvme_temp = subprocess.run(['smartctl', '-A', '/dev/nvme0n1'], 
+                                  capture_output=True, text=True)
+        
+        nvme_health = 'PASSED' if 'PASSED' in nvme_result.stdout else 'FAILED'
+        nvme_temp_match = None
+        for line in nvme_temp.stdout.split('\n'):
+            if 'Temperature:' in line or 'temperature' in line.lower():
+                nvme_temp_match = line.strip()
+                break
+        
+        disks.append({
+            'device': '/dev/nvme0n1',
+            'type': 'NVMe SSD',
+            'size': '1.8TB',
+            'health': nvme_health,
+            'temperature': nvme_temp_match or 'N/A'
+        })
+        
+        # Check 8TB drive
+        sda_result = subprocess.run(['smartctl', '-H', '/dev/sda'], 
+                                   capture_output=True, text=True)
+        sda_temp = subprocess.run(['smartctl', '-A', '/dev/sda'], 
+                                 capture_output=True, text=True)
+        
+        sda_health = 'PASSED' if 'PASSED' in sda_result.stdout else 'FAILED'
+        sda_temp_match = None
+        for line in sda_temp.stdout.split('\n'):
+            if 'Temperature_Celsius' in line:
+                parts = line.split()
+                if len(parts) >= 10:
+                    sda_temp_match = f"{parts[9]}°C"
+                break
+        
+        disks.append({
+            'device': '/dev/sda',
+            'type': 'HDD',
+            'size': '7.3TB',
+            'health': sda_health,
+            'temperature': sda_temp_match or 'N/A'
+        })
+        
+        return jsonify({'disks': disks})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Initialize admin credentials on first run
     init_admin_credentials()

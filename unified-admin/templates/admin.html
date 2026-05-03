@@ -652,6 +652,73 @@
             background: #667eea;
             color: white;
         }
+
+        /* Mobile Responsive Design */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .header-right {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .shortcuts-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab {
+                flex: 1 1 45%;
+                font-size: 13px;
+                padding: 10px;
+            }
+
+            .btn {
+                padding: 8px 15px;
+                font-size: 13px;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 20px auto;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .shortcuts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tab {
+                flex: 1 1 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -805,6 +872,8 @@
             <div class="tabs">
                 <div class="tab active" onclick="switchTab('filebrowser')">Filebrowser Users</div>
                 <div class="tab" onclick="switchTab('services')">Quick Access</div>
+                <div class="tab" onclick="switchTab('docker')">🐳 Docker</div>
+                <div class="tab" onclick="switchTab('disks')">💾 Disk Health</div>
                 <div class="tab" onclick="switchTab('storage')">Storage</div>
                 <div class="tab" onclick="switchTab('system')">System</div>
             </div>
@@ -837,6 +906,34 @@
                 </div>
                 <div class="alert alert-warning">
                     ⚠️ Sessions in these services will be automatically cleared when you logout from the admin panel.
+                </div>
+            </div>
+
+            <!-- Docker Containers Tab -->
+            <div class="tab-content" id="docker-tab">
+                <div class="card-header">
+                    <h2>🐳 Docker Containers</h2>
+                    <button class="btn btn-primary" onclick="loadDockerContainers()">Refresh</button>
+                </div>
+                <p class="help-text">Manage all Docker containers on your server. Start, stop, restart, or view logs.</p>
+                <div id="dockerContainersList">
+                    <div class="service-item">
+                        <span class="service-name">Loading containers...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Disk Health Tab -->
+            <div class="tab-content" id="disks-tab">
+                <div class="card-header">
+                    <h2>💾 Disk Health (SMART Status)</h2>
+                    <button class="btn btn-primary" onclick="loadDiskHealth()">Refresh</button>
+                </div>
+                <p class="help-text">Monitor the health and temperature of your drives using SMART data.</p>
+                <div id="diskHealthList">
+                    <div class="service-item">
+                        <span class="service-name">Loading disk health...</span>
+                    </div>
                 </div>
             </div>
 
@@ -1480,6 +1577,114 @@
                 alert('Failed to configure Pterodactyl');
             }
         }
+
+        async function loadDockerContainers() {
+            try {
+                const response = await fetch('/api/docker/containers');
+                const data = await response.json();
+                
+                const containersList = document.getElementById('dockerContainersList');
+                if (data.containers && data.containers.length > 0) {
+                    containersList.innerHTML = data.containers.map(container => `
+                        <div class="service-item">
+                            <div>
+                                <span class="pulse-indicator ${container.running ? 'online' : 'offline'}"></span>
+                                <span class="service-name">${container.name}</span>
+                                <span class="service-status">${container.image}</span>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn btn-sm btn-success" onclick="dockerAction('${container.id}', 'start')" ${container.running ? 'disabled' : ''}>▶️ Start</button>
+                                <button class="btn btn-sm btn-warning" onclick="dockerAction('${container.id}', 'restart')" ${!container.running ? 'disabled' : ''}>🔄 Restart</button>
+                                <button class="btn btn-sm btn-danger" onclick="dockerAction('${container.id}', 'stop')" ${!container.running ? 'disabled' : ''}>⏹️ Stop</button>
+                                <button class="btn btn-sm btn-primary" onclick="showContainerLogs('${container.id}', '${container.name}')">📋 Logs</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    containersList.innerHTML = '<div class="service-item"><span class="service-name">No containers found</span></div>';
+                }
+            } catch (error) {
+                console.error('Error loading Docker containers:', error);
+            }
+        }
+
+        async function dockerAction(containerId, action) {
+            try {
+                const response = await fetch(`/api/docker/container/${containerId}/${action}`, {method: 'POST'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    loadDockerContainers();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to perform action');
+            }
+        }
+
+        async function showContainerLogs(containerId, containerName) {
+            try {
+                const response = await fetch(`/api/docker/container/${containerId}/logs`);
+                const data = await response.json();
+                
+                if (data.logs) {
+                    const modal = document.createElement('div');
+                    modal.className = 'modal active';
+                    modal.innerHTML = `
+                        <div class="modal-content" style="max-width: 900px;">
+                            <div class="modal-header">
+                                📋 Container Logs: ${containerName}
+                                <button class="close-btn" onclick="this.closest('.modal').remove()">×</button>
+                            </div>
+                            <div class="modal-body">
+                                <pre style="background: #1e293b; color: #e2e8f0; padding: 15px; border-radius: 8px; max-height: 500px; overflow-y: auto; font-size: 12px;">${data.logs}</pre>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to load logs');
+            }
+        }
+
+        async function loadDiskHealth() {
+            try {
+                const response = await fetch('/api/disk/health');
+                const data = await response.json();
+                
+                const diskHealthList = document.getElementById('diskHealthList');
+                if (data.disks && data.disks.length > 0) {
+                    diskHealthList.innerHTML = data.disks.map(disk => `
+                        <div class="service-item">
+                            <div>
+                                <span class="pulse-indicator ${disk.health === 'PASSED' ? 'online' : 'offline'}"></span>
+                                <span class="service-name">${disk.device} (${disk.type})</span>
+                                <span class="service-status">${disk.size} • ${disk.health}</span>
+                            </div>
+                            <div>
+                                <span class="service-status">🌡️ ${disk.temperature}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    diskHealthList.innerHTML = '<div class="service-item"><span class="service-name">No disk data available</span></div>';
+                }
+            } catch (error) {
+                console.error('Error loading disk health:', error);
+                document.getElementById('diskHealthList').innerHTML = '<div class="service-item"><span class="service-name">Error loading disk health. Make sure smartmontools is installed.</span></div>';
+            }
+        }
+
+        // Load Docker containers and disk health on page load
+        window.addEventListener('load', () => {
+            loadDockerContainers();
+            loadDiskHealth();
+        });
     </script>
 </body>
 </html>
