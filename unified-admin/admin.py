@@ -57,9 +57,18 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'logged_in' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
+            # Check if it's an API request
+            if request.path.startswith('/api/'):
+                return jsonify({'error': 'Authentication required'}), 401
+            # For page requests, redirect to login
+            return redirect('/login.html')
         return f(*args, **kwargs)
     return decorated_function
+
+@app.route('/login.html')
+def login_page():
+    """Serve login page"""
+    return render_template('login.html')
 
 @app.route('/')
 @login_required
