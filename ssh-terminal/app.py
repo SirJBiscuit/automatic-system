@@ -17,6 +17,7 @@ import termios
 import struct
 import fcntl
 import threading
+import requests
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -137,9 +138,6 @@ def ai_chat():
         full_prompt = message
         if context:
             full_prompt = f"Context:\n```\n{context}\n```\n\nQuestion: {message}"
-        
-        # Call Open WebUI API
-        import requests
         
         # Open WebUI endpoint (try both possible endpoints)
         openwebui_url = "https://ui.cloudmc.online/ollama/api/generate"
