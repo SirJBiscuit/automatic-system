@@ -141,29 +141,22 @@ def ai_chat():
         # Call Open WebUI API
         import requests
         
-        openwebui_url = "https://ui.cloudmc.online/api/chat/completions"
+        # Open WebUI endpoint (try both possible endpoints)
+        openwebui_url = "https://ui.cloudmc.online/ollama/api/generate"
         
         payload = {
             "model": "qwen2.5:7b",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a helpful coding assistant. You help with Linux commands, code explanations, debugging, and code generation. Be concise and practical."
-                },
-                {
-                    "role": "user",
-                    "content": full_prompt
-                }
-            ],
-            "stream": False
+            "prompt": full_prompt,
+            "stream": False,
+            "system": "You are a helpful coding assistant. You help with Linux commands, code explanations, debugging, and code generation. Be concise and practical."
         }
         
         try:
-            ai_response = requests.post(openwebui_url, json=payload, timeout=30)
+            ai_response = requests.post(openwebui_url, json=payload, timeout=30, verify=False)
             
             if ai_response.status_code == 200:
                 ai_data = ai_response.json()
-                response_text = ai_data['choices'][0]['message']['content']
+                response_text = ai_data.get('response', 'No response from AI')
                 
                 return jsonify({
                     'response': response_text,
@@ -172,7 +165,7 @@ def ai_chat():
             else:
                 # Fallback response
                 return jsonify({
-                    'response': f"I'm having trouble connecting to the AI service. Error: {ai_response.status_code}",
+                    'response': f"I'm having trouble connecting to the AI service. Error: {ai_response.status_code}\n\nMake sure Open WebUI is running at ui.cloudmc.online",
                     'suggestions': ['ls -la', 'df -h', 'top', 'systemctl status']
                 })
         except requests.exceptions.RequestException as e:
