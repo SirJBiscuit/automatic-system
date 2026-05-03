@@ -777,6 +777,13 @@
                     </button>
                     <span class="tooltip-text">Update Pingvin Share or Nextcloud from GitHub. Services will restart automatically.</span>
                 </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="syncPterodactyl()" style="width: 100%;">
+                        <div class="icon">🔗</div>
+                        Sync Pterodactyl Node
+                    </button>
+                    <span class="tooltip-text">Automatically configures Wings and Cloudflare tunnel for Pterodactyl. Fixes connection issues.</span>
+                </span>
             </div>
         </div>
 
@@ -1453,6 +1460,24 @@
                 }
             } catch (error) {
                 alert('Failed to update service');
+            }
+        }
+
+        async function syncPterodactyl() {
+            if (!confirm('Sync Pterodactyl Wings configuration? This will update cloudflared config and restart services.')) return;
+            
+            try {
+                const response = await fetch('/api/pterodactyl/sync', {method: 'POST'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message + '\n\nReminder: In Pterodactyl Panel, set:\n- FQDN: wings.cloudmc.online\n- Port: 443\n- SSL: ON\n- Behind Proxy: ON');
+                    loadServices();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to sync Pterodactyl');
             }
         }
     </script>

@@ -498,6 +498,31 @@ def update_service(service):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/pterodactyl/sync', methods=['POST'])
+@login_required
+def sync_pterodactyl():
+    """Sync Pterodactyl Wings configuration"""
+    try:
+        # Update Wings config to use HTTP
+        config_path = '/etc/pterodactyl/config.yml'
+        subprocess.run(['sed', '-i', 's/enabled: true/enabled: false/', config_path], check=False)
+        subprocess.run(['sed', '-i', 's/port: 8080/port: 8083/', config_path], check=False)
+        subprocess.run(['sed', '-i', 's/port: 8081/port: 8083/', config_path], check=False)
+        
+        # Update cloudflared config for Wings
+        cloudflared_config = '/root/.cloudflared/config.yml'
+        subprocess.run(['sed', '-i', 's|service: https://localhost:8080|service: http://localhost:8083|', cloudflared_config], check=False)
+        subprocess.run(['sed', '-i', 's|service: https://localhost:8081|service: http://localhost:8083|', cloudflared_config], check=False)
+        subprocess.run(['sed', '-i', 's|service: https://localhost:8083|service: http://localhost:8083|', cloudflared_config], check=False)
+        
+        # Restart services
+        subprocess.run(['systemctl', 'restart', 'wings'], check=True)
+        subprocess.run(['systemctl', 'restart', 'cloudflared'], check=True)
+        
+        return jsonify({'success': True, 'message': 'Pterodactyl Wings synced! Wings and Cloudflared restarted.'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Initialize admin credentials on first run
     init_admin_credentials()
