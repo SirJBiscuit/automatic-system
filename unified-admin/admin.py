@@ -786,6 +786,145 @@ def cancel_reboot():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/customization/save', methods=['POST'])
+@login_required
+def save_customization():
+    """Save UI customization settings"""
+    try:
+        import json
+        data = request.get_json()
+        
+        customization_file = '/opt/unified-admin/customization.json'
+        with open(customization_file, 'w') as f:
+            json.dump(data, f)
+        
+        return jsonify({'success': True, 'message': 'Customization saved'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/customization/load', methods=['GET'])
+@login_required
+def load_customization():
+    """Load UI customization settings"""
+    try:
+        import json
+        customization_file = '/opt/unified-admin/customization.json'
+        
+        if os.path.exists(customization_file):
+            with open(customization_file, 'r') as f:
+                data = json.load(f)
+            return jsonify(data)
+        else:
+            return jsonify({})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/schedule/reboot', methods=['POST'])
+@login_required
+def schedule_advanced_reboot():
+    """Schedule reboot with cron"""
+    try:
+        data = request.get_json()
+        schedule_type = data.get('type')  # 'once', 'daily', 'weekly', 'monthly'
+        time_str = data.get('time')  # HH:MM format
+        day = data.get('day')  # For weekly/monthly
+        
+        hour, minute = time_str.split(':')
+        
+        # Create cron expression
+        if schedule_type == 'once':
+            # Use 'at' command for one-time
+            subprocess.run(['at', f'{hour}:{minute}', 'today'], input=b'sudo reboot\n', check=True)
+            message = f'Reboot scheduled for today at {time_str}'
+        elif schedule_type == 'daily':
+            cron_expr = f'{minute} {hour} * * * sudo reboot'
+            subprocess.run(['bash', '-c', f'(crontab -l 2>/dev/null; echo "{cron_expr}") | crontab -'], check=True)
+            message = f'Daily reboot scheduled at {time_str}'
+        elif schedule_type == 'weekly':
+            cron_expr = f'{minute} {hour} * * {day} sudo reboot'
+            subprocess.run(['bash', '-c', f'(crontab -l 2>/dev/null; echo "{cron_expr}") | crontab -'], check=True)
+            message = f'Weekly reboot scheduled on day {day} at {time_str}'
+        elif schedule_type == 'monthly':
+            cron_expr = f'{minute} {hour} {day} * * sudo reboot'
+            subprocess.run(['bash', '-c', f'(crontab -l 2>/dev/null; echo "{cron_expr}") | crontab -'], check=True)
+            message = f'Monthly reboot scheduled on day {day} at {time_str}'
+        
+        return jsonify({'success': True, 'message': message})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/schedule/list', methods=['GET'])
+@login_required
+def list_schedules():
+    """List all scheduled tasks"""
+    try:
+        result = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
+        schedules = []
+        
+        for line in result.stdout.split('\n'):
+            if 'reboot' in line and not line.startswith('#'):
+                schedules.append(line.strip())
+        
+        return jsonify({'schedules': schedules})
+    except Exception as e:
+        return jsonify({'schedules': []})
+
+@app.route('/api/schedule/clear', methods=['POST'])
+@login_required
+def clear_schedules():
+    """Clear all reboot schedules"""
+    try:
+        # Remove reboot entries from crontab
+        subprocess.run(['bash', '-c', 'crontab -l | grep -v "reboot" | crontab -'], check=True)
+        return jsonify({'success': True, 'message': 'All reboot schedules cleared'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/backup/create', methods=['POST'])
+@login_required
+def create_backup():
+    """Create backup of services"""
+    try:
+        import datetime
+        data = request.get_json()
+        services = data.get('services', [])
+        
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_dir = f'/opt/backups/{timestamp}'
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        for service in services:
+            if service == 'nextcloud':
+                subprocess.run(['tar', '-czf', f'{backup_dir}/nextcloud.tar.gz', '/opt/nextcloud'], check=True)
+            elif service == 'pingvin':
+                subprocess.run(['tar', '-czf', f'{backup_dir}/pingvin.tar.gz', '/opt/pingvin-share'], check=True)
+            elif service == 'admin':
+                subprocess.run(['tar', '-czf', f'{backup_dir}/admin.tar.gz', '/opt/unified-admin'], check=True)
+        
+        return jsonify({'success': True, 'message': f'Backup created: {backup_dir}'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/backup/list', methods=['GET'])
+@login_required
+def list_backups():
+    """List all backups"""
+    try:
+        backup_dir = '/opt/backups'
+        if not os.path.exists(backup_dir):
+            return jsonify({'backups': []})
+        
+        backups = []
+        for item in os.listdir(backup_dir):
+            path = os.path.join(backup_dir, item)
+            if os.path.isdir(path):
+                size = subprocess.run(['du', '-sh', path], capture_output=True, text=True).stdout.split()[0]
+                backups.append({'name': item, 'size': size, 'path': path})
+        
+        return jsonify({'backups': backups})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Initialize admin credentials on first run
     init_admin_credentials()

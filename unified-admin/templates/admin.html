@@ -895,6 +895,27 @@
                     </button>
                     <span class="tooltip-text">Auto-configures Wings (port 8083, HTTP) and Cloudflare tunnel. Use this if Wings won't connect or after server reboot.</span>
                 </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="showCustomization()" style="width: 100%;">
+                        <div class="icon">🎨</div>
+                        Customize Panel
+                    </button>
+                    <span class="tooltip-text">Personalize colors, fonts, animations, and appearance. Save your custom theme!</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="showSchedule()" style="width: 100%;">
+                        <div class="icon">⏰</div>
+                        Schedule Reboot
+                    </button>
+                    <span class="tooltip-text">Set up recurring reboots (daily, weekly, monthly) with advanced cron scheduling.</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="showBackup()" style="width: 100%;">
+                        <div class="icon">💾</div>
+                        Backup & Restore
+                    </button>
+                    <span class="tooltip-text">Create backups of Nextcloud, Pingvin Share, and configurations. Restore from previous backups.</span>
+                </span>
             </div>
         </div>
 
@@ -1129,6 +1150,140 @@
                 <button class="btn btn-primary" onclick="updateService('nextcloud')">Update Nextcloud</button>
             </div>
             <button class="btn" onclick="closeModal('updateServicesModal')" style="margin-top: 15px;">Close</button>
+        </div>
+    </div>
+
+    <!-- Customization Modal -->
+    <div class="modal" id="customizationModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">🎨 Customize Admin Panel</div>
+            
+            <h3 style="margin-bottom: 10px;">Colors</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div class="form-group">
+                    <label>Primary Color</label>
+                    <input type="color" id="primaryColor" value="#667eea" style="width: 100%; height: 40px;">
+                </div>
+                <div class="form-group">
+                    <label>Secondary Color</label>
+                    <input type="color" id="secondaryColor" value="#764ba2" style="width: 100%; height: 40px;">
+                </div>
+            </div>
+            
+            <h3 style="margin-bottom: 10px;">Appearance</h3>
+            <div class="form-group">
+                <label>Font Family</label>
+                <select id="fontFamily">
+                    <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">System Default</option>
+                    <option value="'Arial', sans-serif">Arial</option>
+                    <option value="'Courier New', monospace">Courier New</option>
+                    <option value="'Georgia', serif">Georgia</option>
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                    <option value="'Verdana', sans-serif">Verdana</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Border Radius: <span id="radiusValue">12px</span></label>
+                <input type="range" id="borderRadius" min="0" max="30" value="12" style="width: 100%;" oninput="document.getElementById('radiusValue').textContent = this.value + 'px'">
+            </div>
+            
+            <div class="form-group">
+                <label>Animation Speed: <span id="speedValue">0.3s</span></label>
+                <input type="range" id="animationSpeed" min="0.1" max="1" step="0.1" value="0.3" style="width: 100%;" oninput="document.getElementById('speedValue').textContent = this.value + 's'">
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-success" onclick="applyCustomization()">Apply</button>
+                <button class="btn btn-warning" onclick="saveCustomization()">Save</button>
+                <button class="btn btn-secondary" onclick="resetCustomization()">Reset</button>
+                <button class="btn" onclick="closeModal('customizationModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Schedule Modal -->
+    <div class="modal" id="scheduleModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">⏰ Advanced Reboot Scheduling</div>
+            
+            <div class="form-group">
+                <label>Schedule Type</label>
+                <select id="scheduleType" onchange="updateScheduleFields()">
+                    <option value="once">One-Time</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Time (24-hour format)</label>
+                <input type="time" id="scheduleTime" value="03:00">
+            </div>
+            
+            <div class="form-group" id="dayField" style="display: none;">
+                <label id="dayLabel">Day</label>
+                <select id="scheduleDay">
+                    <option value="0">Sunday</option>
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                    <option value="6">Saturday</option>
+                </select>
+            </div>
+            
+            <div class="alert alert-warning">
+                ⚠️ Server will reboot automatically at the scheduled time. All services will be stopped gracefully.
+            </div>
+            
+            <h3 style="margin-top: 20px; margin-bottom: 10px;">Current Schedules</h3>
+            <div id="schedulesList" style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; max-height: 200px; overflow-y: auto;">
+                Loading...
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-success" onclick="createSchedule()">Create Schedule</button>
+                <button class="btn btn-danger" onclick="clearAllSchedules()">Clear All</button>
+                <button class="btn" onclick="closeModal('scheduleModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Modal -->
+    <div class="modal" id="backupModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">💾 Backup & Restore</div>
+            
+            <h3 style="margin-bottom: 10px;">Create Backup</h3>
+            <div class="form-group">
+                <label>Select Services to Backup</label>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="backupNextcloud" checked>
+                        <span>Nextcloud (includes database)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="backupPingvin" checked>
+                        <span>Pingvin Share</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="backupAdmin">
+                        <span>Admin Panel</span>
+                    </label>
+                </div>
+            </div>
+            
+            <button class="btn btn-success" onclick="createBackup()" style="margin-bottom: 20px;">Create Backup Now</button>
+            
+            <h3 style="margin-bottom: 10px;">Available Backups</h3>
+            <div id="backupsList" style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; max-height: 300px; overflow-y: auto;">
+                Loading...
+            </div>
+            
+            <button class="btn" onclick="closeModal('backupModal')">Close</button>
         </div>
     </div>
 
@@ -1822,6 +1977,267 @@
                 alert('Failed to cancel reboot');
             }
         }
+
+        // Customization Functions
+        function showCustomization() {
+            document.getElementById('customizationModal').classList.add('active');
+            loadCustomization();
+        }
+
+        async function loadCustomization() {
+            try {
+                const response = await fetch('/api/customization/load');
+                const data = await response.json();
+                
+                if (data.primaryColor) {
+                    document.getElementById('primaryColor').value = data.primaryColor;
+                    document.getElementById('secondaryColor').value = data.secondaryColor;
+                    document.getElementById('fontFamily').value = data.fontFamily;
+                    document.getElementById('borderRadius').value = data.borderRadius;
+                    document.getElementById('animationSpeed').value = data.animationSpeed;
+                    document.getElementById('radiusValue').textContent = data.borderRadius + 'px';
+                    document.getElementById('speedValue').textContent = data.animationSpeed + 's';
+                }
+            } catch (error) {
+                console.error('Failed to load customization');
+            }
+        }
+
+        function applyCustomization() {
+            const root = document.documentElement;
+            root.style.setProperty('--primary-color', document.getElementById('primaryColor').value);
+            root.style.setProperty('--secondary-color', document.getElementById('secondaryColor').value);
+            root.style.setProperty('--font-family', document.getElementById('fontFamily').value);
+            root.style.setProperty('--border-radius', document.getElementById('borderRadius').value + 'px');
+            root.style.setProperty('--animation-speed', document.getElementById('animationSpeed').value + 's');
+            
+            alert('Customization applied! Click "Save" to keep these settings.');
+        }
+
+        async function saveCustomization() {
+            const customization = {
+                primaryColor: document.getElementById('primaryColor').value,
+                secondaryColor: document.getElementById('secondaryColor').value,
+                fontFamily: document.getElementById('fontFamily').value,
+                borderRadius: document.getElementById('borderRadius').value,
+                animationSpeed: document.getElementById('animationSpeed').value
+            };
+            
+            try {
+                const response = await fetch('/api/customization/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(customization)
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    applyCustomization();
+                    alert('Customization saved!');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to save customization');
+            }
+        }
+
+        function resetCustomization() {
+            if (!confirm('Reset to default theme?')) return;
+            
+            document.getElementById('primaryColor').value = '#667eea';
+            document.getElementById('secondaryColor').value = '#764ba2';
+            document.getElementById('fontFamily').value = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            document.getElementById('borderRadius').value = '12';
+            document.getElementById('animationSpeed').value = '0.3';
+            
+            applyCustomization();
+        }
+
+        // Schedule Functions
+        function showSchedule() {
+            document.getElementById('scheduleModal').classList.add('active');
+            loadSchedules();
+        }
+
+        function updateScheduleFields() {
+            const type = document.getElementById('scheduleType').value;
+            const dayField = document.getElementById('dayField');
+            const dayLabel = document.getElementById('dayLabel');
+            const daySelect = document.getElementById('scheduleDay');
+            
+            if (type === 'weekly') {
+                dayField.style.display = 'block';
+                dayLabel.textContent = 'Day of Week';
+                // Reset to weekday options
+                daySelect.innerHTML = `
+                    <option value="0">Sunday</option>
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                    <option value="6">Saturday</option>
+                `;
+            } else if (type === 'monthly') {
+                dayField.style.display = 'block';
+                dayLabel.textContent = 'Day of Month';
+                // Generate days 1-31
+                let options = '';
+                for (let i = 1; i <= 31; i++) {
+                    options += `<option value="${i}">${i}</option>`;
+                }
+                daySelect.innerHTML = options;
+            } else {
+                dayField.style.display = 'none';
+            }
+        }
+
+        async function createSchedule() {
+            const type = document.getElementById('scheduleType').value;
+            const time = document.getElementById('scheduleTime').value;
+            const day = document.getElementById('scheduleDay').value;
+            
+            if (!time) {
+                alert('Please select a time');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/schedule/reboot', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({type, time, day})
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    loadSchedules();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to create schedule');
+            }
+        }
+
+        async function loadSchedules() {
+            try {
+                const response = await fetch('/api/schedule/list');
+                const data = await response.json();
+                
+                const list = document.getElementById('schedulesList');
+                if (data.schedules && data.schedules.length > 0) {
+                    list.innerHTML = data.schedules.map(s => `<div style="padding: 8px; background: white; border-radius: 6px; margin-bottom: 8px;">${s}</div>`).join('');
+                } else {
+                    list.innerHTML = '<div style="color: #64748b;">No scheduled reboots</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load schedules');
+            }
+        }
+
+        async function clearAllSchedules() {
+            if (!confirm('Clear all reboot schedules?')) return;
+            
+            try {
+                const response = await fetch('/api/schedule/clear', {method: 'POST'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    loadSchedules();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to clear schedules');
+            }
+        }
+
+        // Backup Functions
+        function showBackup() {
+            document.getElementById('backupModal').classList.add('active');
+            loadBackups();
+        }
+
+        async function createBackup() {
+            const services = [];
+            if (document.getElementById('backupNextcloud').checked) services.push('nextcloud');
+            if (document.getElementById('backupPingvin').checked) services.push('pingvin');
+            if (document.getElementById('backupAdmin').checked) services.push('admin');
+            
+            if (services.length === 0) {
+                alert('Please select at least one service to backup');
+                return;
+            }
+            
+            if (!confirm(`Create backup of: ${services.join(', ')}?`)) return;
+            
+            try {
+                const response = await fetch('/api/backup/create', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({services})
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    loadBackups();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to create backup');
+            }
+        }
+
+        async function loadBackups() {
+            try {
+                const response = await fetch('/api/backup/list');
+                const data = await response.json();
+                
+                const list = document.getElementById('backupsList');
+                if (data.backups && data.backups.length > 0) {
+                    list.innerHTML = data.backups.map(b => `
+                        <div style="padding: 10px; background: white; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${b.name}</strong><br>
+                                <small style="color: #64748b;">Size: ${b.size}</small>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<div style="color: #64748b;">No backups available</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load backups');
+            }
+        }
+
+        // Load customization on page load
+        window.addEventListener('load', () => {
+            loadCustomization().then(() => {
+                const root = document.documentElement;
+                const saved = {
+                    primaryColor: document.getElementById('primaryColor').value,
+                    secondaryColor: document.getElementById('secondaryColor').value,
+                    fontFamily: document.getElementById('fontFamily').value,
+                    borderRadius: document.getElementById('borderRadius').value,
+                    animationSpeed: document.getElementById('animationSpeed').value
+                };
+                
+                if (saved.primaryColor !== '#667eea') {
+                    root.style.setProperty('--primary-color', saved.primaryColor);
+                    root.style.setProperty('--secondary-color', saved.secondaryColor);
+                    root.style.setProperty('--font-family', saved.fontFamily);
+                    root.style.setProperty('--border-radius', saved.borderRadius + 'px');
+                    root.style.setProperty('--animation-speed', saved.animationSpeed + 's');
+                }
+            });
+        });
     </script>
 </body>
 </html>
