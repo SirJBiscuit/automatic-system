@@ -231,8 +231,10 @@ class Terminal:
         self.child_pid, self.fd = pty.fork()
         
         if self.child_pid == 0:
-            # Child process
-            subprocess.run(['/bin/bash'])
+            # Child process - set environment and run bash
+            os.environ['TERM'] = 'xterm-256color'
+            os.environ['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+            subprocess.run(['/bin/bash', '-l', '-i'])
         else:
             # Parent process
             self.set_size(24, 80)
