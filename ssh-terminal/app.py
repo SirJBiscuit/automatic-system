@@ -240,10 +240,11 @@ class Terminal:
             }
             subprocess.run(['/bin/bash', '-l'], env=env)
         else:
-            # Parent process - set terminal attributes for proper echo
+            # Parent process - set terminal attributes for character-by-character echo
             attr = termios.tcgetattr(self.fd)
-            # Enable echo and canonical mode
-            attr[3] = attr[3] | termios.ECHO | termios.ICANON
+            # Enable echo, disable canonical mode for immediate character display
+            attr[3] = attr[3] | termios.ECHO
+            attr[3] = attr[3] & ~termios.ICANON
             termios.tcsetattr(self.fd, termios.TCSANOW, attr)
             self.set_size(24, 80)
             
