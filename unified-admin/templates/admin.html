@@ -1792,8 +1792,8 @@
                     // Update values
                     document.getElementById('uptime').textContent = data.uptime || '-';
                     document.getElementById('cpuLoad').textContent = data.load ? data.load[0] : '-';
-                    document.getElementById('memoryUsed').textContent = data.memory ? data.memory.used : '-';
-                    document.getElementById('diskUsed').textContent = data.disk ? data.disk.percent : '-';
+                    document.getElementById('memoryUsed').textContent = data.memory ? `${data.memory.used} / ${data.memory.total}` : '-';
+                    document.getElementById('diskUsed').textContent = data.disk ? `${data.disk.used} / ${data.disk.size} (${data.disk.percent})` : '-';
                     
                     // Color code CPU Load
                     const cpuLoad = parseFloat(data.load[0]);
