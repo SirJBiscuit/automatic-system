@@ -276,12 +276,23 @@ def handle_connect():
     terminal_sessions[session_id] = terminal
     print(f"Terminal spawned successfully")
     
-    # Start reading thread
+    # Start reading thread with optimized buffering
     def read_output():
+        import time
         while session_id in terminal_sessions:
-            output = terminal.read()
-            if output:
-                socketio.emit('output', {'data': output}, room=session_id)
+            terminal = terminal_sessions[session_id]
+            if terminal.fd:
+                try:
+                    # Non-blocking read with larger buffer
+                    r, _, _ = select.select([terminal.fd], [], [], 0.01)
+                    if r:
+                        output = os.read(terminal.fd, 4096).decode('utf-8', errors='ignore')
+                        if output:
+                            socketio.emit('output', {'data': output}, room=session_id)
+                    else:
+                        time.sleep(0.01)
+                except:
+                    time.sleep(0.01)
     
     thread = threading.Thread(target=read_output, daemon=True)
     thread.start()
@@ -300,8 +311,12 @@ def handle_disconnect():
 def handle_input(data):
     """Handle terminal input"""
     session_id = request.sid
+    print(f"Received input for session {session_id}: {repr(data['data'])}")
     if session_id in terminal_sessions:
         terminal_sessions[session_id].write(data['data'])
+        print(f"Wrote to terminal")
+    else:
+        print(f"Session {session_id} not found in terminal_sessions!")
 
 @socketio.on('resize')
 def handle_resize(data):
