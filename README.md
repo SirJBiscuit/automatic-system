@@ -163,7 +163,7 @@ The script will:
 13. Create admin user
 
 **You will be prompted for:**
-- Panel FQDN (e.g., panel.example.com)
+- Panel FQDN (e.g., panel.example.com) eg Fully Qualified Domain Name
 - Public IP address
 - Email address
 - Admin password
@@ -327,7 +327,7 @@ Ensure these ports are open:
 - 443 (HTTPS)
 
 **Wings:**
-- 8080 (Wings API)
+- 8083 (Wings API)
 - 2022 (SFTP)
 - 443 (HTTPS)
 - Game server ports (varies)
@@ -337,6 +337,13 @@ Ensure these ports are open:
 ufw allow 80
 ufw allow 443
 ufw allow 8080
+ufw allow 8081
+ufw allow 5050
+ufw allow 5051
+ufw allow 3000
+ufw allow 5002
+ufw allow 5001
+ufw allow 8083
 ufw allow 2022
 ```
 
@@ -432,7 +439,7 @@ Contributions are welcome! Please:
 ## Credits
 
 - Pterodactyl Software: [pterodactyl.io](https://pterodactyl.io)
-- Script Author: Your Name
+- Script Author: Jeremiah Payne
 
 ## Disclaimer
 
