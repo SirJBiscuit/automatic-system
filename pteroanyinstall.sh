@@ -1914,35 +1914,62 @@ install_additional_tools() {
     echo "   • AI chatbot with GPU support"
     echo "   • ChatGPT-like web interface"
     echo "   • Run AI models locally (qwen, gemma, llama, etc.)"
-    echo "   • Secure access via Cloudflare tunnel"
-    echo "   • Perfect for AI assistance and automation"
     echo ""
-    echo "2) File Sharing Panel"
-    echo "   • Web-based file manager (Filebrowser)"
+    echo "2) Pingvin Share"
+    echo "   • Modern file sharing platform"
+    echo "   • Invite-only secure sharing"
+    echo "   • Beautiful UI with dark mode"
+    echo "   • Perfect for team collaboration"
+    echo ""
+    echo "3) Nextcloud"
+    echo "   • Full-featured cloud storage"
+    echo "   • File sync, calendar, contacts"
+    echo "   • Office suite integration"
+    echo "   • Enterprise-grade security"
+    echo ""
+    echo "4) Unified Admin Panel"
+    echo "   • Complete server control center"
+    echo "   • Monitor all services in one place"
+    echo "   • Docker container management"
+    echo "   • Disk health monitoring (SMART)"
+    echo "   • Network statistics"
+    echo "   • Scheduled reboots"
+    echo ""
+    echo "5) File Sharing Panel (Filebrowser)"
+    echo "   • Web-based file manager"
     echo "   • Upload/download files via browser"
-    echo "   • Share files with generated links"
-    echo "   • Multi-user support with permissions"
-    echo "   • Secure HTTPS access via Cloudflare"
     echo ""
-    echo "3) Install Both"
-    echo "4) Back to main menu"
+    echo "6) Install All Recommended (Pingvin + Nextcloud + Admin Panel)"
+    echo "7) Back to main menu"
     echo ""
     
-    read -p "Enter choice [1-4]: " tool_choice
+    read -p "Enter choice [1-7]: " tool_choice
     
     case $tool_choice in
         1)
             install_ollama_webui
             ;;
         2)
-            install_file_share
+            install_pingvin_share
             ;;
         3)
-            install_ollama_webui
-            echo ""
-            install_file_share
+            install_nextcloud
             ;;
         4)
+            install_admin_panel
+            ;;
+        5)
+            install_file_share
+            ;;
+        6)
+            log_info "Installing recommended services..."
+            install_pingvin_share
+            echo ""
+            install_nextcloud
+            echo ""
+            install_admin_panel
+            ;;
+        7)
             main
             ;;
         *)
@@ -2069,6 +2096,146 @@ install_file_share() {
         echo "  curl -sSL $FILE_SHARE_SCRIPT_URL -o file-share-setup.sh"
         echo "  chmod +x file-share-setup.sh"
         echo "  sudo ./file-share-setup.sh"
+    fi
+    
+    echo ""
+    read -p "Press Enter to continue..."
+}
+
+install_pingvin_share() {
+    clear
+    echo ""
+    echo "=========================================="
+    echo "        Pingvin Share Setup"
+    echo "=========================================="
+    echo ""
+    log_info "This will install:"
+    echo "  • Pingvin Share - Modern file sharing platform"
+    echo "  • Docker Compose setup"
+    echo "  • Auto-configuration"
+    echo ""
+    log_info "Features:"
+    echo "  ✓ Invite-only secure sharing"
+    echo "  ✓ Beautiful modern UI"
+    echo "  ✓ Dark mode support"
+    echo "  ✓ File expiration"
+    echo "  ✓ Password protection"
+    echo ""
+    
+    if ! prompt_yes_no "Continue with Pingvin Share installation?"; then
+        log_info "Installation cancelled"
+        return
+    fi
+    
+    log_info "Downloading Pingvin Share setup script..."
+    
+    PINGVIN_SCRIPT_URL="https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/pingvin-share-setup/install.sh"
+    
+    if curl -fsSL "$PINGVIN_SCRIPT_URL" -o /tmp/pingvin-setup.sh; then
+        chmod +x /tmp/pingvin-setup.sh
+        log_success "Script downloaded successfully"
+        echo ""
+        log_info "Starting Pingvin Share installation..."
+        echo ""
+        /tmp/pingvin-setup.sh
+        rm -f /tmp/pingvin-setup.sh
+    else
+        log_error "Failed to download Pingvin Share setup script"
+    fi
+    
+    echo ""
+    read -p "Press Enter to continue..."
+}
+
+install_nextcloud() {
+    clear
+    echo ""
+    echo "=========================================="
+    echo "          Nextcloud Setup"
+    echo "=========================================="
+    echo ""
+    log_info "This will install:"
+    echo "  • Nextcloud - Full-featured cloud platform"
+    echo "  • MariaDB database"
+    echo "  • Redis cache"
+    echo "  • Docker Compose setup"
+    echo ""
+    log_info "Features:"
+    echo "  ✓ File sync and sharing"
+    echo "  ✓ Calendar and contacts"
+    echo "  ✓ Office suite (Collabora/OnlyOffice)"
+    echo "  ✓ Video calls"
+    echo "  ✓ Enterprise security"
+    echo ""
+    
+    if ! prompt_yes_no "Continue with Nextcloud installation?"; then
+        log_info "Installation cancelled"
+        return
+    fi
+    
+    log_info "Downloading Nextcloud setup script..."
+    
+    NEXTCLOUD_SCRIPT_URL="https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/nextcloud-setup/install.sh"
+    
+    if curl -fsSL "$NEXTCLOUD_SCRIPT_URL" -o /tmp/nextcloud-setup.sh; then
+        chmod +x /tmp/nextcloud-setup.sh
+        log_success "Script downloaded successfully"
+        echo ""
+        log_info "Starting Nextcloud installation..."
+        echo ""
+        /tmp/nextcloud-setup.sh
+        rm -f /tmp/nextcloud-setup.sh
+    else
+        log_error "Failed to download Nextcloud setup script"
+    fi
+    
+    echo ""
+    read -p "Press Enter to continue..."
+}
+
+install_admin_panel() {
+    clear
+    echo ""
+    echo "=========================================="
+    echo "      Unified Admin Panel Setup"
+    echo "=========================================="
+    echo ""
+    log_info "This will install:"
+    echo "  • Unified Admin Panel - Complete server control"
+    echo "  • Python Flask application"
+    echo "  • Systemd service"
+    echo "  • SMART monitoring tools"
+    echo ""
+    log_info "Features:"
+    echo "  ✓ System monitoring (CPU, RAM, Disk, Network)"
+    echo "  ✓ Service management (start/stop/restart)"
+    echo "  ✓ Docker container management"
+    echo "  ✓ Disk health monitoring (SMART)"
+    echo "  ✓ Scheduled reboots"
+    echo "  ✓ View service logs"
+    echo "  ✓ Mobile-responsive design"
+    echo "  ✓ Dark mode"
+    echo ""
+    
+    if ! prompt_yes_no "Continue with Admin Panel installation?"; then
+        log_info "Installation cancelled"
+        return
+    fi
+    
+    log_info "Downloading Admin Panel setup script..."
+    
+    ADMIN_SCRIPT_URL="https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/unified-admin/install.sh"
+    
+    if curl -fsSL "$ADMIN_SCRIPT_URL" -o /tmp/admin-setup.sh; then
+        chmod +x /tmp/admin-setup.sh
+        log_success "Script downloaded successfully"
+        echo ""
+        log_info "Starting Admin Panel installation..."
+        echo ""
+        /tmp/admin-setup.sh
+        rm -f /tmp/admin-setup.sh
+    else
+        log_error "Failed to download Admin Panel setup script"
     fi
     
     echo ""

@@ -11,7 +11,7 @@ echo ""
 # Install dependencies
 echo "📦 Installing dependencies..."
 apt-get update
-apt-get install -y python3 python3-pip python3-venv
+apt-get install -y python3 python3-pip python3-venv smartmontools
 
 # Create app directory
 APP_DIR="/opt/unified-admin"

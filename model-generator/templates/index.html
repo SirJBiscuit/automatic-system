@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Model Generator - AI-Powered Character Creation</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/PLYLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/OBJLoader.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .result {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .result h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .status.processing {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            margin-top: 10px;
+        }
+        
+        .provider-select {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>✨ 3D Model Generator</h1>
+            <p class="subtitle">AI-Powered Character Creation with Clothing Options</p>
+        </header>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>🎨 Create Your Character</h2>
+                
+                <div class="provider-select">
+                    <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; border-radius: 8px; padding: 15px; text-align: center;">
+                        <h3 style="margin: 0 0 10px 0;">🖥️ 100% FREE Local GPU Generation</h3>
+                        <p style="margin: 0; font-size: 0.9em;">Unlimited 3D models on YOUR RTX 4060 Ti - No costs, no limits, completely private!</p>
+                    </div>
+                </div>
+                
+                <!-- AI Model Selection (for Local GPU) -->
+                <div id="modelSelection" style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border: 2px solid #4caf50;">
+                    <h3 style="margin-top: 0; color: #2e7d32;">🤖 AI Model Selection</h3>
+                    <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Choose the best model for your needs:</p>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; cursor: pointer; border: 2px solid #667eea; margin-bottom: 10px;">
+                            <input type="radio" name="aiModel" value="auto" checked style="margin-right: 10px;">
+                            <strong>🧠 AUTO-SELECT (SMART AI)</strong>
+                            <div style="margin-left: 28px; margin-top: 5px; font-size: 0.85em;">
+                                ✅ Analyzes your prompt | ✅ Picks best model | ✅ Optimizes settings<br>
+                                <span style="color: #fff9c4;">🤖 AI chooses the fastest & highest quality model for your specific request!</span>
+                            </div>
+                        </label>
+                        
+                        <label style="display: block; padding: 12px; background: white; border-radius: 8px; cursor: pointer; border: 2px solid #ddd; margin-bottom: 10px;">
+                            <input type="radio" name="aiModel" value="triposr" style="margin-right: 10px;">
+                            <strong>🏆 TripoSR (RECOMMENDED)</strong>
+                            <div style="margin-left: 28px; margin-top: 5px; font-size: 0.85em; color: #666;">
+                                ✅ Best quality | ✅ Fast (10-20s) | ✅ Good anatomy | ✅ Textured<br>
+                                <span style="color: #4caf50;">Perfect for: Detailed characters, realistic models</span>
+                            </div>
+                        </label>
+                        
+                        <label style="display: block; padding: 12px; background: white; border-radius: 8px; cursor: pointer; border: 2px solid #ddd; margin-bottom: 10px;">
+                            <input type="radio" name="aiModel" value="instantmesh" style="margin-right: 10px;">
+                            <strong>💎 InstantMesh (HIGH QUALITY)</strong>
+                            <div style="margin-left: 28px; margin-top: 5px; font-size: 0.85em; color: #666;">
+                                ✅ Professional quality | ⚠️ Slower (60-90s) | ✅ Multi-view | ✅ Best textures<br>
+                                <span style="color: #2196f3;">Perfect for: Final production models, detailed features</span>
+                            </div>
+                        </label>
+                        
+                        <label style="display: block; padding: 12px; background: white; border-radius: 8px; cursor: pointer; border: 2px solid #ddd; margin-bottom: 10px;">
+                            <input type="radio" name="aiModel" value="shap-e" style="margin-right: 10px;">
+                            <strong>⚡ Shap-E (FAST & SIMPLE)</strong>
+                            <div style="margin-left: 28px; margin-top: 5px; font-size: 0.85em; color: #666;">
+                                ✅ Very fast (5-10s) | ⚠️ Basic quality | ⚠️ No textures | ⚠️ Simple shapes<br>
+                                <span style="color: #ff9800;">Perfect for: Quick previews, concept testing, simple shapes</span>
+                            </div>
+                        </label>
+                        
+                        <label style="display: block; padding: 12px; background: white; border-radius: 8px; cursor: pointer; border: 2px solid #ddd;">
+                            <input type="radio" name="aiModel" value="point-e" style="margin-right: 10px;">
+                            <strong>🎯 Point-E (EXPERIMENTAL)</strong>
+                            <div style="margin-left: 28px; margin-top: 5px; font-size: 0.85em; color: #666;">
+                                ✅ Fast (15s) | ⚠️ Point clouds | ✅ Good for stylized | ⚠️ Needs conversion<br>
+                                <span style="color: #9c27b0;">Perfect for: Stylized art, low-poly models, artistic styles</span>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div id="autoSelectInfo" style="background: #e3f2fd; padding: 12px; border-radius: 4px; font-size: 0.85em; color: #1976d2; display: block;">
+                        <strong>🧠 AUTO-SELECT ACTIVE:</strong> AI will analyze your prompt and automatically choose:
+                        <ul style="margin: 8px 0 0 20px; padding: 0;">
+                            <li><strong>TripoSR</strong> for detailed characters & realistic models</li>
+                            <li><strong>InstantMesh</strong> for complex features & high detail requests</li>
+                            <li><strong>Shap-E</strong> for simple shapes & quick previews</li>
+                            <li><strong>Point-E</strong> for stylized & artistic models</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="background: #fff9c4; padding: 10px; border-radius: 4px; font-size: 0.85em; color: #f57f17; margin-top: 10px;">
+                        💡 <strong>Tip:</strong> Auto-Select is recommended for best results! Manual selection available for specific needs.
+                    </div>
+                    
+                    <button onclick="optimizeSettingsForPrompt()" style="width: 100%; margin-top: 10px; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                        ⚡ Auto-Optimize All Settings for My Prompt
+                    </button>
+                </div>
+                
+                <!-- Preset Management -->
+                <div id="presetManagement" style="margin-top: 20px; padding: 15px; background: #e8eaf6; border-radius: 8px; border: 2px solid #5c6bc0;">
+                    <h3 style="margin-top: 0; color: #3f51b5;">💾 Save & Load Presets</h3>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">📋 Your Saved Presets:</label>
+                        <select id="presetSelect" onchange="loadPreset()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                            <option value="">-- Select a preset to load --</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">💾 Save Current Settings:</label>
+                        <input type="text" id="presetName" placeholder="Enter preset name (e.g., 'High Quality Female')" 
+                               style="width: 100%; padding: 12px; border-radius: 4px; border: 2px solid #5c6bc0; font-size: 14px; margin-bottom: 8px;"
+                               onkeypress="if(event.key === 'Enter') savePreset()">
+                        <button onclick="savePreset()" style="width: 100%; padding: 12px; background: #4caf50; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;">
+                            💾 Save Current Settings as Preset
+                        </button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="deletePreset()" style="flex: 1; padding: 10px; background: #f44336; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                            🗑️ Delete Selected
+                        </button>
+                        <button onclick="exportPresets()" style="flex: 1; padding: 10px; background: #2196f3; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                            📤 Export All
+                        </button>
+                        <button onclick="importPresets()" style="flex: 1; padding: 10px; background: #ff9800; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                            📥 Import
+                        </button>
+                    </div>
+                    
+                    <div style="background: #fff9c4; padding: 10px; border-radius: 4px; font-size: 0.85em; color: #f57f17; margin-top: 10px;">
+                        💡 <strong>Tip:</strong> Presets save ALL your settings: quality, model, pose, style, and character details!
+                    </div>
+                </div>
+                
+                <!-- Quality Settings Panel -->
+                <div id="qualitySettings" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 2px solid #e0e0e0;">
+                    <h3 style="margin-top: 0; color: #667eea;">⚙️ Quality Settings</h3>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>🎯 Quality Preset:</span>
+                        </label>
+                        <select id="qualityPreset" onchange="applyQualityPreset()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                            <option value="fast">⚡ Fast (30 sec - Lower quality)</option>
+                            <option value="balanced" selected>⚖️ Balanced (60 sec - Good quality)</option>
+                            <option value="high">🎨 High Quality (90 sec - Best detail)</option>
+                            <option value="ultra">💎 Ultra (120+ sec - Maximum quality)</option>
+                            <option value="custom">🔧 Custom Settings</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>📐 Resolution (Detail Level):</span>
+                            <span id="resolutionValue" style="font-weight: bold; color: #667eea;">512</span>
+                        </label>
+                        <input type="range" id="resolution" min="128" max="1024" value="512" step="128" 
+                               oninput="updateSliderValue('resolution', this.value); markCustom()" 
+                               style="width: 100%;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #666;">
+                            <span>128 (Fast)</span>
+                            <span>1024 (Ultra)</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>🔄 Inference Steps (Quality):</span>
+                            <span id="stepsValue" style="font-weight: bold; color: #667eea;">128</span>
+                        </label>
+                        <input type="range" id="steps" min="32" max="256" value="128" step="32" 
+                               oninput="updateSliderValue('steps', this.value); markCustom()" 
+                               style="width: 100%;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #666;">
+                            <span>32 (Fast)</span>
+                            <span>256 (Best)</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>🎯 Guidance Scale (Prompt Accuracy):</span>
+                            <span id="guidanceValue" style="font-weight: bold; color: #667eea;">20.0</span>
+                        </label>
+                        <input type="range" id="guidance" min="5" max="30" value="20" step="0.5" 
+                               oninput="updateSliderValue('guidance', this.value); markCustom()" 
+                               style="width: 100%;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #666;">
+                            <span>5 (Creative)</span>
+                            <span>30 (Exact)</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #fff; padding: 10px; border-radius: 4px; font-size: 0.85em; color: #666;">
+                        ⏱️ <span id="estimatedTime">Estimated time: ~60 seconds</span>
+                    </div>
+                </div>
+                
+                <!-- Advanced Features Panel -->
+                <div id="advancedFeatures" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 2px solid #e0e0e0;">
+                    <h3 style="margin-top: 0; color: #667eea;">🎭 Advanced Features</h3>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">🧍 Pose Selection:</label>
+                        <select id="poseSelect" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                            <option value="t-pose">T-Pose (Default - Arms out)</option>
+                            <option value="a-pose">A-Pose (Arms down)</option>
+                            <option value="standing">Standing (Neutral)</option>
+                            <option value="sitting">Sitting</option>
+                            <option value="walking">Walking</option>
+                            <option value="running">Running</option>
+                            <option value="action">Action Pose</option>
+                            <option value="relaxed">Relaxed</option>
+                            <option value="custom">Custom (Use prompt)</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">🎨 Art Style:</label>
+                        <select id="styleSelect" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                            <option value="realistic">📸 Realistic</option>
+                            <option value="stylized">🎭 Stylized</option>
+                            <option value="cartoon">🎪 Cartoon</option>
+                            <option value="anime">🎌 Anime</option>
+                            <option value="low-poly">🔷 Low-Poly</option>
+                            <option value="clay">🏺 Clay/Sculpted</option>
+                            <option value="pixel">🎮 Pixel Art Style</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">📦 Export Formats:</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="exportPLY" checked style="margin-right: 8px;">
+                                <span>.PLY (Point Cloud)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="exportOBJ" checked style="margin-right: 8px;">
+                                <span>.OBJ (Mesh)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="exportGLB" style="margin-right: 8px;">
+                                <span>.GLB (Web)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="exportFBX" style="margin-right: 8px;">
+                                <span>.FBX (Game)</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; padding: 10px; background: white; border-radius: 4px; cursor: pointer;">
+                            <input type="checkbox" id="batchGeneration" onchange="toggleBatchSettings()" style="margin-right: 8px;">
+                            <span style="font-weight: bold;">🔄 Batch Generation (Multiple Variations)</span>
+                        </label>
+                        <div id="batchSettings" style="display: none; margin-top: 10px; padding: 10px; background: white; border-radius: 4px;">
+                            <label style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span>Number of Variations:</span>
+                                <span id="batchCountValue" style="font-weight: bold; color: #667eea;">3</span>
+                            </label>
+                            <input type="range" id="batchCount" min="2" max="10" value="3" 
+                                   oninput="updateSliderValue('batchCount', this.value)" 
+                                   style="width: 100%;">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; padding: 10px; background: white; border-radius: 4px; cursor: pointer;">
+                            <input type="checkbox" id="generateTextures" style="margin-right: 8px;">
+                            <span style="font-weight: bold;">🎨 Generate Textures (Experimental)</span>
+                        </label>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; padding: 10px; background: white; border-radius: 4px; cursor: pointer;">
+                            <input type="checkbox" id="autoRigging" style="margin-right: 8px;">
+                            <span style="font-weight: bold;">🦴 Auto-Rigging Ready (Add bone structure)</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Detailed Character Features -->
+                <div id="characterDetails" style="margin-top: 20px; padding: 15px; background: #fff3e0; border-radius: 8px; border: 2px solid #ffb74d;">
+                    <h3 style="margin-top: 0; color: #f57c00;">👤 Detailed Character Features</h3>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                            <input type="checkbox" id="anatomicallyCorrect" checked style="margin-right: 8px;">
+                            <span style="font-weight: bold;">🧬 Anatomically Correct (Realistic proportions & structure)</span>
+                        </label>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">💇 Hair Details:</label>
+                        <select id="hairDetail" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                            <option value="high">High Detail (Individual strands, realistic flow)</option>
+                            <option value="medium" selected>Medium Detail (Styled, textured)</option>
+                            <option value="low">Low Detail (Basic shape)</option>
+                            <option value="none">No Hair</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">👁️ Eye Details:</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="detailedEyes" checked style="margin-right: 8px;">
+                                <span>Detailed Eyeballs</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="eyelashes" checked style="margin-right: 8px;">
+                                <span>Eyelashes</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="eyebrows" checked style="margin-right: 8px;">
+                                <span>Eyebrows</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="irisDetail" checked style="margin-right: 8px;">
+                                <span>Iris Detail</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">💄 Makeup & Beauty:</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="lipstick" style="margin-right: 8px;">
+                                <span>💋 Lipstick</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="lipGloss" style="margin-right: 8px;">
+                                <span>✨ Lip Gloss</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="eyeshadow" style="margin-right: 8px;">
+                                <span>🎨 Eyeshadow</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="blush" style="margin-right: 8px;">
+                                <span>🌸 Blush</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="nailPolish" style="margin-right: 8px;">
+                                <span>💅 Nail Polish</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="foundation" style="margin-right: 8px;">
+                                <span>🧴 Foundation</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">🖐️ Hand & Nail Details:</label>
+                        <select id="handDetail" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                            <option value="high">High Detail (Fingerprints, nail beds, cuticles)</option>
+                            <option value="medium" selected>Medium Detail (Defined fingers, nails)</option>
+                            <option value="low">Low Detail (Basic shape)</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">🦴 Body Details:</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="muscleDefinition" checked style="margin-right: 8px;">
+                                <span>Muscle Definition</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="skinPores" style="margin-right: 8px;">
+                                <span>Skin Pores/Texture</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="veins" style="margin-right: 8px;">
+                                <span>Visible Veins</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 4px; cursor: pointer;">
+                                <input type="checkbox" id="fingerNails" checked style="margin-right: 8px;">
+                                <span>Detailed Fingernails</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #fff9c4; padding: 10px; border-radius: 4px; font-size: 0.85em; color: #f57f17;">
+                        💡 <strong>Tip:</strong> More details = longer generation time but higher quality!
+                    </div>
+                </div>
+                
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('text')">Text Prompt</button>
+                    <button class="tab" onclick="switchTab('structured')">Advanced</button>
+                </div>
+                
+                <div id="text-tab" class="tab-content active">
+                    <div class="form-group">
+                        <label>Describe your character:</label>
+                        <textarea id="textPrompt" placeholder="e.g., A muscular male warrior with medieval armor, or a female character in casual clothes..."></textarea>
+                    </div>
+                    <button onclick="generateFromText()">Generate Prompt</button>
+                </div>
+                
+                <div id="structured-tab" class="tab-content">
+                    <div class="form-group">
+                        <label>Gender:</label>
+                        <select id="gender">
+                            <option value="neutral">Neutral</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Body Type:</label>
+                        <select id="bodyType">
+                            <option value="average">Average</option>
+                            <option value="slim">Slim</option>
+                            <option value="athletic">Athletic</option>
+                            <option value="muscular">Muscular</option>
+                            <option value="petite">Petite</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Clothing Type:</label>
+                        <select id="clothingType">
+                            <option value="casual">Casual</option>
+                            <option value="none">No Clothes (Base Model)</option>
+                            <option value="formal">Formal</option>
+                            <option value="athletic">Athletic</option>
+                            <option value="fantasy">Fantasy</option>
+                            <option value="sci-fi">Sci-Fi</option>
+                            <option value="medieval">Medieval</option>
+                            <option value="modern">Modern</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Additional Details:</label>
+                        <textarea id="customPrompt" placeholder="Any additional details..."></textarea>
+                    </div>
+                    
+                    <button onclick="generateFromStructured()">Generate Prompt</button>
+                </div>
+                
+                <div id="promptResult" class="result" style="display:none;">
+                    <h3>Generated Description:</h3>
+                    <p id="description"></p>
+                    <button onclick="generateModel()">Generate 3D Model</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>🎭 3D Model Preview</h2>
+                <div id="modelResult" style="display: none;">
+                    <h3>🎭 3D Model Preview</h3>
+                    
+                    <!-- 3D Viewer -->
+                    <div id="viewer3D" style="display: none; margin: 20px 0; background: #f5f5f5; border-radius: 8px; padding: 20px;">
+                        <h3 style="margin-top: 0; text-align: center;">🎨 3D Model Viewer</h3>
+                        
+                        <!-- Three.js Canvas -->
+                        <div id="canvas3D" style="width: 100%; height: 500px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; position: relative; margin-bottom: 15px;">
+                            <canvas id="modelCanvas"></canvas>
+                            <div id="viewerControls" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 4px; color: white; font-size: 0.85em;">
+                                <div>🖱️ <strong>Controls:</strong></div>
+                                <div>• Left click + drag: Rotate</div>
+                                <div>• Right click + drag: Pan</div>
+                                <div>• Scroll: Zoom</div>
+                            </div>
+                            <div id="loadingViewer" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 1.2em; text-align: center;">
+                                <div style="font-size: 3em; margin-bottom: 10px;">⏳</div>
+                                <div>Loading 3D model...</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Viewer Controls -->
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <button onclick="resetCamera()" style="flex: 1; padding: 10px; background: #2196f3; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                                🔄 Reset View
+                            </button>
+                            <button onclick="toggleWireframe()" style="flex: 1; padding: 10px; background: #ff9800; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                                🔲 Toggle Wireframe
+                            </button>
+                            <button onclick="changeBackground()" style="flex: 1; padding: 10px; background: #9c27b0; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                                🎨 Change Background
+                            </button>
+                        </div>
+                        
+                        <!-- Drop Zone -->
+                        <div id="dropZone" style="border: 3px dashed #5c6bc0; border-radius: 8px; padding: 30px; text-align: center; background: white; margin-bottom: 15px; cursor: pointer;"
+                             ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="document.getElementById('fileInput').click()">
+                            <div style="font-size: 3em; margin-bottom: 10px;">📁</div>
+                            <h4 style="margin: 0 0 10px 0;">Drop 3D Model Here or Click to Browse</h4>
+                            <p style="color: #666; margin: 0;">Supports: .ply, .obj files</p>
+                            <input type="file" id="fileInput" accept=".ply,.obj" style="display: none;" onchange="handleFileSelect(event)">
+                        </div>
+                        
+                        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; font-size: 0.9em; color: #1976d2;">
+                            <strong>💡 Tip:</strong> Your generated model will appear here automatically! You can also drag & drop any .ply or .obj file to preview it.
+                        </div>
+                    </div>
+                    
+                    <div id="progressContainer" style="display: none; margin: 20px 0;">
+                        <div style="background: #e0e0e0; border-radius: 10px; overflow: hidden; height: 30px;">
+                            <div id="progressBar" style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                <span id="progressText">0%</span>
+                            </div>
+                        </div>
+                        <div id="progressStatus" style="margin-top: 10px; text-align: center; color: #666; font-size: 0.9em;"></div>
+                        <div style="font-size: 4em; margin-bottom: 20px;">📦</div>
+                        <p>Your 3D model will appear here</p>
+                        <p style="font-size: 0.9em; margin-top: 10px;">Create a prompt and generate a model to get started</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPrompt = null;
+        let pollInterval = null;
+        let userPresets = {};
+        
+        // Load presets from localStorage on page load
+        function loadPresetsFromStorage() {
+            const saved = localStorage.getItem('modelGeneratorPresets');
+            if (saved) {
+                userPresets = JSON.parse(saved);
+                updatePresetDropdown();
+            }
+        }
+        
+        function updatePresetDropdown() {
+            const select = document.getElementById('presetSelect');
+            select.innerHTML = '<option value="">-- Select a preset to load --</option>';
+            
+            for (const [name, preset] of Object.entries(userPresets)) {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            }
+        }
+        
+        function savePreset() {
+            const name = document.getElementById('presetName').value.trim();
+            if (!name) {
+                alert('Please enter a preset name!');
+                return;
+            }
+            
+            // Gather all current settings including prompt
+            const preset = {
+                // Save the current prompt if available
+                savedPrompt: currentPrompt ? {
+                    prompt: currentPrompt.prompt,
+                    gender: currentPrompt.gender,
+                    build: currentPrompt.build,
+                    height: currentPrompt.height,
+                    clothing: currentPrompt.clothing,
+                    skin_tone: currentPrompt.skin_tone,
+                    custom_details: currentPrompt.custom_details
+                } : null,
+                quality: {
+                    preset: document.getElementById('qualityPreset').value,
+                    resolution: parseInt(document.getElementById('resolution').value),
+                    steps: parseInt(document.getElementById('steps').value),
+                    guidance: parseFloat(document.getElementById('guidance').value)
+                },
+                model: document.querySelector('input[name="aiModel"]:checked')?.value || 'auto',
+                pose: document.getElementById('poseSelect').value,
+                style: document.getElementById('styleSelect').value,
+                exportFormats: {
+                    ply: document.getElementById('exportPLY').checked,
+                    obj: document.getElementById('exportOBJ').checked,
+                    glb: document.getElementById('exportGLB').checked,
+                    fbx: document.getElementById('exportFBX').checked
+                },
+                characterDetails: {
+                    anatomicallyCorrect: document.getElementById('anatomicallyCorrect').checked,
+                    hairDetail: document.getElementById('hairDetail').value,
+                    detailedEyes: document.getElementById('detailedEyes').checked,
+                    eyelashes: document.getElementById('eyelashes').checked,
+                    eyebrows: document.getElementById('eyebrows').checked,
+                    irisDetail: document.getElementById('irisDetail').checked,
+                    lipstick: document.getElementById('lipstick').checked,
+                    lipGloss: document.getElementById('lipGloss').checked,
+                    eyeshadow: document.getElementById('eyeshadow').checked,
+                    blush: document.getElementById('blush').checked,
+                    nailPolish: document.getElementById('nailPolish').checked,
+                    foundation: document.getElementById('foundation').checked,
+                    handDetail: document.getElementById('handDetail').value,
+                    muscleDefinition: document.getElementById('muscleDefinition').checked,
+                    skinPores: document.getElementById('skinPores').checked,
+                    veins: document.getElementById('veins').checked,
+                    fingerNails: document.getElementById('fingerNails').checked
+                },
+                batchGeneration: document.getElementById('batchGeneration').checked,
+                batchCount: parseInt(document.getElementById('batchCount').value),
+                generateTextures: document.getElementById('generateTextures').checked,
+                autoRigging: document.getElementById('autoRigging').checked
+            };
+            
+            userPresets[name] = preset;
+            localStorage.setItem('modelGeneratorPresets', JSON.stringify(userPresets));
+            updatePresetDropdown();
+            document.getElementById('presetName').value = '';
+            alert(`✅ Preset "${name}" saved successfully!`);
+        }
+        
+        function loadPreset() {
+            const name = document.getElementById('presetSelect').value;
+            if (!name || !userPresets[name]) return;
+            
+            const preset = userPresets[name];
+            
+            // Restore saved prompt if available
+            if (preset.savedPrompt) {
+                currentPrompt = preset.savedPrompt;
+                document.getElementById('description').textContent = preset.savedPrompt.prompt;
+                document.getElementById('promptResult').style.display = 'block';
+                
+                // If using structured form, restore those values too
+                if (preset.savedPrompt.gender) {
+                    document.getElementById('gender').value = preset.savedPrompt.gender;
+                }
+                if (preset.savedPrompt.build) {
+                    document.getElementById('build').value = preset.savedPrompt.build;
+                }
+                if (preset.savedPrompt.height) {
+                    document.getElementById('height').value = preset.savedPrompt.height;
+                }
+                if (preset.savedPrompt.clothing) {
+                    document.getElementById('clothingType').value = preset.savedPrompt.clothing;
+                }
+                if (preset.savedPrompt.skin_tone) {
+                    document.getElementById('skinTone').value = preset.savedPrompt.skin_tone;
+                }
+                if (preset.savedPrompt.custom_details) {
+                    document.getElementById('customPrompt').value = preset.savedPrompt.custom_details;
+                }
+            }
+            
+            // Apply quality settings
+            document.getElementById('qualityPreset').value = preset.quality.preset;
+            document.getElementById('resolution').value = preset.quality.resolution;
+            document.getElementById('steps').value = preset.quality.steps;
+            document.getElementById('guidance').value = preset.quality.guidance;
+            updateSliderValue('resolution', preset.quality.resolution);
+            updateSliderValue('steps', preset.quality.steps);
+            updateSliderValue('guidance', preset.quality.guidance);
+            
+            // Apply model selection
+            const modelRadio = document.querySelector(`input[name="aiModel"][value="${preset.model}"]`);
+            if (modelRadio) modelRadio.checked = true;
+            
+            // Apply pose and style
+            document.getElementById('poseSelect').value = preset.pose;
+            document.getElementById('styleSelect').value = preset.style;
+            
+            // Apply export formats
+            document.getElementById('exportPLY').checked = preset.exportFormats.ply;
+            document.getElementById('exportOBJ').checked = preset.exportFormats.obj;
+            document.getElementById('exportGLB').checked = preset.exportFormats.glb;
+            document.getElementById('exportFBX').checked = preset.exportFormats.fbx;
+            
+            // Apply character details
+            const cd = preset.characterDetails;
+            document.getElementById('anatomicallyCorrect').checked = cd.anatomicallyCorrect;
+            document.getElementById('hairDetail').value = cd.hairDetail;
+            document.getElementById('detailedEyes').checked = cd.detailedEyes;
+            document.getElementById('eyelashes').checked = cd.eyelashes;
+            document.getElementById('eyebrows').checked = cd.eyebrows;
+            document.getElementById('irisDetail').checked = cd.irisDetail;
+            document.getElementById('lipstick').checked = cd.lipstick;
+            document.getElementById('lipGloss').checked = cd.lipGloss;
+            document.getElementById('eyeshadow').checked = cd.eyeshadow;
+            document.getElementById('blush').checked = cd.blush;
+            document.getElementById('nailPolish').checked = cd.nailPolish;
+            document.getElementById('foundation').checked = cd.foundation;
+            document.getElementById('handDetail').value = cd.handDetail;
+            document.getElementById('muscleDefinition').checked = cd.muscleDefinition;
+            document.getElementById('skinPores').checked = cd.skinPores;
+            document.getElementById('veins').checked = cd.veins;
+            document.getElementById('fingerNails').checked = cd.fingerNails;
+            
+            // Apply other settings
+            document.getElementById('batchGeneration').checked = preset.batchGeneration;
+            document.getElementById('batchCount').value = preset.batchCount;
+            document.getElementById('generateTextures').checked = preset.generateTextures;
+            document.getElementById('autoRigging').checked = preset.autoRigging;
+            
+            if (preset.batchGeneration) {
+                document.getElementById('batchSettings').style.display = 'block';
+            }
+            
+            const promptInfo = preset.savedPrompt ? '\n📝 Prompt restored!' : '';
+            alert(`✅ Preset "${name}" loaded!${promptInfo}\n\nAll settings have been applied.`);
+        }
+        
+        function deletePreset() {
+            const name = document.getElementById('presetSelect').value;
+            if (!name) {
+                alert('Please select a preset to delete!');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to delete preset "${name}"?`)) {
+                delete userPresets[name];
+                localStorage.setItem('modelGeneratorPresets', JSON.stringify(userPresets));
+                updatePresetDropdown();
+                alert(`✅ Preset "${name}" deleted!`);
+            }
+        }
+        
+        function exportPresets() {
+            const dataStr = JSON.stringify(userPresets, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'model-generator-presets.json';
+            link.click();
+            alert('✅ Presets exported! Check your downloads folder.');
+        }
+        
+        function importPresets() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        userPresets = {...userPresets, ...imported};
+                        localStorage.setItem('modelGeneratorPresets', JSON.stringify(userPresets));
+                        updatePresetDropdown();
+                        alert(`✅ Imported ${Object.keys(imported).length} presets!`);
+                    } catch (error) {
+                        alert('❌ Error importing presets: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        
+        const qualityPresets = {
+            fast: { resolution: 256, steps: 64, guidance: 15.0, time: 30 },
+            balanced: { resolution: 512, steps: 128, guidance: 20.0, time: 60 },
+            high: { resolution: 768, steps: 192, guidance: 22.0, time: 90 },
+            ultra: { resolution: 1024, steps: 256, guidance: 25.0, time: 120 }
+        };
+        
+        function updateSliderValue(id, value) {
+            document.getElementById(id + 'Value').textContent = value;
+            updateEstimatedTime();
+        }
+        
+        function markCustom() {
+            const preset = document.getElementById('qualityPreset');
+            if (preset.value !== 'custom') {
+                preset.value = 'custom';
+            }
+        }
+        
+        function applyQualityPreset() {
+            const preset = document.getElementById('qualityPreset').value;
+            if (preset === 'custom') return;
+            
+            const settings = qualityPresets[preset];
+            document.getElementById('resolution').value = settings.resolution;
+            document.getElementById('steps').value = settings.steps;
+            document.getElementById('guidance').value = settings.guidance;
+            
+            updateSliderValue('resolution', settings.resolution);
+            updateSliderValue('steps', settings.steps);
+            updateSliderValue('guidance', settings.guidance);
+            updateEstimatedTime();
+        }
+        
+        function updateEstimatedTime() {
+            const resolution = parseInt(document.getElementById('resolution').value);
+            const steps = parseInt(document.getElementById('steps').value);
+            
+            // Rough estimation based on settings
+            const baseTime = 30;
+            const resolutionFactor = resolution / 256;
+            const stepsFactor = steps / 64;
+            const estimatedSeconds = Math.round(baseTime * resolutionFactor * stepsFactor);
+            
+            document.getElementById('estimatedTime').textContent = 
+                `Estimated time: ~${estimatedSeconds} seconds`;
+        }
+        
+        function toggleBatchSettings() {
+            const enabled = document.getElementById('batchGeneration').checked;
+            document.getElementById('batchSettings').style.display = enabled ? 'block' : 'none';
+        }
+        
+        function getQualitySettings() {
+            return {
+                resolution: parseInt(document.getElementById('resolution').value),
+                steps: parseInt(document.getElementById('steps').value),
+                guidance: parseFloat(document.getElementById('guidance').value)
+            };
+        }
+        
+        function optimizeSettingsForPrompt() {
+            if (!currentPrompt) {
+                alert('Please generate a prompt first!');
+                return;
+            }
+            
+            const prompt = currentPrompt.prompt.toLowerCase();
+            
+            // Analyze prompt for optimization
+            const hasDetailKeywords = /detailed|realistic|professional|high quality|intricate/.test(prompt);
+            const isSimple = /simple|basic|quick|preview/.test(prompt);
+            const isStylized = /cartoon|anime|stylized|low-poly/.test(prompt);
+            
+            // Set quality preset
+            if (hasDetailKeywords) {
+                document.getElementById('qualityPreset').value = 'ultra';
+                applyQualityPreset();
+                alert('✅ Settings optimized for HIGH DETAIL!\n\n📐 Resolution: 1024px\n🔄 Steps: 256\n🎯 Guidance: 25\n⏱️ Time: ~120 seconds');
+            } else if (isSimple) {
+                document.getElementById('qualityPreset').value = 'fast';
+                applyQualityPreset();
+                alert('✅ Settings optimized for FAST PREVIEW!\n\n📐 Resolution: 256px\n🔄 Steps: 64\n🎯 Guidance: 15\n⏱️ Time: ~30 seconds');
+            } else {
+                document.getElementById('qualityPreset').value = 'high';
+                applyQualityPreset();
+                alert('✅ Settings optimized for BALANCED QUALITY!\n\n📐 Resolution: 768px\n🔄 Steps: 192\n🎯 Guidance: 22\n⏱️ Time: ~90 seconds');
+            }
+            
+            // Auto-enable features based on prompt
+            if (/makeup|lipstick|eyeshadow/.test(prompt)) {
+                document.getElementById('lipstick').checked = true;
+                document.getElementById('eyeshadow').checked = true;
+                document.getElementById('blush').checked = true;
+            }
+            
+            if (/hair/.test(prompt)) {
+                document.getElementById('hairDetail').value = 'high';
+            }
+            
+            if (/texture/.test(prompt)) {
+                document.getElementById('generateTextures').checked = true;
+            }
+        }
+        
+        function toggleAllFormats(checked) {
+            document.getElementById('exportPLY').checked = checked;
+            document.getElementById('exportOBJ').checked = checked;
+            document.getElementById('exportGLB').checked = checked;
+            document.getElementById('exportFBX').checked = checked;
+            document.getElementById('exportGLTF').checked = checked;
+        }
+        
+        function getAdvancedSettings() {
+            const selectedModel = document.querySelector('input[name="aiModel"]:checked');
+            return {
+                ai_model: selectedModel ? selectedModel.value : 'auto',
+                pose: document.getElementById('poseSelect').value,
+                style: document.getElementById('styleSelect').value,
+                export_formats: {
+                    ply: document.getElementById('exportPLY').checked,
+                    obj: document.getElementById('exportOBJ').checked,
+                    glb: document.getElementById('exportGLB').checked,
+                    fbx: document.getElementById('exportFBX').checked,
+                    gltf: document.getElementById('exportGLTF').checked
+                },
+                batch_generation: document.getElementById('batchGeneration').checked,
+                batch_count: parseInt(document.getElementById('batchCount').value),
+                generate_textures: document.getElementById('generateTextures').checked,
+                auto_rigging: document.getElementById('autoRigging').checked,
+                character_details: {
+                    anatomically_correct: document.getElementById('anatomicallyCorrect').checked,
+                    hair_detail: document.getElementById('hairDetail').value,
+                    detailed_eyes: document.getElementById('detailedEyes').checked,
+                    eyelashes: document.getElementById('eyelashes').checked,
+                    eyebrows: document.getElementById('eyebrows').checked,
+                    iris_detail: document.getElementById('irisDetail').checked,
+                    lipstick: document.getElementById('lipstick').checked,
+                    lip_gloss: document.getElementById('lipGloss').checked,
+                    eyeshadow: document.getElementById('eyeshadow').checked,
+                    blush: document.getElementById('blush').checked,
+                    nail_polish: document.getElementById('nailPolish').checked,
+                    foundation: document.getElementById('foundation').checked,
+                    hand_detail: document.getElementById('handDetail').value,
+                    muscle_definition: document.getElementById('muscleDefinition').checked,
+                    skin_pores: document.getElementById('skinPores').checked,
+                    veins: document.getElementById('veins').checked,
+                    finger_nails: document.getElementById('fingerNails').checked
+                }
+            };
+        }
+        
+        // 3D Viewer Variables
+        let scene, camera, renderer, controls, currentMesh;
+        let wireframeMode = false;
+        let backgroundColors = ['#667eea', '#11998e', '#2c3e50', '#34495e', '#ffffff'];
+        let currentBgIndex = 0;
+        
+        // Initialize 3D Viewer
+        function init3DViewer() {
+            const canvas = document.getElementById('modelCanvas');
+            const container = document.getElementById('canvas3D');
+            
+            // Scene
+            scene = new THREE.Scene();
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 5;
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setClearColor(backgroundColors[0], 1);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+            directionalLight2.position.set(-5, -5, -5);
+            scene.add(directionalLight2);
+            
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        }
+        
+        // Load 3D model from URL
+        function load3DModel(url, format = 'ply') {
+            console.log('load3DModel called with:', url, format);
+            document.getElementById('loadingViewer').style.display = 'block';
+            
+            // Remove existing mesh
+            if (currentMesh) {
+                scene.remove(currentMesh);
+            }
+            
+            // Check if loaders are available
+            if (!THREE.PLYLoader || !THREE.OBJLoader) {
+                console.error('Three.js loaders not available!');
+                document.getElementById('loadingViewer').innerHTML = '<div style="color: white;">❌ 3D loaders not loaded. Please refresh the page.</div>';
+                return;
+            }
+            
+            const loader = format === 'ply' ? new THREE.PLYLoader() : new THREE.OBJLoader();
+            console.log('Using loader:', loader);
+            
+            loader.load(url, (geometry) => {
+                console.log('Model loaded successfully:', geometry);
+                document.getElementById('loadingViewer').style.display = 'none';
+                
+                // Handle PLY geometry
+                if (format === 'ply') {
+                    geometry.computeVertexNormals();
+                    const material = new THREE.MeshPhongMaterial({ 
+                        color: 0xaaaaaa,
+                        flatShading: false,
+                        side: THREE.DoubleSide
+                    });
+                    currentMesh = new THREE.Mesh(geometry, material);
+                } else {
+                    // Handle OBJ (already a group/mesh)
+                    currentMesh = geometry;
+                }
+                
+                // Center and scale model
+                const box = new THREE.Box3().setFromObject(currentMesh);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 4 / maxDim;
+                
+                currentMesh.position.sub(center);
+                currentMesh.scale.multiplyScalar(scale);
+                
+                scene.add(currentMesh);
+                resetCamera();
+                console.log('Model added to scene successfully');
+            }, 
+            (progress) => {
+                // Progress callback
+                if (progress.lengthComputable) {
+                    const percent = (progress.loaded / progress.total) * 100;
+                    console.log('Loading progress:', percent.toFixed(2) + '%');
+                }
+            },
+            (error) => {
+                document.getElementById('loadingViewer').style.display = 'none';
+                console.error('Error loading model:', error);
+                document.getElementById('loadingViewer').innerHTML = '<div style="color: white;">❌ Error loading model<br><span style="font-size: 0.8em;">Check console for details</span></div>';
+                document.getElementById('loadingViewer').style.display = 'block';
+            });
+        }
+        
+        // Viewer controls
+        function resetCamera() {
+            camera.position.set(0, 0, 5);
+            controls.reset();
+        }
+        
+        function toggleWireframe() {
+            wireframeMode = !wireframeMode;
+            if (currentMesh) {
+                currentMesh.traverse((child) => {
+                    if (child.isMesh) {
+                        child.material.wireframe = wireframeMode;
+                    }
+                });
+            }
+        }
+        
+        function changeBackground() {
+            currentBgIndex = (currentBgIndex + 1) % backgroundColors.length;
+            renderer.setClearColor(backgroundColors[currentBgIndex], 1);
+        }
+        
+        // Drag and drop handlers
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.style.borderColor = '#4caf50';
+            e.currentTarget.style.background = '#e8f5e9';
+        }
+        
+        function handleDragLeave(e) {
+            e.currentTarget.style.borderColor = '#5c6bc0';
+            e.currentTarget.style.background = 'white';
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.style.borderColor = '#5c6bc0';
+            e.currentTarget.style.background = 'white';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                loadFileToViewer(files[0]);
+            }
+        }
+        
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                loadFileToViewer(files[0]);
+            }
+        }
+        
+        function loadFileToViewer(file) {
+            const fileName = file.name.toLowerCase();
+            const format = fileName.endsWith('.ply') ? 'ply' : 'obj';
+            
+            const url = URL.createObjectURL(file);
+            load3DModel(url, format);
+        }
+        
+        // Load presets when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            loadPresetsFromStorage();
+            init3DViewer();
+        });
+        
+        async function updateProviderInfo() {
+            const provider = document.getElementById('provider').value;
+            const infoDiv = document.getElementById('providerInfo');
+            
+            const info = {
+                'local': '<strong>🖥️ Local GPU:</strong> Generate 3D models on YOUR server - 100% FREE, unlimited, completely private! First generation may take 2-3 minutes as model loads.',
+                'huggingface': '<strong>🆓 Hugging Face:</strong> Generates FREE 2D concept art instantly. No API key needed. Use as reference for 3D modeling.',
+                'meshy': '<strong>Meshy AI:</strong> Professional 3D models. Get free trial at <a href="https://meshy.ai" target="_blank" style="color: white; text-decoration: underline;">meshy.ai</a> - 200 free credits!',
+                'tripo': '<strong>Tripo AI:</strong> Fast 3D generation. Get free trial at <a href="https://tripo3d.ai" target="_blank" style="color: white; text-decoration: underline;">tripo3d.ai</a>'
+            };
+            
+            const styles = {
+                'local': 'background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;',
+                'huggingface': 'background: #f0f0f0; color: #333;',
+                'meshy': 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;',
+                'tripo': 'background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;'
+            };
+            
+            infoDiv.innerHTML = info[provider] || '';
+            infoDiv.style = (styles[provider] || '') + ' margin-top: 10px; padding: 10px; border-radius: 8px; font-size: 0.9em;';
+            
+            try {
+                await fetch('/api/provider', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider })
+                });
+                console.log('Provider changed to:', provider);
+            } catch (error) {
+                console.error('Failed to change provider:', error);
+            }
+        }
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + '-tab').classList.add('active');
+        }
+        
+        async function generateFromText() {
+            const text = document.getElementById('textPrompt').value;
+            if (!text) {
+                alert('Please enter a description');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/generate/text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    currentPrompt = data.prompt;
+                    document.getElementById('description').textContent = data.description;
+                    document.getElementById('promptResult').style.display = 'block';
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function generateFromStructured() {
+            const prompt = {
+                gender: document.getElementById('gender').value,
+                body_type: document.getElementById('bodyType').value,
+                clothing_type: document.getElementById('clothingType').value,
+                custom_prompt: document.getElementById('customPrompt').value
+            };
+            
+            try {
+                const response = await fetch('/api/generate/structured', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(prompt)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    currentPrompt = data.prompt;
+                    document.getElementById('description').textContent = data.description;
+                    document.getElementById('promptResult').style.display = 'block';
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function generateModel() {
+            if (!currentPrompt) return;
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Show progress UI
+            document.getElementById('modelResult').style.display = 'block';
+            document.getElementById('progressContainer').style.display = 'block';
+            updateProgress(0, '🔄 Initializing generation...');
+            
+            try {
+                updateProgress(10, '📡 Sending request to server...');
+                
+                const qualitySettings = getQualitySettings();
+                const advancedSettings = getAdvancedSettings();
+                const requestData = {
+                    ...currentPrompt,
+                    quality_settings: qualitySettings,
+                    advanced_settings: advancedSettings
+                };
+                
+                const response = await fetch('/api/generate/model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+                
+                updateProgress(20, '⏳ Model loading...');
+                
+                const data = await response.json();
+                if (data.success) {
+                    updateProgress(30, '🎨 Generating 3D mesh... (30-60 seconds)');
+                    pollProgress(data.task_id);
+                } else {
+                    document.getElementById('progressContainer').style.display = 'none';
+                    document.getElementById('modelStatus').innerHTML = `<div class="result"><span class="status failed">Failed</span><p>${data.error}</p></div>`;
+                }
+            } catch (error) {
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('modelStatus').innerHTML = `<div class="result"><span class="status failed">Error</span><p>${error.message}</p></div>`;
+            }
+        }
+        
+        function updateProgress(percent, message) {
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressText').textContent = percent + '%';
+            document.getElementById('progressStatus').textContent = message;
+        }
+        
+        async function pollProgress(taskId) {
+            if (pollInterval) clearInterval(pollInterval);
+            
+            let pollCount = 0;
+            let maxPolls = 60; // Maximum 3 minutes of polling
+            
+            pollInterval = setInterval(async () => {
+                try {
+                    pollCount++;
+                    
+                    const response = await fetch(`/api/progress/${taskId}`);
+                    const data = await response.json();
+                    
+                    console.log('Progress check:', data); // Debug log
+                    
+                    if (data.success) {
+                        // Update progress bar with real progress
+                        const progress = data.progress || 0;
+                        const message = data.message || 'Generating...';
+                        updateProgress(progress, message);
+                        
+                        if (data.status === 'completed' || data.status === 'succeeded') {
+                            updateProgress(100, '✅ Generation complete!');
+                            setTimeout(() => {
+                                document.getElementById('progressContainer').style.display = 'none';
+                                updateModelDisplay(data);
+                            }, 1000);
+                            clearInterval(pollInterval);
+                        } else if (data.status === 'failed') {
+                            document.getElementById('progressContainer').style.display = 'none';
+                            updateModelDisplay(data);
+                            clearInterval(pollInterval);
+                        }
+                    }
+                    
+                    // Stop polling after max attempts
+                    if (pollCount >= maxPolls) {
+                        console.log('Max polling attempts reached');
+                        clearInterval(pollInterval);
+                        document.getElementById('progressContainer').style.display = 'none';
+                        document.getElementById('modelStatus').innerHTML = 
+                            '<div class="result"><span class="status failed">Timeout</span><p>Generation took too long. Check outputs folder.</p></div>';
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }, 1000); // Poll every second for smoother updates
+        }
+        
+        function updateModelDisplay(data) {
+            // Show 3D viewer
+            document.getElementById('viewer3D').style.display = 'block';
+            
+            // Auto-load the generated model into viewer
+            if (data.model_url) {
+                console.log('Loading model from:', data.model_url);
+                const format = data.model_url.endsWith('.ply') ? 'ply' : 'obj';
+                load3DModel(data.model_url, format);
+            } else {
+                console.log('No model_url in data:', data);
+            }
+            
+            let html = '<div class="result">';
+            html += `<span class="status ${data.status}">${data.status || 'Processing'}</span>`;
+            
+            if (data.progress !== undefined) {
+                html += `<div class="progress-bar"><div class="progress-fill" style="width: ${data.progress}%"></div></div>`;
+                html += `<p>Progress: ${data.progress}%</p>`;
+            }
+            
+            if (data.thumbnail_url) {
+                html += `<img src="${data.thumbnail_url}" style="width: 100%; border-radius: 8px; margin: 10px 0;" alt="Model preview">`;
+            }
+            
+            if (data.message) {
+                html += `<p style="background: #e3f2fd; padding: 10px; border-radius: 8px; margin: 10px 0; color: #1976d2;">${data.message}</p>`;
+            }
+            
+            if (data.model_url || data.obj_url || data.thumbnail_url || data.exported_files) {
+                html += '<div style="margin-top: 15px;">';
+                html += '<h3 style="color: #667eea; margin-bottom: 10px;">📥 Download Your 3D Model:</h3>';
+                html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">';
+                
+                // Track which files we've added
+                const addedFiles = new Set();
+                
+                // Primary model file
+                if (data.model_url) {
+                    addedFiles.add(data.model_url);
+                    const ext = data.model_url.split('.').pop().toUpperCase();
+                    const fileName = data.model_url.split('/').pop();
+                    html += `<a href="${data.model_url}" download style="text-decoration: none;">
+                        <button class="download-btn" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                            📦 ${ext} File<br><span style="font-size: 0.75em; opacity: 0.9;">${fileName}</span>
+                        </button>
+                    </a>`;
+                }
+                
+                // OBJ file
+                if (data.obj_url && !addedFiles.has(data.obj_url)) {
+                    addedFiles.add(data.obj_url);
+                    const fileName = data.obj_url.split('/').pop();
+                    html += `<a href="${data.obj_url}" download style="text-decoration: none;">
+                        <button class="download-btn" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                            🎨 OBJ File<br><span style="font-size: 0.75em; opacity: 0.9;">${fileName}</span>
+                        </button>
+                    </a>`;
+                }
+                
+                // All exported files
+                if (data.exported_files && data.exported_files.length > 0) {
+                    data.exported_files.forEach(fileUrl => {
+                        if (!addedFiles.has(fileUrl)) {
+                            addedFiles.add(fileUrl);
+                            const fileName = fileUrl.split('/').pop();
+                            const ext = fileName.split('.').pop().toUpperCase();
+                            html += `<a href="${fileUrl}" download style="text-decoration: none;">
+                                <button class="download-btn" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                                    📄 ${ext} File<br><span style="font-size: 0.75em; opacity: 0.9;">${fileName}</span>
+                                </button>
+                            </a>`;
+                        }
+                    });
+                }
+                
+                // Thumbnail
+                if (data.thumbnail_url && !data.model_url) {
+                    html += `<a href="${data.thumbnail_url}" download style="text-decoration: none;">
+                        <button class="download-btn" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                            🖼️ Concept Art
+                        </button>
+                    </a>`;
+                }
+                
+                html += '</div>';
+                html += '<p style="margin-top: 10px; font-size: 0.85em; color: #666; text-align: center;">💡 Open in Blender, MeshLab, or any 3D software</p>';
+                html += '</div>';
+            }
+            
+            if (data.help_url) {
+                html += `<p style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 8px; color: #856404;">
+                    💡 For true 3D models, try <a href="${data.help_url}" target="_blank" style="color: #667eea; font-weight: bold;">Meshy AI</a> (free trial available)
+                </p>`;
+            }
+            
+            if (data.task_id) {
+                html += `<p style="font-size: 0.8em; color: #666; margin-top: 10px;">Task ID: ${data.task_id}</p>`;
+            }
+            
+            html += '</div>';
+            document.getElementById('modelResult').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
