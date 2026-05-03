@@ -757,11 +757,21 @@
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="networkDown">-</div>
-                <div class="stat-label">Network Download</div>
+                <div class="stat-label">Download Speed</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 5px;">
+                    Min: <span id="downloadMin">-</span> | Max: <span id="downloadMax">-</span> | Avg: <span id="downloadAvg">-</span>
+                </div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="networkUp">-</div>
-                <div class="stat-label">Network Upload</div>
+                <div class="stat-label">Upload Speed</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 5px;">
+                    Min: <span id="uploadMin">-</span> | Max: <span id="uploadMax">-</span> | Avg: <span id="uploadAvg">-</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="ping">-</div>
+                <div class="stat-label">Ping (8.8.8.8)</div>
             </div>
         </div>
 
@@ -1169,8 +1179,22 @@
                 const response = await fetch('/api/network/stats');
                 const data = await response.json();
                 
-                document.getElementById('networkDown').textContent = data.download || '-';
-                document.getElementById('networkUp').textContent = data.upload || '-';
+                // Update current speeds
+                document.getElementById('networkDown').textContent = data.download?.current || '-';
+                document.getElementById('networkUp').textContent = data.upload?.current || '-';
+                
+                // Update min/max/avg for download
+                document.getElementById('downloadMin').textContent = data.download?.min || '-';
+                document.getElementById('downloadMax').textContent = data.download?.max || '-';
+                document.getElementById('downloadAvg').textContent = data.download?.avg || '-';
+                
+                // Update min/max/avg for upload
+                document.getElementById('uploadMin').textContent = data.upload?.min || '-';
+                document.getElementById('uploadMax').textContent = data.upload?.max || '-';
+                document.getElementById('uploadAvg').textContent = data.upload?.avg || '-';
+                
+                // Update ping
+                document.getElementById('ping').textContent = data.ping || '-';
             } catch (error) {
                 console.error('Failed to load network stats:', error);
             }

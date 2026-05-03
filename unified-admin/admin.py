@@ -634,9 +634,14 @@ def get_disk_health():
 @app.route('/api/network/stats', methods=['GET'])
 @login_required
 def get_network_stats():
-    """Get network statistics"""
+    """Get network statistics with speed tracking"""
     try:
-        # Get network interface stats
+        import time
+        import json
+        
+        stats_file = '/tmp/network_stats.json'
+        
+        # Get current network stats
         result = subprocess.run(['cat', '/proc/net/dev'], capture_output=True, text=True)
         lines = result.stdout.strip().split('\n')[2:]  # Skip headers
         
@@ -651,14 +656,104 @@ def get_network_stats():
                     total_rx += int(parts[1])
                     total_tx += int(parts[9])
         
-        # Convert to GB
+        current_time = time.time()
+        
+        # Load previous stats
+        prev_stats = None
+        if os.path.exists(stats_file):
+            try:
+                with open(stats_file, 'r') as f:
+                    prev_stats = json.load(f)
+            except:
+                pass
+        
+        # Calculate speed (bytes per second)
+        download_speed = 0
+        upload_speed = 0
+        
+        if prev_stats:
+            time_diff = current_time - prev_stats['time']
+            if time_diff > 0:
+                download_speed = (total_rx - prev_stats['rx']) / time_diff
+                upload_speed = (total_tx - prev_stats['tx']) / time_diff
+        
+        # Update tracking stats
+        if prev_stats and 'history' in prev_stats:
+            history = prev_stats['history']
+            history['download_speeds'].append(download_speed)
+            history['upload_speeds'].append(upload_speed)
+            # Keep last 60 measurements (30 seconds * 2 = 1 minute of data)
+            if len(history['download_speeds']) > 60:
+                history['download_speeds'] = history['download_speeds'][-60:]
+                history['upload_speeds'] = history['upload_speeds'][-60:]
+        else:
+            history = {
+                'download_speeds': [download_speed] if download_speed > 0 else [],
+                'upload_speeds': [upload_speed] if upload_speed > 0 else []
+            }
+        
+        # Calculate min/max/avg
+        def format_speed(bps):
+            if bps >= 1024**3:
+                return f"{bps / (1024**3):.2f} GB/s"
+            elif bps >= 1024**2:
+                return f"{bps / (1024**2):.2f} MB/s"
+            elif bps >= 1024:
+                return f"{bps / 1024:.2f} KB/s"
+            else:
+                return f"{bps:.0f} B/s"
+        
+        download_stats = {
+            'current': format_speed(download_speed),
+            'min': format_speed(min(history['download_speeds'])) if history['download_speeds'] else '0 B/s',
+            'max': format_speed(max(history['download_speeds'])) if history['download_speeds'] else '0 B/s',
+            'avg': format_speed(sum(history['download_speeds']) / len(history['download_speeds'])) if history['download_speeds'] else '0 B/s'
+        }
+        
+        upload_stats = {
+            'current': format_speed(upload_speed),
+            'min': format_speed(min(history['upload_speeds'])) if history['upload_speeds'] else '0 B/s',
+            'max': format_speed(max(history['upload_speeds'])) if history['upload_speeds'] else '0 B/s',
+            'avg': format_speed(sum(history['upload_speeds']) / len(history['upload_speeds'])) if history['upload_speeds'] else '0 B/s'
+        }
+        
+        # Get ping to 8.8.8.8
+        try:
+            ping_result = subprocess.run(['ping', '-c', '1', '-W', '1', '8.8.8.8'], 
+                                       capture_output=True, text=True, timeout=2)
+            if ping_result.returncode == 0:
+                # Extract ping time
+                for line in ping_result.stdout.split('\n'):
+                    if 'time=' in line:
+                        ping_time = line.split('time=')[1].split()[0]
+                        ping = f"{ping_time} ms"
+                        break
+                else:
+                    ping = 'N/A'
+            else:
+                ping = 'Timeout'
+        except:
+            ping = 'N/A'
+        
+        # Save current stats
+        with open(stats_file, 'w') as f:
+            json.dump({
+                'time': current_time,
+                'rx': total_rx,
+                'tx': total_tx,
+                'history': history
+            }, f)
+        
+        # Convert totals to GB
         rx_gb = round(total_rx / (1024**3), 2)
         tx_gb = round(total_tx / (1024**3), 2)
         
         return jsonify({
-            'download': f"{rx_gb} GB",
-            'upload': f"{tx_gb} GB",
-            'total': f"{rx_gb + tx_gb} GB"
+            'total_download': f"{rx_gb} GB",
+            'total_upload': f"{tx_gb} GB",
+            'download': download_stats,
+            'upload': upload_stats,
+            'ping': ping
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
