@@ -122,15 +122,35 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            min-height: 0;
         }
 
         .chat-messages {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 15px;
             display: flex;
             flex-direction: column;
             gap: 10px;
+            min-height: 0;
+        }
+        
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
         }
 
         .message {
@@ -392,6 +412,9 @@
         });
 
         term.open(document.getElementById('terminal'));
+        
+        // Focus terminal automatically
+        term.focus();
 
         // WebSocket connection
         const socket = io();
