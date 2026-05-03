@@ -103,10 +103,10 @@ chmod +x install-ollama.sh
 ./install-ollama.sh
 ```
 
-Or download the full setup script directly:
+Or download the full setup script directly:   <- Use This One
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ollama-setup/ollama-webui-setup.sh -o ollama-webui-setup.sh    <- Use This One
+curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ollama-setup/ollama-webui-setup.sh -o ollama-webui-setup.sh
 
 chmod +x ollama-webui-setup.sh
 
