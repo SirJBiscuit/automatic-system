@@ -1153,6 +1153,20 @@
                     <span class="tooltip-text">🖥️ Access your server's web-based console. Manage files, run commands, and monitor processes through a beautiful web interface.</span>
                 </span>
                 <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="window.open('https://ssh.cloudmc.online', '_blank')" style="width: 100%;">
+                        <div class="icon">💻</div>
+                        SSH Terminal
+                    </button>
+                    <span class="tooltip-text">💻 Beautiful web-based SSH terminal with AI assistant. Access your server from anywhere with quick commands and customization!</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="manageSSHTerminal()" style="width: 100%;">
+                        <div class="icon">⚙️</div>
+                        Manage SSH Terminal
+                    </button>
+                    <span class="tooltip-text">⚙️ Update, restart, or check status of the SSH Web Terminal service. Includes quick update from GitHub!</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
                     <button class="quick-btn" onclick="showSchedule()" style="width: 100%;">
                         <div class="icon">⏰</div>
                         Schedule Reboot
@@ -1541,6 +1555,41 @@
             </div>
             
             <button class="btn" onclick="closeModal('backupModal')">Close</button>
+        </div>
+    </div>
+
+    <!-- SSH Terminal Management Modal -->
+    <div class="modal" id="sshTerminalModal">
+        <div class="modal-content">
+            <div class="modal-header">💻 SSH Terminal Management</div>
+            
+            <div class="alert alert-info">
+                Manage your SSH Web Terminal service - update, restart, or check status.
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="sshTerminalAction('status')">
+                    📊 Check Status
+                </button>
+                <button class="btn btn-success" onclick="sshTerminalAction('restart')">
+                    🔄 Restart Service
+                </button>
+                <button class="btn btn-warning" onclick="sshTerminalAction('update')">
+                    ⬆️ Update from GitHub
+                </button>
+                <button class="btn btn-info" onclick="sshTerminalAction('logs')">
+                    📝 View Logs
+                </button>
+            </div>
+            
+            <h3 style="margin-bottom: 10px;">Output</h3>
+            <div id="sshTerminalOutput" style="background: #0f172a; color: #e2e8f0; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; max-height: 400px; overflow-y: auto; white-space: pre-wrap;">
+                Click a button above to perform an action...
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button class="btn" onclick="closeModal('sshTerminalModal')">Close</button>
+            </div>
         </div>
     </div>
 
@@ -2977,6 +3026,42 @@
 
         // Initialize notifications on load
         updateNotificationBadge();
+
+        // SSH Terminal Management
+        function manageSSHTerminal() {
+            document.getElementById('sshTerminalModal').classList.add('active');
+        }
+
+        async function sshTerminalAction(action) {
+            const output = document.getElementById('sshTerminalOutput');
+            output.textContent = `Running ${action}...\n`;
+            
+            try {
+                const response = await fetch('/api/ssh-terminal/manage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
+                });
+                
+                const data = await response.json();
+                
+                if (data.output) {
+                    output.textContent = data.output;
+                    
+                    if (action === 'restart') {
+                        addNotification('SSH Terminal Restarted', 'Service restarted successfully', 'success');
+                    } else if (action === 'update') {
+                        addNotification('SSH Terminal Updated', 'Updated from GitHub and restarted', 'success');
+                    }
+                } else if (data.error) {
+                    output.textContent = `Error: ${data.error}`;
+                    addNotification('SSH Terminal Error', data.error, 'error');
+                }
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+                addNotification('SSH Terminal Error', error.message, 'error');
+            }
+        }
 
         // Load customization on page load
         window.addEventListener('load', () => {

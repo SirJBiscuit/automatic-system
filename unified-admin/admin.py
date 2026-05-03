@@ -1005,6 +1005,70 @@ def network_speedtest():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/ssh-terminal/manage', methods=['POST'])
+@login_required
+def manage_ssh_terminal():
+    """Manage SSH Terminal service"""
+    try:
+        data = request.get_json()
+        action = data.get('action', '')
+        
+        if action == 'status':
+            result = subprocess.run(
+                ['systemctl', 'status', 'ssh-terminal'],
+                capture_output=True,
+                text=True
+            )
+            return jsonify({'output': result.stdout})
+            
+        elif action == 'restart':
+            result = subprocess.run(
+                ['systemctl', 'restart', 'ssh-terminal'],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0:
+                return jsonify({'output': '✅ SSH Terminal service restarted successfully!'})
+            else:
+                return jsonify({'error': result.stderr}), 500
+                
+        elif action == 'update':
+            # Download latest files from GitHub
+            commands = [
+                'cd /opt/ssh-terminal',
+                'curl -o app.py https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ssh-terminal/app.py',
+                'curl -o templates/terminal.html https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ssh-terminal/templates/terminal.html',
+                'curl -o templates/login.html https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ssh-terminal/templates/login.html',
+                'systemctl restart ssh-terminal'
+            ]
+            
+            full_command = ' && '.join(commands)
+            result = subprocess.run(
+                full_command,
+                shell=True,
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode == 0:
+                return jsonify({'output': '✅ SSH Terminal updated from GitHub and restarted successfully!'})
+            else:
+                return jsonify({'error': result.stderr or 'Update failed'}), 500
+                
+        elif action == 'logs':
+            result = subprocess.run(
+                ['journalctl', '-u', 'ssh-terminal', '-n', '50', '--no-pager'],
+                capture_output=True,
+                text=True
+            )
+            return jsonify({'output': result.stdout})
+            
+        else:
+            return jsonify({'error': 'Invalid action'}), 400
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Initialize admin credentials on first run
     init_admin_credentials()
