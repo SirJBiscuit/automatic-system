@@ -10,7 +10,11 @@ from typing import Optional
 
 class Tools:
     def __init__(self):
+        # Use localhost since Open WebUI and SSH Terminal are on same server
+        # This is faster and avoids SSL/auth issues
         self.ssh_terminal_url = "http://localhost:5003"
+        # Alternative: Use public URL if needed
+        # self.ssh_terminal_url = "https://ssh.cloudmc.online"
         self.session = requests.Session()
     
     def execute_command(self, command: str) -> str:
