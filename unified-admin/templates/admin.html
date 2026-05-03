@@ -755,6 +755,14 @@
                 <div class="stat-value" id="diskUsed">-</div>
                 <div class="stat-label">Disk Used</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-value" id="networkDown">-</div>
+                <div class="stat-label">Network Download</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="networkUp">-</div>
+                <div class="stat-label">Network Upload</div>
+            </div>
         </div>
 
         <!-- Quick Shortcuts -->
@@ -954,13 +962,23 @@
                     <h2>🖥️ System Control</h2>
                 </div>
                 <p class="help-text">Safely reboot or shutdown the server. All services will be stopped gracefully to prevent data loss.</p>
+                
+                <h3 style="margin-top: 20px; margin-bottom: 10px;">⏰ Scheduled Reboot</h3>
+                <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
+                    <input type="number" id="rebootMinutes" min="1" max="1440" value="60" style="padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; width: 100px;">
+                    <span>minutes</span>
+                    <button class="btn btn-warning" onclick="scheduleReboot()">⏰ Schedule Reboot</button>
+                    <button class="btn btn-secondary" onclick="cancelScheduledReboot()">❌ Cancel</button>
+                </div>
+                
+                <h3 style="margin-bottom: 10px;">🚨 Immediate Actions</h3>
                 <div style="display: flex; gap: 15px; margin-top: 15px;">
                     <span class="tooltip-container">
-                        <button class="btn btn-warning" onclick="confirmReboot()">🔄 Reboot Server</button>
-                        <span class="tooltip-text">Gracefully stops all services, syncs filesystems, and reboots. Services will auto-start on boot.</span>
+                        <button class="btn btn-warning" onclick="confirmReboot()">🔄 Reboot Now</button>
+                        <span class="tooltip-text">Gracefully stops all services, syncs filesystems, and reboots immediately. Services will auto-start on boot.</span>
                     </span>
                     <span class="tooltip-container">
-                        <button class="btn btn-danger" onclick="confirmShutdown()">🛑 Shutdown Server</button>
+                        <button class="btn btn-danger" onclick="confirmShutdown()">🛑 Shutdown Now</button>
                         <span class="tooltip-text">Gracefully stops all services, syncs filesystems, and powers off. You'll need physical access to restart.</span>
                     </span>
                 </div>
@@ -1002,11 +1020,11 @@
             <div class="form-group">
                 <label>Select Service</label>
                 <select id="logService">
-                    <option value="filebrowser">Filebrowser</option>
                     <option value="cloudflared">Cloudflare Tunnel</option>
                     <option value="pingvin">Pingvin Share</option>
                     <option value="nextcloud">Nextcloud</option>
                     <option value="wings">Wings</option>
+                    <option value="unified-admin">Admin Panel</option>
                 </select>
             </div>
             <button class="btn btn-primary" onclick="loadLogs()" style="margin-bottom: 15px;">Load Logs</button>
@@ -1136,10 +1154,25 @@
                 // Update server heartbeat
                 serverPulse.className = 'pulse-indicator online';
                 serverStatus.textContent = 'Server Online';
+                
+                // Load network stats
+                loadNetworkStats();
             } catch (error) {
                 console.error('Failed to load system status:', error);
                 serverPulse.className = 'pulse-indicator offline';
                 serverStatus.textContent = 'Server Offline';
+            }
+        }
+
+        async function loadNetworkStats() {
+            try {
+                const response = await fetch('/api/network/stats');
+                const data = await response.json();
+                
+                document.getElementById('networkDown').textContent = data.download || '-';
+                document.getElementById('networkUp').textContent = data.upload || '-';
+            } catch (error) {
+                console.error('Failed to load network stats:', error);
             }
         }
 
@@ -1685,6 +1718,49 @@
             loadDockerContainers();
             loadDiskHealth();
         });
+
+        async function scheduleReboot() {
+            const minutes = document.getElementById('rebootMinutes').value;
+            
+            if (!minutes || minutes < 1) {
+                alert('Please enter a valid number of minutes');
+                return;
+            }
+            
+            if (!confirm(`Schedule server reboot in ${minutes} minutes?`)) return;
+            
+            try {
+                const response = await fetch('/api/system/schedule-reboot', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({minutes: parseInt(minutes)})
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to schedule reboot');
+            }
+        }
+
+        async function cancelScheduledReboot() {
+            try {
+                const response = await fetch('/api/system/cancel-reboot', {method: 'POST'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to cancel reboot');
+            }
+        }
     </script>
 </body>
 </html>

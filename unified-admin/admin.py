@@ -432,6 +432,11 @@ def get_logs(service):
     """Get logs for a service"""
     lines = request.args.get('lines', 50, type=int)
     try:
+        # Only allow specific services (removed filebrowser)
+        allowed_services = ['pingvin', 'nextcloud', 'cloudflared', 'wings', 'unified-admin']
+        if service not in allowed_services:
+            return jsonify({'error': 'Service not available'}), 400
+            
         if service in ['pingvin', 'nextcloud']:
             dir_map = {'pingvin': PINGVIN_DIR, 'nextcloud': NEXTCLOUD_DIR}
             result = subprocess.run(['docker-compose', 'logs', '--tail', str(lines)], 
@@ -623,6 +628,66 @@ def get_disk_health():
         })
         
         return jsonify({'disks': disks})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/network/stats', methods=['GET'])
+@login_required
+def get_network_stats():
+    """Get network statistics"""
+    try:
+        # Get network interface stats
+        result = subprocess.run(['cat', '/proc/net/dev'], capture_output=True, text=True)
+        lines = result.stdout.strip().split('\n')[2:]  # Skip headers
+        
+        total_rx = 0
+        total_tx = 0
+        
+        for line in lines:
+            if ':' in line:
+                parts = line.split()
+                interface = parts[0].replace(':', '')
+                if interface != 'lo':  # Skip loopback
+                    total_rx += int(parts[1])
+                    total_tx += int(parts[9])
+        
+        # Convert to GB
+        rx_gb = round(total_rx / (1024**3), 2)
+        tx_gb = round(total_tx / (1024**3), 2)
+        
+        return jsonify({
+            'download': f"{rx_gb} GB",
+            'upload': f"{tx_gb} GB",
+            'total': f"{rx_gb + tx_gb} GB"
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/system/schedule-reboot', methods=['POST'])
+@login_required
+def schedule_reboot():
+    """Schedule a server reboot"""
+    try:
+        data = request.get_json()
+        minutes = data.get('minutes', 60)
+        
+        # Schedule reboot using shutdown command
+        subprocess.run(['shutdown', '-r', f'+{minutes}'], check=True)
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Server will reboot in {minutes} minutes. Cancel with: sudo shutdown -c'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/system/cancel-reboot', methods=['POST'])
+@login_required
+def cancel_reboot():
+    """Cancel scheduled reboot"""
+    try:
+        subprocess.run(['shutdown', '-c'], check=True)
+        return jsonify({'success': True, 'message': 'Scheduled reboot cancelled'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
