@@ -431,7 +431,9 @@
         });
 
         term.onData((data) => {
+            console.log('Terminal input:', data);
             socket.emit('input', { data });
+            // Don't echo locally - let server echo back
         });
 
         // Handle terminal resize manually (no addon needed)
