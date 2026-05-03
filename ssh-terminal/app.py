@@ -240,7 +240,9 @@ class Terminal:
             }
             subprocess.run(['/bin/bash', '-l'], env=env)
         else:
-            # Parent process
+            # Parent process - set terminal to raw mode
+            import tty
+            tty.setraw(self.fd)
             self.set_size(24, 80)
             
     def set_size(self, rows, cols):
