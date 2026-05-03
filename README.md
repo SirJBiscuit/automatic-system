@@ -106,7 +106,7 @@ chmod +x install-ollama.sh
 Or download the full setup script directly:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ollama-setup/ollama-webui-setup.sh -o ollama-webui-setup.sh
+curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ollama-setup/ollama-webui-setup.sh -o ollama-webui-setup.sh    <- Use This One
 
 chmod +x ollama-webui-setup.sh
 
@@ -132,7 +132,7 @@ sudo ./pteroanyinstall.sh install-panel
 sudo ./pteroanyinstall.sh install-wings
 ```
 
-#### Full Installation (Panel + Wings)
+#### Full Installation (Panel + Wings) <- Use This One
 ```bash
 sudo ./pteroanyinstall.sh install-full
 ```
