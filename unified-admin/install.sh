@@ -9,9 +9,9 @@ echo "🛠️  Installing Unified Admin Panel..."
 echo ""
 
 # Install dependencies
-echo "📦 Installing dependencies..."
+echo "Installing dependencies..."
 apt-get update
-apt-get install -y python3 python3-pip python3-venv smartmontools
+apt-get install -y python3 python3-pip python3-venv git docker.io docker-compose smartmontools speedtest-cli
 
 # Create app directory
 APP_DIR="/opt/unified-admin"

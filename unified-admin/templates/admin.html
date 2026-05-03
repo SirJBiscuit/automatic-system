@@ -54,6 +54,130 @@
             animation: pulse-glow 2s ease-in-out infinite;
         }
         
+        /* Color-coded stat cards */
+        .stat-card.status-good {
+            border-left: 4px solid #10b981;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%);
+        }
+        
+        .stat-card.status-warning {
+            border-left: 4px solid #f59e0b;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(217, 119, 6, 0.05) 100%);
+        }
+        
+        .stat-card.status-critical {
+            border-left: 4px solid #ef4444;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(220, 38, 38, 0.05) 100%);
+        }
+        
+        .stat-value.status-good {
+            color: #10b981;
+        }
+        
+        .stat-value.status-warning {
+            color: #f59e0b;
+        }
+        
+        .stat-value.status-critical {
+            color: #ef4444;
+        }
+        
+        /* Notification Bell */
+        .notification-bell {
+            position: relative;
+            cursor: pointer;
+            font-size: 24px;
+            margin-right: 15px;
+            transition: transform 0.3s;
+        }
+        
+        .notification-bell:hover {
+            transform: scale(1.1);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .notification-panel {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            width: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .notification-panel.active {
+            display: block;
+        }
+        
+        .notification-header {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .notification-item {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            transition: background 0.3s;
+        }
+        
+        .notification-item:hover {
+            background: #f8fafc;
+        }
+        
+        .notification-item.error {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .notification-item.warning {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .notification-item.success {
+            border-left: 4px solid #10b981;
+        }
+        
+        .notification-item.info {
+            border-left: 4px solid #3b82f6;
+        }
+        
+        body.dark-mode .notification-panel {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .notification-item:hover {
+            background: #0f172a;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -814,10 +938,27 @@
                 <span class="pulse-indicator checking" id="serverPulse"></span>
                 <span class="heartbeat-text" id="serverStatus">Checking...</span>
             </div>
+            <div class="notification-bell" onclick="toggleNotifications()">
+                🔔
+                <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+            </div>
             <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙</button>
             <span id="username"></span>
             <button class="btn btn-white" onclick="showSettings()">⚙️ Settings</button>
             <button class="btn btn-white" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <!-- Notification Panel -->
+    <div class="notification-panel" id="notificationPanel">
+        <div class="notification-header">
+            <h3>📬 Notifications</h3>
+            <button class="btn btn-sm" onclick="clearAllNotifications()" style="padding: 5px 10px; font-size: 12px;">Clear All</button>
+        </div>
+        <div id="notificationsList">
+            <div style="padding: 30px; text-align: center; color: #64748b;">
+                No notifications
+            </div>
         </div>
     </div>
 
@@ -1596,10 +1737,65 @@
                 document.getElementById('diskUsed').classList.add('loading');
                 
                 setTimeout(() => {
+                    // Update values
                     document.getElementById('uptime').textContent = data.uptime || '-';
                     document.getElementById('cpuLoad').textContent = data.load ? data.load[0] : '-';
                     document.getElementById('memoryUsed').textContent = data.memory ? data.memory.used : '-';
                     document.getElementById('diskUsed').textContent = data.disk ? data.disk.percent : '-';
+                    
+                    // Color code CPU Load
+                    const cpuLoad = parseFloat(data.load[0]);
+                    const cpuCard = document.getElementById('cpuLoad').closest('.stat-card');
+                    const cpuValue = document.getElementById('cpuLoad');
+                    cpuCard.classList.remove('status-good', 'status-warning', 'status-critical');
+                    cpuValue.classList.remove('status-good', 'status-warning', 'status-critical');
+                    if (cpuLoad < 2) {
+                        cpuCard.classList.add('status-good');
+                        cpuValue.classList.add('status-good');
+                    } else if (cpuLoad < 4) {
+                        cpuCard.classList.add('status-warning');
+                        cpuValue.classList.add('status-warning');
+                    } else {
+                        cpuCard.classList.add('status-critical');
+                        cpuValue.classList.add('status-critical');
+                        addNotification('High CPU Load', `CPU load is ${cpuLoad.toFixed(2)}. Consider checking running processes.`, 'warning');
+                    }
+                    
+                    // Color code Memory
+                    const memPercent = parseInt(data.memory.used);
+                    const memCard = document.getElementById('memoryUsed').closest('.stat-card');
+                    const memValue = document.getElementById('memoryUsed');
+                    memCard.classList.remove('status-good', 'status-warning', 'status-critical');
+                    memValue.classList.remove('status-good', 'status-warning', 'status-critical');
+                    if (memPercent < 70) {
+                        memCard.classList.add('status-good');
+                        memValue.classList.add('status-good');
+                    } else if (memPercent < 90) {
+                        memCard.classList.add('status-warning');
+                        memValue.classList.add('status-warning');
+                    } else {
+                        memCard.classList.add('status-critical');
+                        memValue.classList.add('status-critical');
+                        addNotification('High Memory Usage', `Memory usage is ${memPercent}%. Consider restarting services.`, 'error');
+                    }
+                    
+                    // Color code Disk
+                    const diskPercent = parseInt(data.disk.percent);
+                    const diskCard = document.getElementById('diskUsed').closest('.stat-card');
+                    const diskValue = document.getElementById('diskUsed');
+                    diskCard.classList.remove('status-good', 'status-warning', 'status-critical');
+                    diskValue.classList.remove('status-good', 'status-warning', 'status-critical');
+                    if (diskPercent < 80) {
+                        diskCard.classList.add('status-good');
+                        diskValue.classList.add('status-good');
+                    } else if (diskPercent < 95) {
+                        diskCard.classList.add('status-warning');
+                        diskValue.classList.add('status-warning');
+                    } else {
+                        diskCard.classList.add('status-critical');
+                        diskValue.classList.add('status-critical');
+                        addNotification('Low Disk Space', `Disk usage is ${diskPercent}%. Clean up files immediately!`, 'error');
+                    }
                     
                     // Remove loading indicators
                     document.querySelectorAll('.loading').forEach(el => el.classList.remove('loading'));
@@ -2687,14 +2883,100 @@
                 
                 if (data.download && data.upload) {
                     speedTestEl.innerHTML = `↓ ${data.download} Mbps<br>↑ ${data.upload} Mbps`;
+                    addNotification('Speed Test Complete', `Download: ${data.download} Mbps, Upload: ${data.upload} Mbps`, 'success');
                 } else {
                     speedTestEl.textContent = data.error || 'Test Failed';
+                    addNotification('Speed Test Failed', data.error || 'Unknown error', 'error');
                 }
             } catch (error) {
                 speedTestEl.textContent = 'Error';
                 console.error('Speed test failed:', error);
+                addNotification('Speed Test Error', error.message, 'error');
             }
         }
+
+        // Notification System
+        let notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+
+        function addNotification(title, message, type = 'info') {
+            const notification = {
+                id: Date.now(),
+                title,
+                message,
+                type,
+                timestamp: new Date().toLocaleString()
+            };
+            
+            // Check if similar notification exists (prevent spam)
+            const exists = notifications.some(n => n.title === title && n.message === message);
+            if (exists) return;
+            
+            notifications.unshift(notification);
+            if (notifications.length > 50) notifications = notifications.slice(0, 50);
+            
+            localStorage.setItem('notifications', JSON.stringify(notifications));
+            updateNotificationBadge();
+            updateNotificationsList();
+        }
+
+        function updateNotificationBadge() {
+            const badge = document.getElementById('notificationBadge');
+            const count = notifications.length;
+            
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function updateNotificationsList() {
+            const list = document.getElementById('notificationsList');
+            
+            if (notifications.length === 0) {
+                list.innerHTML = '<div style="padding: 30px; text-align: center; color: #64748b;">No notifications</div>';
+                return;
+            }
+            
+            list.innerHTML = notifications.map(n => `
+                <div class="notification-item ${n.type}">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 5px;">
+                        <strong>${n.title}</strong>
+                        <small style="color: #64748b;">${n.timestamp}</small>
+                    </div>
+                    <div style="font-size: 14px; color: #64748b;">${n.message}</div>
+                </div>
+            `).join('');
+        }
+
+        function toggleNotifications() {
+            const panel = document.getElementById('notificationPanel');
+            panel.classList.toggle('active');
+            updateNotificationsList();
+        }
+
+        function clearAllNotifications() {
+            if (confirm('Clear all notifications?')) {
+                notifications = [];
+                localStorage.setItem('notifications', JSON.stringify(notifications));
+                updateNotificationBadge();
+                updateNotificationsList();
+            }
+        }
+
+        // Close notification panel when clicking outside
+        document.addEventListener('click', function(event) {
+            const panel = document.getElementById('notificationPanel');
+            const bell = document.querySelector('.notification-bell');
+            
+            if (!panel.contains(event.target) && !bell.contains(event.target)) {
+                panel.classList.remove('active');
+            }
+        });
+
+        // Initialize notifications on load
+        updateNotificationBadge();
 
         // Load customization on page load
         window.addEventListener('load', () => {

@@ -2205,6 +2205,7 @@ install_admin_panel() {
     echo "  • Python Flask application"
     echo "  • Systemd service"
     echo "  • SMART monitoring tools"
+    echo "  • Internet speed test tool (speedtest-cli)"
     echo ""
     log_info "Features:"
     echo "  ✓ System monitoring (CPU, RAM, Disk, Network)"
