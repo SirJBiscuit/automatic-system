@@ -215,17 +215,18 @@ def stop_all_services():
 # ============================================================================
 
 @app.route('/api/services/status', methods=['GET'])
+@login_required
 def services_status():
     """Get status of all services"""
     try:
         services = {
-            'filebrowser': check_service('filebrowser'),
             'cloudflared': check_service('cloudflared'),
             'wings': check_service('wings'),
             'docker': check_service('docker'),
             'pingvin': check_docker_container('pingvin-share'),
             'nextcloud': check_docker_container('nextcloud'),
-            'nextcloud_db': check_docker_container('nextcloud-db')
+            'nextcloud_db': check_docker_container('nextcloud-db'),
+            'nextcloud_redis': check_docker_container('nextcloud-redis')
         }
         return jsonify(services)
     except Exception as e:
