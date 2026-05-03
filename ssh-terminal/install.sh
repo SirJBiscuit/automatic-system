@@ -16,11 +16,15 @@ apt-get install -y python3 python3-pip python3-venv
 APP_DIR="/opt/ssh-terminal"
 mkdir -p $APP_DIR
 
-# Copy files
-echo "📁 Copying files..."
-cp app.py $APP_DIR/
-cp requirements.txt $APP_DIR/
-cp -r templates $APP_DIR/
+# Download files from GitHub
+echo "📁 Downloading files from GitHub..."
+curl -fsSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ssh-terminal/app.py -o $APP_DIR/app.py
+curl -fsSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ssh-terminal/requirements.txt -o $APP_DIR/requirements.txt
+
+# Download templates
+mkdir -p $APP_DIR/templates
+curl -fsSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ssh-terminal/templates/terminal.html -o $APP_DIR/templates/terminal.html
+curl -fsSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ssh-terminal/templates/login.html -o $APP_DIR/templates/login.html
 
 # Create virtual environment
 echo "🐍 Setting up Python environment..."
