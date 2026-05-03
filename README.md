@@ -16,7 +16,7 @@ A comprehensive, interactive installation script for Pterodactyl Panel and Wings
 - **Update Management**: Easy updates for all components
 - **Scan & Fix**: Automatic detection and repair of common issues
 
-### Enhanced Features (NEW!)
+### Enhanced Features
 - **🌐 Network Configuration Wizard**: Auto-detects WiFi/Ethernet interfaces with visual display
 - **📍 Public IP Detection**: Automatically detects and confirms your public IP address
 - **🔒 Static IP Configuration**: Prevents IP changes after reboots (DHCP protection)
@@ -31,14 +31,14 @@ A comprehensive, interactive installation script for Pterodactyl Panel and Wings
 - **📋 Installation Flow Diagram**: Visual guide of the installation process
 - **⚙️ Optional Features Menu**: Choose which extras to install
 
-### Quick Wins (ESSENTIAL!)
+### Quick Wins 
 - **🔐 SSL Auto-Renewal Monitoring**: Daily certificate expiry checks with auto-renewal
 - **🛡️ Fail2ban Security**: Automatic brute-force protection for Panel, SSH, and Nginx
 - **💾 Scheduled Backups**: Automated daily/weekly backups with retention policies
 - **📊 Health Dashboard**: Real-time system status and resource monitoring
 - **🔔 Update Notifications**: Automatic checks for Pterodactyl updates
 
-### Admin Control Panel (NEW!)
+### Admin Control Panel 
 - **🎛️ Visual Management Interface**: Full-featured admin dashboard
 - **⚡ Service Control**: Start/stop/restart all services from one place
 - **📈 Resource Monitor**: Live CPU, memory, and disk usage
@@ -48,7 +48,7 @@ A comprehensive, interactive installation script for Pterodactyl Panel and Wings
 - **🔄 Update Manager**: Check and apply updates to all components
 - **⚙️ Advanced Configuration**: Database, performance, network settings
 
-### AI Assistant (REVOLUTIONARY!)
+### AI Assistant
 - **🤖 Local AI with Ollama & Gemma2**: Runs entirely on your server, no external APIs
 - **🔍 Intelligent Monitoring**: AI-powered system health analysis every 5 minutes
 - **🔧 Auto-Fix Common Issues**: Automatically restarts services, clears cache, cleans logs
@@ -58,7 +58,7 @@ A comprehensive, interactive installation script for Pterodactyl Panel and Wings
 - **🛡️ Proactive Defense**: Detects and prevents issues before they become critical
 - **📊 Easy Control**: Simple `chatbot -enable/-disable` commands
 
-### Ollama + Open WebUI Setup (NEW!)
+### Ollama + Open WebUI Setup
 - **🚀 One-Command Installation**: Automated setup of Ollama AI server with GPU support
 - **🌐 Cloudflare Tunnel Integration**: Secure external access via HTTPS
 - **💻 Open WebUI Interface**: Beautiful ChatGPT-like web interface
