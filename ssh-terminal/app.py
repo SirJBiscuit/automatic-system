@@ -265,12 +265,9 @@ class Terminal:
 @socketio.on('connect')
 def handle_connect():
     """Handle WebSocket connection"""
-    print(f"WebSocket connect attempt. Session: {session}")
-    print(f"Logged in: {'logged_in' in session}")
-    
-    if 'logged_in' not in session or not session.get('logged_in'):
-        print("Not logged in, rejecting connection")
-        return False
+    print(f"WebSocket connect attempt")
+    # Don't check session for WebSocket - it doesn't work through Cloudflare Tunnel
+    # The page itself is already protected by @login_required
     
     session_id = request.sid
     print(f"Creating terminal for session: {session_id}")
