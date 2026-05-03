@@ -150,6 +150,10 @@ def ai_chat():
         }
         
         try:
+            # Disable SSL warnings for self-signed certificates
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            
             ai_response = requests.post(openwebui_url, json=payload, timeout=30, verify=False)
             
             if ai_response.status_code == 200:
