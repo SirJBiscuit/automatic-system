@@ -824,40 +824,61 @@
     <div class="container">
         <!-- System Stats -->
         <div class="grid">
-            <div class="stat-card">
-                <div class="stat-value" id="uptime">-</div>
-                <div class="stat-label">Server Uptime</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="cpuLoad">-</div>
-                <div class="stat-label">CPU Load Average</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="memoryUsed">-</div>
-                <div class="stat-label">Memory Used</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="diskUsed">-</div>
-                <div class="stat-label">Disk Used</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="networkDown">-</div>
-                <div class="stat-label">Download Speed</div>
-                <div style="font-size: 11px; color: #64748b; margin-top: 5px;">
-                    Min: <span id="downloadMin">-</span> | Max: <span id="downloadMax">-</span> | Avg: <span id="downloadAvg">-</span>
+            <span class="tooltip-container" style="width: 100%;">
+                <div class="stat-card">
+                    <div class="stat-value" id="uptime">-</div>
+                    <div class="stat-label">Server Uptime</div>
                 </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="networkUp">-</div>
-                <div class="stat-label">Upload Speed</div>
-                <div style="font-size: 11px; color: #64748b; margin-top: 5px;">
-                    Min: <span id="uploadMin">-</span> | Max: <span id="uploadMax">-</span> | Avg: <span id="uploadAvg">-</span>
+                <span class="tooltip-text">⏱️ How long your server has been running since last reboot. Longer uptime = more stable. Updates automatically every few seconds.</span>
+            </span>
+            <span class="tooltip-container" style="width: 100%;">
+                <div class="stat-card">
+                    <div class="stat-value" id="cpuLoad">-</div>
+                    <div class="stat-label">CPU Load Average</div>
                 </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="ping">-</div>
-                <div class="stat-label">Ping (8.8.8.8)</div>
-            </div>
+                <span class="tooltip-text">🔥 CPU load average over 1 minute. Lower is better! <1.0 = light load, 1-4 = moderate, >4 = heavy load. High load may slow down services.</span>
+            </span>
+            <span class="tooltip-container" style="width: 100%;">
+                <div class="stat-card">
+                    <div class="stat-value" id="memoryUsed">-</div>
+                    <div class="stat-label">Memory Used</div>
+                </div>
+                <span class="tooltip-text">🧠 RAM usage percentage. <70% = healthy, 70-90% = moderate, >90% = critical. High memory usage can cause services to crash.</span>
+            </span>
+            <span class="tooltip-container" style="width: 100%;">
+                <div class="stat-card">
+                    <div class="stat-value" id="diskUsed">-</div>
+                    <div class="stat-label">Disk Used</div>
+                </div>
+                <span class="tooltip-text">💾 Storage space used. <80% = healthy, 80-95% = warning, >95% = critical. Free up space if getting full!</span>
+            </span>
+            <span class="tooltip-container" style="width: 100%;">
+                <div class="stat-card">
+                    <div class="stat-value" id="networkDown">-</div>
+                    <div class="stat-label">Download Speed</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 5px;">
+                        Min: <span id="downloadMin">-</span> | Max: <span id="downloadMax">-</span> | Avg: <span id="downloadAvg">-</span>
+                    </div>
+                </div>
+                <span class="tooltip-text">📥 Real-time download speed with min/max/average over last 60 measurements. Tracks data coming INTO your server. Spikes are normal during file transfers!</span>
+            </span>
+            <span class="tooltip-container" style="width: 100%;">
+                <div class="stat-card">
+                    <div class="stat-value" id="networkUp">-</div>
+                    <div class="stat-label">Upload Speed</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 5px;">
+                        Min: <span id="uploadMin">-</span> | Max: <span id="uploadMax">-</span> | Avg: <span id="uploadAvg">-</span>
+                    </div>
+                </div>
+                <span class="tooltip-text">📤 Real-time upload speed with statistics. Tracks data going OUT from your server. High upload = users downloading files or streaming.</span>
+            </span>
+            <span class="tooltip-container" style="width: 100%;">
+                <div class="stat-card">
+                    <div class="stat-value" id="ping">-</div>
+                    <div class="stat-label">Ping (8.8.8.8)</div>
+                </div>
+                <span class="tooltip-text">🌐 Network latency to Google DNS. <50ms = excellent, 50-100ms = good, >100ms = slow. "Timeout" means no internet connection!</span>
+            </span>
         </div>
 
         <!-- Quick Shortcuts -->
@@ -962,11 +983,18 @@
                     <span class="tooltip-text">Auto-configures Wings (port 8083, HTTP) and Cloudflare tunnel. Use this if Wings won't connect or after server reboot.</span>
                 </span>
                 <span class="tooltip-container" style="width: 100%;">
-                    <button class="quick-btn" onclick="showCustomization()" style="width: 100%;">
+                    <button class="quick-btn" onclick="window.location.href='/customize'" style="width: 100%;">
                         <div class="icon">🎨</div>
                         Customize Panel
                     </button>
-                    <span class="tooltip-text">Personalize colors, fonts, animations, and appearance. Save your custom theme!</span>
+                    <span class="tooltip-text">🎨 Full customization studio! Change colors, fonts, shadows, 3D effects, animations, and more. Includes 6 beautiful presets and live preview!</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="window.open('https://console.cloudmc.online', '_blank')" style="width: 100%;">
+                        <div class="icon">🖥️</div>
+                        Web Console
+                    </button>
+                    <span class="tooltip-text">🖥️ Access your server's web-based console. Manage files, run commands, and monitor processes through a beautiful web interface.</span>
                 </span>
                 <span class="tooltip-container" style="width: 100%;">
                     <button class="quick-btn" onclick="showSchedule()" style="width: 100%;">

@@ -62,10 +62,14 @@ def login_required(f):
     return decorated_function
 
 @app.route('/')
+@login_required
 def index():
-    if 'logged_in' in session:
-        return render_template('admin.html')
-    return render_template('login.html')
+    return render_template('admin.html')
+
+@app.route('/customize')
+@login_required
+def customize():
+    return render_template('customize.html')
 
 @app.route('/login', methods=['POST'])
 def login():
