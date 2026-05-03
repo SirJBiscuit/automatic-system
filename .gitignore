@@ -6,3 +6,6 @@ backups/
 *.tar.gz
 *.sql
 .secrets/
+model-generator/venv311/
+**/venv/
+**/__pycache__/
