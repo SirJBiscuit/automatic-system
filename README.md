@@ -91,7 +91,7 @@ chmod +x pteroanyinstall.sh
 sudo ./pteroanyinstall.sh
 ```
 
-### Ollama + Open WebUI Installation
+### Ollama + Open WebUI Installation (Ignore this until you've setup the panel)
 
 For a complete AI chatbot setup with GPU support:
 
@@ -103,7 +103,7 @@ chmod +x install-ollama.sh
 ./install-ollama.sh
 ```
 
-Or download the full setup script directly:   <- Use This One
+Or download the full setup script directly:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/ollama-setup/ollama-webui-setup.sh -o ollama-webui-setup.sh
