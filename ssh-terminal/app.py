@@ -74,6 +74,11 @@ def login_page():
 def index():
     return render_template('terminal.html')
 
+@app.route('/editor')
+@login_required
+def editor():
+    return render_template('editor.html')
+
 @app.route('/login', methods=['POST'])
 def login():
     """Handle login"""
@@ -122,24 +127,61 @@ def save_customization():
 @app.route('/api/ai/chat', methods=['POST'])
 @login_required
 def ai_chat():
-    """Chat with AI assistant (Open WebUI integration)"""
+    """Chat with AI assistant (Open WebUI + Ollama Qwen2.5:7b)"""
     try:
         data = request.json
         message = data.get('message', '')
+        context = data.get('context', '')  # Code context if provided
         
-        # TODO: Integrate with Open WebUI API
-        # For now, return a placeholder response
-        response = {
-            'response': 'AI assistant integration coming soon! This will connect to your Open WebUI instance.',
-            'suggestions': [
-                'ls -la',
-                'df -h',
-                'top',
-                'systemctl status'
-            ]
+        # Prepare prompt with context
+        full_prompt = message
+        if context:
+            full_prompt = f"Context:\n```\n{context}\n```\n\nQuestion: {message}"
+        
+        # Call Open WebUI API
+        import requests
+        
+        openwebui_url = "https://ui.cloudmc.online/api/chat/completions"
+        
+        payload = {
+            "model": "qwen2.5:7b",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a helpful coding assistant. You help with Linux commands, code explanations, debugging, and code generation. Be concise and practical."
+                },
+                {
+                    "role": "user",
+                    "content": full_prompt
+                }
+            ],
+            "stream": False
         }
         
-        return jsonify(response)
+        try:
+            ai_response = requests.post(openwebui_url, json=payload, timeout=30)
+            
+            if ai_response.status_code == 200:
+                ai_data = ai_response.json()
+                response_text = ai_data['choices'][0]['message']['content']
+                
+                return jsonify({
+                    'response': response_text,
+                    'model': 'qwen2.5:7b'
+                })
+            else:
+                # Fallback response
+                return jsonify({
+                    'response': f"I'm having trouble connecting to the AI service. Error: {ai_response.status_code}",
+                    'suggestions': ['ls -la', 'df -h', 'top', 'systemctl status']
+                })
+        except requests.exceptions.RequestException as e:
+            # Fallback if Open WebUI is unreachable
+            return jsonify({
+                'response': f"AI service temporarily unavailable. How can I help you with commands?\n\nCommon commands:\n• ls -la - List files\n• df -h - Disk usage\n• top - Process monitor\n• systemctl status - Service status",
+                'error': str(e)
+            })
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

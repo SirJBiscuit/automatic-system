@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Editor - AI Powered</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.css">
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --background-color: #1e1e1e;
+            --sidebar-bg: #252526;
+            --text-color: #e2e8f0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--background-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .mode-switch {
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 4px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .mode-btn {
+            padding: 6px 16px;
+            border-radius: 16px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.3s;
+            background: transparent;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .mode-btn.active {
+            background: white;
+            color: var(--primary-color);
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 12px;
+            background: white;
+            color: var(--primary-color);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(255,255,255,0.3);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 250px 1fr 350px;
+            height: calc(100vh - 50px);
+        }
+
+        .file-explorer {
+            background: var(--sidebar-bg);
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .file-explorer h3 {
+            color: var(--primary-color);
+            font-size: 14px;
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+
+        .file-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .file-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .file-item.active {
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .editor-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tabs {
+            background: #2d2d2d;
+            display: flex;
+            gap: 2px;
+            padding: 5px 10px;
+            border-bottom: 1px solid #333;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 6px 12px;
+            background: #1e1e1e;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--background-color);
+        }
+
+        .tab:hover {
+            background: #252526;
+        }
+
+        .tab-close {
+            margin-left: 8px;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+
+        .tab-close:hover {
+            opacity: 1;
+        }
+
+        #editor {
+            flex: 1;
+            width: 100%;
+        }
+
+        .ai-panel {
+            background: var(--sidebar-bg);
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-header {
+            padding: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .ai-header h3 {
+            color: var(--primary-color);
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .ai-status {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .ai-actions {
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            border-bottom: 1px solid #333;
+        }
+
+        .ai-action-btn {
+            padding: 5px 10px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 4px;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .ai-action-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .ai-chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ai-message {
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 90%;
+            word-wrap: break-word;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .ai-message.user {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            align-self: flex-end;
+        }
+
+        .ai-message.ai {
+            background: #2d2d2d;
+            color: #e2e8f0;
+            align-self: flex-start;
+        }
+
+        .ai-message pre {
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 5px 0;
+        }
+
+        .ai-input-container {
+            padding: 15px;
+            background: #2d2d2d;
+            border-top: 1px solid #333;
+        }
+
+        .ai-input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: var(--background-color);
+            color: var(--text-color);
+            font-size: 13px;
+            resize: vertical;
+            min-height: 40px;
+        }
+
+        .ai-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .status-bar {
+            background: #007acc;
+            color: white;
+            padding: 4px 15px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <span>✨</span>
+            AI Code Editor
+        </h1>
+        <div class="header-right">
+            <div class="mode-switch">
+                <button class="mode-btn active" onclick="switchMode('editor')">📝 Editor</button>
+                <button class="mode-btn" onclick="switchMode('server')">💻 Server</button>
+            </div>
+            <button class="btn" onclick="newFile()">+ New</button>
+            <button class="btn" onclick="saveFile()">💾 Save</button>
+            <button class="btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="file-explorer">
+            <h3>📁 Files</h3>
+            <div id="fileList">
+                <div class="file-item" onclick="createNewFile()">
+                    <span>➕</span>
+                    <span>New File...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="editor-panel">
+            <div class="tabs" id="tabs">
+                <div class="tab active" data-file="untitled.txt">
+                    <span>📄</span>
+                    <span>untitled.txt</span>
+                    <span class="tab-close" onclick="closeTab(event, 'untitled.txt')">×</span>
+                </div>
+            </div>
+            <div id="editor"></div>
+        </div>
+
+        <div class="ai-panel">
+            <div class="ai-header">
+                <h3>🤖 AI Assistant</h3>
+                <div class="ai-status">Powered by Qwen2.5:7b</div>
+            </div>
+            <div class="ai-actions">
+                <button class="ai-action-btn" onclick="aiAction('explain')">📚 Explain</button>
+                <button class="ai-action-btn" onclick="aiAction('fix')">🐛 Fix Bugs</button>
+                <button class="ai-action-btn" onclick="aiAction('optimize')">🚀 Optimize</button>
+                <button class="ai-action-btn" onclick="aiAction('comment')">💬 Add Comments</button>
+                <button class="ai-action-btn" onclick="aiAction('generate')">✨ Generate</button>
+            </div>
+            <div class="ai-chat" id="aiChat">
+                <div class="ai-message ai">
+                    👋 Hi! I'm your AI coding assistant powered by <strong>Qwen2.5:7b</strong>!<br><br>
+                    Select code and click an action button, or just ask me anything!
+                </div>
+            </div>
+            <div class="ai-input-container">
+                <textarea class="ai-input" id="aiInput" placeholder="Ask AI anything..." onkeydown="handleAIInput(event)"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div>
+            <span id="statusText">Ready</span>
+        </div>
+        <div>
+            <span id="cursorPosition">Ln 1, Col 1</span> | 
+            <span id="language">Plain Text</span>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+    <script>
+        let editor;
+        let currentFile = 'untitled.txt';
+        let files = {};
+
+        // Initialize Monaco Editor
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+        
+        require(['vs/editor/editor.main'], function () {
+            editor = monaco.editor.create(document.getElementById('editor'), {
+                value: '// Welcome to AI Code Editor!\n// Start typing or ask the AI for help...\n\n',
+                language: 'javascript',
+                theme: 'vs-dark',
+                fontSize: 14,
+                minimap: { enabled: true },
+                automaticLayout: true,
+                suggestOnTriggerCharacters: true,
+                quickSuggestions: true
+            });
+
+            // Update cursor position
+            editor.onDidChangeCursorPosition((e) => {
+                document.getElementById('cursorPosition').textContent = 
+                    `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
+            });
+
+            // Update language
+            editor.onDidChangeModelLanguage((e) => {
+                document.getElementById('language').textContent = e.newLanguage;
+            });
+
+            // Store initial file
+            files[currentFile] = {
+                content: editor.getValue(),
+                language: 'javascript'
+            };
+        });
+
+        // Mode switching
+        function switchMode(mode) {
+            if (mode === 'server') {
+                window.location.href = '/';
+            }
+            // Editor mode is current page
+        }
+
+        // File operations
+        function newFile() {
+            const filename = prompt('Enter filename:', 'untitled.txt');
+            if (filename) {
+                createTab(filename);
+                files[filename] = { content: '', language: detectLanguage(filename) };
+                switchToFile(filename);
+            }
+        }
+
+        function createTab(filename) {
+            const tabs = document.getElementById('tabs');
+            const tab = document.createElement('div');
+            tab.className = 'tab';
+            tab.dataset.file = filename;
+            tab.innerHTML = `
+                <span>${getFileIcon(filename)}</span>
+                <span>${filename}</span>
+                <span class="tab-close" onclick="closeTab(event, '${filename}')">×</span>
+            `;
+            tab.onclick = () => switchToFile(filename);
+            tabs.appendChild(tab);
+        }
+
+        function switchToFile(filename) {
+            // Save current file content
+            if (currentFile && files[currentFile]) {
+                files[currentFile].content = editor.getValue();
+            }
+
+            // Switch to new file
+            currentFile = filename;
+            const file = files[filename] || { content: '', language: 'plaintext' };
+            
+            monaco.editor.setModelLanguage(editor.getModel(), file.language);
+            editor.setValue(file.content);
+
+            // Update active tab
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.file === filename);
+            });
+
+            document.getElementById('statusText').textContent = `Editing: ${filename}`;
+        }
+
+        function closeTab(event, filename) {
+            event.stopPropagation();
+            if (confirm(`Close ${filename}?`)) {
+                delete files[filename];
+                const tab = document.querySelector(`[data-file="${filename}"]`);
+                tab.remove();
+
+                // Switch to first available tab
+                const firstTab = document.querySelector('.tab');
+                if (firstTab) {
+                    switchToFile(firstTab.dataset.file);
+                }
+            }
+        }
+
+        function saveFile() {
+            files[currentFile].content = editor.getValue();
+            document.getElementById('statusText').textContent = `Saved: ${currentFile}`;
+            setTimeout(() => {
+                document.getElementById('statusText').textContent = 'Ready';
+            }, 2000);
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop();
+            const icons = {
+                'js': '📜', 'py': '🐍', 'html': '🌐', 'css': '🎨',
+                'json': '📋', 'md': '📝', 'txt': '📄', 'sh': '⚙️'
+            };
+            return icons[ext] || '📄';
+        }
+
+        function detectLanguage(filename) {
+            const ext = filename.split('.').pop();
+            const languages = {
+                'js': 'javascript', 'py': 'python', 'html': 'html',
+                'css': 'css', 'json': 'json', 'md': 'markdown',
+                'sh': 'shell', 'txt': 'plaintext'
+            };
+            return languages[ext] || 'plaintext';
+        }
+
+        // AI Functions
+        async function aiAction(action) {
+            const selection = editor.getModel().getValueInRange(editor.getSelection());
+            const code = selection || editor.getValue();
+
+            let prompt = '';
+            switch(action) {
+                case 'explain':
+                    prompt = 'Explain this code:';
+                    break;
+                case 'fix':
+                    prompt = 'Find and fix bugs in this code:';
+                    break;
+                case 'optimize':
+                    prompt = 'Optimize this code for better performance:';
+                    break;
+                case 'comment':
+                    prompt = 'Add helpful comments to this code:';
+                    break;
+                case 'generate':
+                    prompt = 'Generate code based on this:';
+                    break;
+            }
+
+            sendAIMessage(prompt, code);
+        }
+
+        async function handleAIInput(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                const input = document.getElementById('aiInput');
+                const message = input.value.trim();
+                
+                if (!message) return;
+                
+                input.value = '';
+                const code = editor.getValue();
+                sendAIMessage(message, code);
+            }
+        }
+
+        async function sendAIMessage(message, context = '') {
+            addAIMessage(message, 'user');
+            
+            const chatDiv = document.getElementById('aiChat');
+            chatDiv.classList.add('loading');
+
+            try {
+                const response = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, context })
+                });
+
+                const data = await response.json();
+                addAIMessage(data.response, 'ai');
+            } catch (error) {
+                addAIMessage('Sorry, I encountered an error. Please try again.', 'ai');
+            } finally {
+                chatDiv.classList.remove('loading');
+            }
+        }
+
+        function addAIMessage(text, type) {
+            const chatDiv = document.getElementById('aiChat');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${type}`;
+            
+            // Format code blocks
+            text = text.replace(/```(\w+)?\n([\s\S]+?)```/g, '<pre><code>$2</code></pre>');
+            messageDiv.innerHTML = text;
+            
+            chatDiv.appendChild(messageDiv);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        async function logout() {
+            await fetch('/logout', { method: 'POST' });
+            window.location.href = '/login.html';
+        }
+    </script>
+</body>
+</html>

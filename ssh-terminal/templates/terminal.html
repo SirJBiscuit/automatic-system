@@ -277,6 +277,7 @@
     <div class="header">
         <h1><span>💻</span>SSH Web Terminal</h1>
         <div class="header-right">
+            <button class="btn btn-white" onclick="window.location.href='/editor'">📝 Editor Mode</button>
             <span id="username"></span>
             <button class="btn btn-white" onclick="showSettings()">⚙️ Settings</button>
             <button class="btn btn-white" onclick="logout()">Logout</button>
@@ -294,7 +295,14 @@
                 <div class="ai-chat">
                     <div class="chat-messages" id="chatMessages">
                         <div class="message ai">
-                            Hi! I'm your AI assistant. Ask me anything about Linux commands or let me help you with tasks!
+                            👋 Hi! I'm powered by <strong>Qwen2.5:7b</strong> via Open WebUI!<br><br>
+                            I can help you with:<br>
+                            • 💻 Linux commands & troubleshooting<br>
+                            • 🐛 Debug code & fix errors<br>
+                            • ✨ Generate code snippets<br>
+                            • 📚 Explain code & concepts<br>
+                            • 🚀 Optimize performance<br><br>
+                            Just ask me anything!
                         </div>
                     </div>
                     <div class="chat-input">
