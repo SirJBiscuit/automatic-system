@@ -21,7 +21,9 @@ import requests
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
-socketio = SocketIO(app, cors_allowed_origins="*")
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False
+socketio = SocketIO(app, cors_allowed_origins="*", manage_session=False)
 
 # Configuration
 CREDENTIALS_FILE = '/opt/ssh-terminal/credentials.json'
@@ -263,13 +265,19 @@ class Terminal:
 @socketio.on('connect')
 def handle_connect():
     """Handle WebSocket connection"""
-    if 'logged_in' not in session:
+    print(f"WebSocket connect attempt. Session: {session}")
+    print(f"Logged in: {'logged_in' in session}")
+    
+    if 'logged_in' not in session or not session.get('logged_in'):
+        print("Not logged in, rejecting connection")
         return False
     
     session_id = request.sid
+    print(f"Creating terminal for session: {session_id}")
     terminal = Terminal(session_id)
     terminal.spawn()
     terminal_sessions[session_id] = terminal
+    print(f"Terminal spawned successfully")
     
     # Start reading thread
     def read_output():
