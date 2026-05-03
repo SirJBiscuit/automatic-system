@@ -168,14 +168,35 @@ def system_status():
         # Get memory
         mem = subprocess.run(['free', '-h'], capture_output=True, text=True).stdout.split('\n')[1].split()
         
-        # Get disk usage
+        # Get root filesystem disk usage
         disk = subprocess.run(['df', '-h', '/'], capture_output=True, text=True).stdout.split('\n')[1].split()
+        
+        # Get Pterodactyl disk usage (check common mount points)
+        ptero_disk = {'nvme': None, 'hdd': None}
+        
+        # Try to find Pterodactyl data directory
+        df_output = subprocess.run(['df', '-h'], capture_output=True, text=True).stdout
+        
+        # Look for common Pterodactyl paths or large drives
+        for line in df_output.split('\n')[1:]:
+            parts = line.split()
+            if len(parts) >= 6:
+                mount = parts[5]
+                # Check for Pterodactyl mount or large drives
+                if '/var/lib/pterodactyl' in mount or '/mnt/pterodactyl' in mount:
+                    ptero_disk['nvme'] = {'size': parts[1], 'used': parts[2], 'available': parts[3], 'percent': parts[4]}
+                elif 'nvme' in parts[0].lower():
+                    ptero_disk['nvme'] = {'size': parts[1], 'used': parts[2], 'available': parts[3], 'percent': parts[4]}
+                elif 'sd' in parts[0].lower() and int(parts[1].replace('T','').replace('G','').replace('M','')[:-1] if parts[1][-1].isalpha() else parts[1]) > 1000:
+                    # Likely the 8TB drive
+                    ptero_disk['hdd'] = {'size': parts[1], 'used': parts[2], 'available': parts[3], 'percent': parts[4]}
         
         return jsonify({
             'uptime': uptime,
             'load': load,
             'memory': {'total': mem[1], 'used': mem[2], 'free': mem[3]},
-            'disk': {'size': disk[1], 'used': disk[2], 'available': disk[3], 'percent': disk[4]}
+            'disk': {'size': disk[1], 'used': disk[2], 'available': disk[3], 'percent': disk[4]},
+            'ptero_disk': ptero_disk
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500

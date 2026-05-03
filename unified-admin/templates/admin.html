@@ -996,9 +996,23 @@
             <span class="tooltip-container" style="width: 100%;">
                 <div class="stat-card">
                     <div class="stat-value" id="diskUsed">-</div>
-                    <div class="stat-label">Disk Used / Total</div>
+                    <div class="stat-label">System Disk (Root /)</div>
                 </div>
-                <span class="tooltip-text">💾 Storage space used. <80% = healthy, 80-95% = warning, >95% = critical. Free up space if getting full!</span>
+                <span class="tooltip-text">💾 Root filesystem storage. <80% = healthy, 80-95% = warning, >95% = critical. Free up space if getting full!</span>
+            </span>
+            <span class="tooltip-container" style="width: 100%;">
+                <div class="stat-card">
+                    <div class="stat-value" id="pteroDiskNVMe">-</div>
+                    <div class="stat-label">Pterodactyl NVMe</div>
+                </div>
+                <span class="tooltip-text">⚡ NVMe drive for Pterodactyl game servers. Fast SSD storage for better performance!</span>
+            </span>
+            <span class="tooltip-container" style="width: 100%;">
+                <div class="stat-card">
+                    <div class="stat-value" id="pteroDiskHDD">-</div>
+                    <div class="stat-label">Pterodactyl 8TB HDD</div>
+                </div>
+                <span class="tooltip-text">📦 Large 8TB storage drive for Pterodactyl backups and bulk data.</span>
             </span>
             <span class="tooltip-container" style="width: 100%;">
                 <div class="stat-card">
@@ -1787,6 +1801,23 @@
                     document.getElementById('cpuLoad').textContent = data.load ? data.load[0] : '-';
                     document.getElementById('memoryUsed').textContent = data.memory ? `${data.memory.used} / ${data.memory.total}` : '-';
                     document.getElementById('diskUsed').textContent = data.disk ? `${data.disk.used} / ${data.disk.size} (${data.disk.percent})` : '-';
+                    
+                    // Update Pterodactyl disks
+                    if (data.ptero_disk) {
+                        if (data.ptero_disk.nvme) {
+                            document.getElementById('pteroDiskNVMe').textContent = 
+                                `${data.ptero_disk.nvme.used} / ${data.ptero_disk.nvme.size} (${data.ptero_disk.nvme.percent})`;
+                        } else {
+                            document.getElementById('pteroDiskNVMe').textContent = 'Not Found';
+                        }
+                        
+                        if (data.ptero_disk.hdd) {
+                            document.getElementById('pteroDiskHDD').textContent = 
+                                `${data.ptero_disk.hdd.used} / ${data.ptero_disk.hdd.size} (${data.ptero_disk.hdd.percent})`;
+                        } else {
+                            document.getElementById('pteroDiskHDD').textContent = 'Not Found';
+                        }
+                    }
                     
                     // Color code CPU Load
                     const cpuLoad = parseFloat(data.load[0]);
