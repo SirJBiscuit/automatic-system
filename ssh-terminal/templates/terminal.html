@@ -401,15 +401,27 @@
         
         // Focus terminal automatically
         term.focus();
+        
+        // Re-focus terminal when clicking on it
+        document.getElementById('terminal').addEventListener('click', () => {
+            term.focus();
+        });
 
         // WebSocket connection
         const socket = io();
 
         socket.on('connect', () => {
-            console.log('Connected to server');
+            console.log('✅ WebSocket Connected to server');
+            term.writeln('\r\n✅ Connected to SSH Terminal...\r\n');
+        });
+        
+        socket.on('connect_error', (error) => {
+            console.error('❌ WebSocket connection error:', error);
+            term.writeln('\r\n❌ Connection error. Check console.\r\n');
         });
 
         socket.on('connected', (data) => {
+            console.log('✅ Terminal session created:', data.session_id);
             document.getElementById('sessionInfo').textContent = `Session: ${data.session_id.substring(0, 8)}`;
         });
 
