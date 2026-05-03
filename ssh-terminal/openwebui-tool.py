@@ -7,15 +7,36 @@ description: Execute commands on your server via SSH terminal
 
 import requests
 from typing import Optional
+import urllib3
+
+# Disable SSL warnings for self-signed certificates
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class Tools:
     def __init__(self):
-        # Use localhost since Open WebUI and SSH Terminal are on same server
-        # This is faster and avoids SSL/auth issues
-        self.ssh_terminal_url = "http://localhost:5003"
-        # Alternative: Use public URL if needed
-        # self.ssh_terminal_url = "https://ssh.cloudmc.online"
+        # Use public URL via Cloudflare Tunnel
+        self.ssh_terminal_url = "https://ssh.cloudmc.online"
+        # Alternative: Use localhost for faster local connection
+        # self.ssh_terminal_url = "http://localhost:5003"
         self.session = requests.Session()
+        
+        # Login credentials for SSH terminal
+        self.username = "admin"
+        self.password = "admin123"
+        self._login()
+    
+    def _login(self):
+        """Authenticate with SSH terminal"""
+        try:
+            response = self.session.post(
+                f"{self.ssh_terminal_url}/login",
+                json={"username": self.username, "password": self.password},
+                verify=False  # Skip SSL verification for self-signed certs
+            )
+            if response.status_code != 200:
+                print(f"Warning: SSH Terminal login failed: {response.status_code}")
+        except Exception as e:
+            print(f"Warning: Could not login to SSH Terminal: {e}")
     
     def execute_command(self, command: str) -> str:
         """
@@ -27,7 +48,8 @@ class Tools:
             response = self.session.post(
                 f"{self.ssh_terminal_url}/api/execute",
                 json={"command": command},
-                timeout=30
+                timeout=30,
+                verify=False
             )
             
             if response.status_code == 200:
@@ -65,7 +87,8 @@ class Tools:
                 response = self.session.post(
                     f"{self.ssh_terminal_url}/api/execute",
                     json={"command": cmd},
-                    timeout=10
+                    timeout=10,
+                    verify=False
                 )
                 if response.status_code == 200:
                     output = response.json().get('output', '').strip()
