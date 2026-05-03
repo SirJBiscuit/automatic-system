@@ -168,20 +168,26 @@ def ai_chat():
         if context:
             full_prompt = f"Context:\n```\n{context}\n```\n\nQuestion: {message}"
         
-        # Use Open WebUI on localhost:3000 or direct Ollama on 11434
-        # Try Ollama directly first (no auth needed)
+        # Connect to Ollama running on localhost
         ollama_url = "http://localhost:11434/api/generate"
+        
+        # Build the system prompt
+        system_prompt = "You are a helpful coding assistant. You help with Linux commands, code explanations, debugging, and code generation. Be concise and practical."
+        
+        # Combine system prompt with user message
+        if context:
+            combined_prompt = f"{system_prompt}\n\nContext:\n```\n{context}\n```\n\nUser: {message}\n\nAssistant:"
+        else:
+            combined_prompt = f"{system_prompt}\n\nUser: {message}\n\nAssistant:"
         
         payload = {
             "model": "qwen2.5:7b",
-            "prompt": full_prompt,
-            "stream": False,
-            "system": "You are a helpful coding assistant. You help with Linux commands, code explanations, debugging, and code generation. Be concise and practical."
+            "prompt": combined_prompt,
+            "stream": False
         }
         
         try:
-            # Try local Ollama first
-            ai_response = requests.post(ollama_url, json=payload, timeout=30)
+            ai_response = requests.post(ollama_url, json=payload, timeout=60)
             
             if ai_response.status_code == 200:
                 ai_data = ai_response.json()
@@ -192,16 +198,19 @@ def ai_chat():
                     'model': 'qwen2.5:7b'
                 })
             else:
-                # Fallback response
                 return jsonify({
-                    'response': f"I'm having trouble connecting to the AI service. Error: {ai_response.status_code}\n\nMake sure Open WebUI is running at ui.cloudmc.online",
-                    'suggestions': ['ls -la', 'df -h', 'top', 'systemctl status']
+                    'response': f"Ollama returned error {ai_response.status_code}. Make sure qwen2.5:7b is installed.\n\nRun: `ollama pull qwen2.5:7b`",
+                    'suggestions': ['ls -la', 'df -h', 'top']
                 })
-        except requests.exceptions.RequestException as e:
-            # Fallback if Open WebUI is unreachable
+        except requests.exceptions.ConnectionError:
             return jsonify({
-                'response': f"AI service temporarily unavailable. How can I help you with commands?\n\nCommon commands:\n• ls -la - List files\n• df -h - Disk usage\n• top - Process monitor\n• systemctl status - Service status",
-                'error': str(e)
+                'response': "Cannot connect to Ollama. Make sure it's running:\n\n`systemctl status ollama`\n\nOr start it:\n\n`systemctl start ollama`",
+                'suggestions': ['systemctl status ollama', 'ollama list']
+            })
+        except requests.exceptions.Timeout:
+            return jsonify({
+                'response': "Ollama request timed out. The model might be loading...",
+                'suggestions': ['Try again in a moment']
             })
         
     except Exception as e:
