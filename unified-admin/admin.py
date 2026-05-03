@@ -925,6 +925,36 @@ def list_backups():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/terminal/execute', methods=['POST'])
+@login_required
+def execute_terminal_command():
+    """Execute terminal command (SSH-like)"""
+    try:
+        data = request.get_json()
+        command = data.get('command', '')
+        
+        # Security: Block dangerous commands
+        dangerous = ['rm -rf /', 'mkfs', 'dd if=', ':(){:|:&};:', 'fork bomb']
+        if any(danger in command.lower() for danger in dangerous):
+            return jsonify({'error': 'Command blocked for safety'}), 403
+        
+        # Execute command with timeout
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd='/root'
+        )
+        
+        output = result.stdout if result.stdout else result.stderr
+        return jsonify({'output': output or 'Command executed successfully'})
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Command timed out (30s limit)'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Initialize admin credentials on first run
     init_admin_credentials()

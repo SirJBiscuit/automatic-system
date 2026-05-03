@@ -19,6 +19,41 @@
             --hover-transform: translateY(-2px);
         }
         
+        /* 60 FPS Animations */
+        * {
+            will-change: transform;
+        }
+        
+        /* Loading Dots Animation */
+        @keyframes loading-dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        .loading::after {
+            content: '';
+            animation: loading-dots 1.5s infinite;
+            display: inline-block;
+            width: 20px;
+        }
+        
+        /* Pulse Animation for Stats */
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
+                transform: scale(1.02);
+            }
+        }
+        
+        .stat-card.updating {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -467,26 +502,40 @@
 
         .tooltip-text {
             visibility: hidden;
-            width: 320px;
+            width: 340px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-align: left;
-            border-radius: 12px;
-            padding: 15px;
+            border-radius: 16px;
+            padding: 18px;
             position: absolute;
             z-index: 1001;
             bottom: 125%;
             left: 50%;
-            margin-left: -160px;
+            margin-left: -170px;
             opacity: 0;
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            font-size: 13px;
-            line-height: 1.6;
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            transform: translateY(10px);
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            font-size: 14px;
+            line-height: 1.7;
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5), 
+                        0 0 0 1px rgba(255, 255, 255, 0.1),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(20px) saturate(180%);
+            transform: translateY(10px) scale(0.95);
             font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+        
+        @keyframes tooltip-shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        
+        .tooltip-text::before {
+            content: '💡 ';
+            font-size: 16px;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
         }
 
         .tooltip-text::after {
@@ -503,12 +552,22 @@
         .tooltip-container:hover .tooltip-text {
             visibility: visible;
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
+            animation: tooltip-entrance 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
         
-        .tooltip-text::before {
-            content: '💡 ';
-            font-size: 14px;
+        @keyframes tooltip-entrance {
+            0% {
+                opacity: 0;
+                transform: translateY(10px) scale(0.95) rotate(-2deg);
+            }
+            50% {
+                transform: translateY(-5px) scale(1.02) rotate(1deg);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1) rotate(0deg);
+            }
         }
 
         .help-text {
@@ -861,11 +920,18 @@
                     <span class="tooltip-text">Resets corrupted Filebrowser database. WARNING: This deletes all users! You'll need to recreate them.</span>
                 </span>
                 <span class="tooltip-container" style="width: 100%;">
-                    <button class="quick-btn" onclick="quickHealthCheck()" style="width: 100%;">
+                    <button class="quick-btn" onclick="showHealthCheck()" style="width: 100%;">
                         <div class="icon">❤️</div>
                         Health Check
                     </button>
-                    <span class="tooltip-text">Displays quick overview of all service statuses, disk space, and memory usage.</span>
+                    <span class="tooltip-text">Comprehensive system diagnostics: services, storage, network, and performance metrics with real-time monitoring.</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="showSSHTerminal()" style="width: 100%;">
+                        <div class="icon">💻</div>
+                        SSH Terminal
+                    </button>
+                    <span class="tooltip-text">Browser-based SSH terminal for running commands directly on your server. Full admin access with command history.</span>
                 </span>
                 <span class="tooltip-container" style="width: 100%;">
                     <button class="quick-btn" onclick="showLogs()" style="width: 100%;">
@@ -1116,6 +1182,13 @@
             </div>
             <button class="btn btn-primary" onclick="changeUsername()">Change Username</button>
             
+            <h3 style="margin-top: 30px; margin-bottom: 15px;">Page Refresh Rate</h3>
+            <div class="form-group">
+                <label>Update Interval: <span id="refreshRateValue">30s</span></label>
+                <input type="range" id="refreshRate" min="5" max="120" value="30" step="5" style="width: 100%;" oninput="updateRefreshRate(this.value)">
+                <small style="color: #64748b;">Lower values update faster but use more resources</small>
+            </div>
+            
             <button class="btn" onclick="closeModal('settingsModal')" style="margin-top: 20px;">Close</button>
         </div>
     </div>
@@ -1287,6 +1360,103 @@
         </div>
     </div>
 
+    <!-- Health Check Modal -->
+    <div class="modal" id="healthCheckModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">❤️ System Health Check</div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div class="health-card">
+                    <h4>🖥️ System</h4>
+                    <div id="healthSystem" class="loading">Checking...</div>
+                </div>
+                <div class="health-card">
+                    <h4>⚙️ Services</h4>
+                    <div id="healthServices" class="loading">Checking...</div>
+                </div>
+                <div class="health-card">
+                    <h4>💾 Storage</h4>
+                    <div id="healthStorage" class="loading">Checking...</div>
+                </div>
+                <div class="health-card">
+                    <h4>🌐 Network</h4>
+                    <div id="healthNetwork" class="loading">Checking...</div>
+                </div>
+            </div>
+            
+            <h3 style="margin-bottom: 10px;">Detailed Status</h3>
+            <div id="healthDetails" style="background: #f8fafc; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                Running diagnostics...
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-primary" onclick="runHealthCheck()">🔄 Refresh</button>
+                <button class="btn" onclick="closeModal('healthCheckModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SSH Terminal Modal -->
+    <div class="modal" id="sshTerminalModal">
+        <div class="modal-content" style="max-width: 1000px; max-height: 80vh;">
+            <div class="modal-header">💻 SSH Terminal</div>
+            
+            <div class="alert alert-warning">
+                ⚠️ This is a browser-based SSH terminal. Commands run with admin privileges.
+            </div>
+            
+            <div style="background: #1e293b; border-radius: 8px; padding: 15px; margin-bottom: 15px; height: 500px; overflow-y: auto; font-family: 'Courier New', monospace; color: #e2e8f0;">
+                <div id="terminalOutput"></div>
+                <div style="display: flex; align-items: center; margin-top: 10px;">
+                    <span style="color: #10b981; margin-right: 8px;">$</span>
+                    <input type="text" id="terminalInput" placeholder="Enter command..." style="flex: 1; background: transparent; border: none; color: #e2e8f0; outline: none; font-family: inherit;" onkeypress="handleTerminalInput(event)">
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-danger" onclick="clearTerminal()">Clear</button>
+                <button class="btn" onclick="closeModal('sshTerminalModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .health-card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .health-card h4 {
+            margin-bottom: 10px;
+            color: #334155;
+        }
+        
+        .health-status-ok {
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .health-status-warning {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+        
+        .health-status-error {
+            color: #ef4444;
+            font-weight: 600;
+        }
+        
+        body.dark-mode .health-card {
+            background: #16213e;
+        }
+        
+        body.dark-mode .health-card h4 {
+            color: #e2e8f0;
+        }
+    </style>
+
     <script>
         // Theme Management
         function toggleTheme() {
@@ -1323,24 +1493,60 @@
         loadServices();
         loadFilebrowserUsers();
 
-        // Auto-refresh every 30 seconds
-        setInterval(() => {
+        // Auto-refresh with configurable interval
+        let refreshInterval = 30000; // Default 30 seconds
+        let refreshTimer = setInterval(() => {
             loadSystemStatus();
             loadServices();
-        }, 30000);
+        }, refreshInterval);
+
+        function updateRefreshRate(seconds) {
+            document.getElementById('refreshRateValue').textContent = seconds + 's';
+            refreshInterval = seconds * 1000;
+            localStorage.setItem('refreshRate', seconds);
+            
+            // Clear old interval and set new one
+            clearInterval(refreshTimer);
+            refreshTimer = setInterval(() => {
+                loadSystemStatus();
+                loadServices();
+            }, refreshInterval);
+        }
+
+        // Load saved refresh rate
+        const savedRefreshRate = localStorage.getItem('refreshRate');
+        if (savedRefreshRate) {
+            document.getElementById('refreshRate').value = savedRefreshRate;
+            updateRefreshRate(savedRefreshRate);
+        }
 
         async function loadSystemStatus() {
             const serverPulse = document.getElementById('serverPulse');
             const serverStatus = document.getElementById('serverStatus');
             
+            // Add loading class to stat cards
+            document.querySelectorAll('.stat-card').forEach(card => card.classList.add('updating'));
+            
             try {
                 const response = await fetch('/api/system/status');
                 const data = await response.json();
                 
-                document.getElementById('uptime').textContent = data.uptime || '-';
-                document.getElementById('cpuLoad').textContent = data.load ? data.load[0] : '-';
-                document.getElementById('memoryUsed').textContent = data.memory ? data.memory.used : '-';
-                document.getElementById('diskUsed').textContent = data.disk ? data.disk.percent : '-';
+                // Add loading indicator
+                document.getElementById('uptime').classList.add('loading');
+                document.getElementById('cpuLoad').classList.add('loading');
+                document.getElementById('memoryUsed').classList.add('loading');
+                document.getElementById('diskUsed').classList.add('loading');
+                
+                setTimeout(() => {
+                    document.getElementById('uptime').textContent = data.uptime || '-';
+                    document.getElementById('cpuLoad').textContent = data.load ? data.load[0] : '-';
+                    document.getElementById('memoryUsed').textContent = data.memory ? data.memory.used : '-';
+                    document.getElementById('diskUsed').textContent = data.disk ? data.disk.percent : '-';
+                    
+                    // Remove loading indicators
+                    document.querySelectorAll('.loading').forEach(el => el.classList.remove('loading'));
+                    document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('updating'));
+                }, 300);
                 
                 // Update server heartbeat
                 serverPulse.className = 'pulse-indicator online';
@@ -2215,6 +2421,149 @@
             } catch (error) {
                 console.error('Failed to load backups');
             }
+        }
+
+        // Health Check Functions
+        function showHealthCheck() {
+            document.getElementById('healthCheckModal').classList.add('active');
+            runHealthCheck();
+        }
+
+        async function runHealthCheck() {
+            // Reset all to loading
+            document.getElementById('healthSystem').innerHTML = '<span class="loading">Checking...</span>';
+            document.getElementById('healthServices').innerHTML = '<span class="loading">Checking...</span>';
+            document.getElementById('healthStorage').innerHTML = '<span class="loading">Checking...</span>';
+            document.getElementById('healthNetwork').innerHTML = '<span class="loading">Checking...</span>';
+            document.getElementById('healthDetails').innerHTML = 'Running diagnostics...\n';
+            
+            let details = '';
+            
+            // Check System
+            try {
+                const sysResponse = await fetch('/api/system/status');
+                const sysData = await sysResponse.json();
+                const cpuLoad = parseFloat(sysData.load[0]);
+                const memPercent = parseInt(sysData.memory.used);
+                
+                let sysStatus = '✅ Healthy';
+                if (cpuLoad > 4 || memPercent > 90) sysStatus = '⚠️ Warning';
+                if (cpuLoad > 8 || memPercent > 95) sysStatus = '❌ Critical';
+                
+                document.getElementById('healthSystem').innerHTML = `<span class="health-status-${cpuLoad < 4 ? 'ok' : cpuLoad < 8 ? 'warning' : 'error'}">${sysStatus}</span>`;
+                details += `🖥️ SYSTEM:\n  CPU Load: ${cpuLoad}\n  Memory: ${sysData.memory.used}\n  Uptime: ${sysData.uptime}\n\n`;
+            } catch (e) {
+                document.getElementById('healthSystem').innerHTML = '<span class="health-status-error">❌ Error</span>';
+            }
+            
+            // Check Services
+            try {
+                const svcResponse = await fetch('/api/services/status');
+                const svcData = await svcResponse.json();
+                const activeCount = Object.values(svcData).filter(v => v).length;
+                const totalCount = Object.keys(svcData).length;
+                
+                let svcStatus = activeCount === totalCount ? '✅ All Running' : `⚠️ ${activeCount}/${totalCount} Running`;
+                document.getElementById('healthServices').innerHTML = `<span class="health-status-${activeCount === totalCount ? 'ok' : 'warning'}">${svcStatus}</span>`;
+                details += `⚙️ SERVICES:\n`;
+                Object.entries(svcData).forEach(([name, active]) => {
+                    details += `  ${active ? '✅' : '❌'} ${name}\n`;
+                });
+                details += '\n';
+            } catch (e) {
+                document.getElementById('healthServices').innerHTML = '<span class="health-status-error">❌ Error</span>';
+            }
+            
+            // Check Storage
+            try {
+                const diskResponse = await fetch('/api/system/status');
+                const diskData = await diskResponse.json();
+                const diskPercent = parseInt(diskData.disk.percent);
+                
+                let diskStatus = '✅ Healthy';
+                if (diskPercent > 80) diskStatus = '⚠️ Low Space';
+                if (diskPercent > 95) diskStatus = '❌ Critical';
+                
+                document.getElementById('healthStorage').innerHTML = `<span class="health-status-${diskPercent < 80 ? 'ok' : diskPercent < 95 ? 'warning' : 'error'}">${diskStatus}</span>`;
+                details += `💾 STORAGE:\n  Disk Usage: ${diskData.disk.percent}\n  Available: ${diskData.disk.free}\n\n`;
+            } catch (e) {
+                document.getElementById('healthStorage').innerHTML = '<span class="health-status-error">❌ Error</span>';
+            }
+            
+            // Check Network
+            try {
+                const netResponse = await fetch('/api/network/stats');
+                const netData = await netResponse.json();
+                
+                let netStatus = netData.ping !== 'Timeout' ? '✅ Connected' : '❌ No Connection';
+                document.getElementById('healthNetwork').innerHTML = `<span class="health-status-${netData.ping !== 'Timeout' ? 'ok' : 'error'}">${netStatus}</span>`;
+                details += `🌐 NETWORK:\n  Ping: ${netData.ping}\n  Download: ${netData.download.current}\n  Upload: ${netData.upload.current}\n\n`;
+            } catch (e) {
+                document.getElementById('healthNetwork').innerHTML = '<span class="health-status-error">❌ Error</span>';
+            }
+            
+            document.getElementById('healthDetails').textContent = details;
+        }
+
+        // SSH Terminal Functions
+        let terminalHistory = [];
+        let historyIndex = -1;
+
+        function showSSHTerminal() {
+            document.getElementById('sshTerminalModal').classList.add('active');
+            document.getElementById('terminalInput').focus();
+        }
+
+        async function handleTerminalInput(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('terminalInput');
+                const command = input.value.trim();
+                
+                if (command) {
+                    terminalHistory.push(command);
+                    historyIndex = terminalHistory.length;
+                    
+                    // Display command
+                    const output = document.getElementById('terminalOutput');
+                    output.innerHTML += `<div style="color: #10b981;">$ ${command}</div>`;
+                    
+                    // Execute command via API (you'll need to add this endpoint)
+                    try {
+                        const response = await fetch('/api/terminal/execute', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({command})
+                        });
+                        const data = await response.json();
+                        
+                        output.innerHTML += `<div style="color: #e2e8f0; white-space: pre-wrap;">${data.output || data.error}</div>`;
+                    } catch (error) {
+                        output.innerHTML += `<div style="color: #ef4444;">Error: ${error.message}</div>`;
+                    }
+                    
+                    output.scrollTop = output.scrollHeight;
+                    input.value = '';
+                }
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    document.getElementById('terminalInput').value = terminalHistory[historyIndex];
+                }
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (historyIndex < terminalHistory.length - 1) {
+                    historyIndex++;
+                    document.getElementById('terminalInput').value = terminalHistory[historyIndex];
+                } else {
+                    historyIndex = terminalHistory.length;
+                    document.getElementById('terminalInput').value = '';
+                }
+            }
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminalOutput').innerHTML = '';
         }
 
         // Load customization on page load
