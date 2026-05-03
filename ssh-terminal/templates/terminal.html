@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SSH Web Terminal</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="https://unpkg.com/xterm@5.3.0/lib/xterm.js"></script>
-    <script src="https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
     <style>
         :root {
             --primary-color: #667eea;
@@ -374,6 +373,8 @@
             cursorBlink: true,
             fontSize: 14,
             fontFamily: '"Cascadia Code", "Fira Code", "Courier New", monospace',
+            disableStdin: false,
+            convertEol: true,
             theme: {
                 background: '#1e293b',
                 foreground: '#e2e8f0',
@@ -433,25 +434,19 @@
             socket.emit('input', { data });
         });
 
-        // Handle terminal resize
-        const fitAddon = new FitAddon.FitAddon();
-        term.loadAddon(fitAddon);
+        // Handle terminal resize manually (no addon needed)
+        function resizeTerminal() {
+            const terminalElement = document.getElementById('terminal');
+            const dims = {
+                cols: Math.floor(terminalElement.clientWidth / 9),
+                rows: Math.floor(terminalElement.clientHeight / 17)
+            };
+            term.resize(dims.cols, dims.rows);
+            socket.emit('resize', dims);
+        }
         
-        window.addEventListener('resize', () => {
-            fitAddon.fit();
-            socket.emit('resize', {
-                rows: term.rows,
-                cols: term.cols
-            });
-        });
-
-        setTimeout(() => {
-            fitAddon.fit();
-            socket.emit('resize', {
-                rows: term.rows,
-                cols: term.cols
-            });
-        }, 100);
+        window.addEventListener('resize', resizeTerminal);
+        setTimeout(resizeTerminal, 100);
 
         // Quick commands
         function sendCommand(cmd) {
