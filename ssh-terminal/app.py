@@ -139,8 +139,8 @@ def ai_chat():
         if context:
             full_prompt = f"Context:\n```\n{context}\n```\n\nQuestion: {message}"
         
-        # Open WebUI endpoint (try both possible endpoints)
-        openwebui_url = "https://ui.cloudmc.online/ollama/api/generate"
+        # Try direct Ollama endpoint first (bypasses Open WebUI auth)
+        ollama_url = "http://localhost:11434/api/generate"
         
         payload = {
             "model": "qwen2.5:7b",
@@ -150,11 +150,8 @@ def ai_chat():
         }
         
         try:
-            # Disable SSL warnings for self-signed certificates
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            
-            ai_response = requests.post(openwebui_url, json=payload, timeout=30, verify=False)
+            # Try local Ollama first
+            ai_response = requests.post(ollama_url, json=payload, timeout=30)
             
             if ai_response.status_code == 200:
                 ai_data = ai_response.json()
