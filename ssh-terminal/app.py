@@ -240,12 +240,7 @@ class Terminal:
             }
             subprocess.run(['/bin/bash', '-l'], env=env)
         else:
-            # Parent process - set terminal attributes for character-by-character echo
-            attr = termios.tcgetattr(self.fd)
-            # Enable echo, disable canonical mode for immediate character display
-            attr[3] = attr[3] | termios.ECHO
-            attr[3] = attr[3] & ~termios.ICANON
-            termios.tcsetattr(self.fd, termios.TCSANOW, attr)
+            # Parent process - just set size, let PTY handle echo naturally
             self.set_size(24, 80)
             
     def set_size(self, rows, cols):

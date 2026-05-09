@@ -1,4 +1,8 @@
-# Pterodactyl Universal Installer (pteroanyinstall)
+# 🎮 Pterodactyl Automatic System v2.0
+
+**The most advanced, user-friendly Pterodactyl installer ever created.**
+
+> Modern • Intelligent • Automated • Beautifulaller (pteroanyinstall)
 
 A comprehensive, interactive installation script for Pterodactyl Panel and Wings that works on any Linux distribution.
 

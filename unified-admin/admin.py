@@ -15,7 +15,18 @@ import shutil
 import hashlib
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # Change this to a fixed secret in production
+# Use a fixed secret key so sessions persist across restarts
+SECRET_KEY_FILE = '/etc/admin-panel/secret.key'
+if os.path.exists(SECRET_KEY_FILE):
+    with open(SECRET_KEY_FILE, 'rb') as f:
+        app.secret_key = f.read()
+else:
+    app.secret_key = os.urandom(24)
+    with open(SECRET_KEY_FILE, 'wb') as f:
+        f.write(app.secret_key)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True
 
 # Configuration
 DB_PATH = '/etc/filebrowser/filebrowser.db'
@@ -159,6 +170,7 @@ def change_admin_username():
 def system_status():
     """Get overall system status"""
     try:
+        import traceback
         # Get uptime
         uptime = subprocess.run(['uptime', '-p'], capture_output=True, text=True).stdout.strip()
         
@@ -171,25 +183,37 @@ def system_status():
         # Get root filesystem disk usage
         disk = subprocess.run(['df', '-h', '/'], capture_output=True, text=True).stdout.split('\n')[1].split()
         
-        # Get Pterodactyl disk usage (check common mount points)
+        # Get Pterodactyl disk usage (with safe parsing)
         ptero_disk = {'nvme': None, 'hdd': None}
         
-        # Try to find Pterodactyl data directory
-        df_output = subprocess.run(['df', '-h'], capture_output=True, text=True).stdout
-        
-        # Look for common Pterodactyl paths or large drives
-        for line in df_output.split('\n')[1:]:
-            parts = line.split()
-            if len(parts) >= 6:
-                mount = parts[5]
-                # Check for Pterodactyl mount or large drives
-                if '/var/lib/pterodactyl' in mount or '/mnt/pterodactyl' in mount:
-                    ptero_disk['nvme'] = {'size': parts[1], 'used': parts[2], 'available': parts[3], 'percent': parts[4]}
-                elif 'nvme' in parts[0].lower():
-                    ptero_disk['nvme'] = {'size': parts[1], 'used': parts[2], 'available': parts[3], 'percent': parts[4]}
-                elif 'sd' in parts[0].lower() and int(parts[1].replace('T','').replace('G','').replace('M','')[:-1] if parts[1][-1].isalpha() else parts[1]) > 1000:
-                    # Likely the 8TB drive
-                    ptero_disk['hdd'] = {'size': parts[1], 'used': parts[2], 'available': parts[3], 'percent': parts[4]}
+        try:
+            df_output = subprocess.run(['df', '-h'], capture_output=True, text=True).stdout
+            
+            for line in df_output.split('\n')[1:]:
+                parts = line.split()
+                if len(parts) >= 6:
+                    device = parts[0]
+                    mount = parts[5]
+                    
+                    # Check for NVMe drives
+                    if 'nvme' in device.lower() and ptero_disk['nvme'] is None:
+                        ptero_disk['nvme'] = {
+                            'size': parts[1], 
+                            'used': parts[2], 
+                            'available': parts[3], 
+                            'percent': parts[4]
+                        }
+                    
+                    # Check for large drives (likely 8TB)
+                    elif ('sd' in device.lower() or 'vd' in device.lower()) and 'T' in parts[1]:
+                        ptero_disk['hdd'] = {
+                            'size': parts[1], 
+                            'used': parts[2], 
+                            'available': parts[3], 
+                            'percent': parts[4]
+                        }
+        except:
+            pass  # If disk detection fails, just leave as None
         
         return jsonify({
             'uptime': uptime,
@@ -199,6 +223,8 @@ def system_status():
             'ptero_disk': ptero_disk
         })
     except Exception as e:
+        traceback.print_exc()
+        print(f"ERROR in system_status: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/system/reboot', methods=['POST'])
