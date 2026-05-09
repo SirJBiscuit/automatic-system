@@ -266,6 +266,16 @@ ask the AI for help whenever needed!" 18 70
 install_panel() {
     log "Starting Panel installation..."
     
+    # Check for port conflicts
+    bash "$INSTALL_DIR/port-manager.sh" configure panel
+    
+    # Get configured ports
+    local http_port=$(bash "$INSTALL_DIR/port-manager.sh" get PANEL_HTTP)
+    local https_port=$(bash "$INSTALL_DIR/port-manager.sh" get PANEL_HTTPS)
+    
+    export PANEL_HTTP_PORT="$http_port"
+    export PANEL_HTTPS_PORT="$https_port"
+    
     (
         echo "0"
         echo "Preparing installation..."
@@ -284,7 +294,7 @@ install_panel() {
         sleep 2
         
         echo "70"
-        echo "Setting up web server..."
+        echo "Setting up web server on ports $http_port/$https_port..."
         sleep 2
         
         echo "90"
@@ -295,12 +305,22 @@ install_panel() {
         echo "Panel installation complete!"
     ) | whiptail --gauge "Installing Pterodactyl Panel..." 8 70 0
     
-    log "Panel installation completed"
+    log "Panel installation completed on ports $http_port/$https_port"
 }
 
 # Install Wings
 install_wings() {
     log "Starting Wings installation..."
+    
+    # Check for port conflicts
+    bash "$INSTALL_DIR/port-manager.sh" configure wings
+    
+    # Get configured ports
+    local api_port=$(bash "$INSTALL_DIR/port-manager.sh" get WINGS_API)
+    local sftp_port=$(bash "$INSTALL_DIR/port-manager.sh" get WINGS_SFTP)
+    
+    export WINGS_API_PORT="$api_port"
+    export WINGS_SFTP_PORT="$sftp_port"
     
     (
         echo "0"
@@ -316,7 +336,7 @@ install_wings() {
         sleep 2
         
         echo "70"
-        echo "Configuring Wings..."
+        echo "Configuring Wings on ports $api_port/$sftp_port..."
         bash "$INSTALL_DIR/firewall-manager.sh" add-service wings > /dev/null 2>&1
         
         echo "90"
@@ -327,7 +347,7 @@ install_wings() {
         echo "Wings installation complete!"
     ) | whiptail --gauge "Installing Pterodactyl Wings..." 8 70 0
     
-    log "Wings installation completed"
+    log "Wings installation completed on ports $api_port/$sftp_port"
 }
 
 # Network setup wizard
@@ -487,6 +507,53 @@ show_system_info() {
     whiptail --title "System Information" --msgbox "$info" 25 75
 }
 
+# Port configuration menu
+configure_ports() {
+    if whiptail --title "Port Configuration" --yesno "
+Would you like to configure ports before installation?
+
+This will:
+• Scan for port conflicts
+• Allow you to customize ports
+• Auto-fix conflicts if found
+
+Recommended if you have other services running!" 14 70; then
+        
+        # Scan for conflicts
+        bash "$INSTALL_DIR/port-manager.sh" scan > /tmp/port-scan.log 2>&1
+        
+        if ! grep -q "No port conflicts" /tmp/port-scan.log; then
+            # Conflicts found
+            if whiptail --title "Port Conflicts Detected" --yesno "
+⚠️  Port conflicts were detected!
+
+Would you like to:
+• YES - Automatically fix conflicts
+• NO - Manually configure ports
+
+Auto-fix will assign alternative ports automatically." 14 70; then
+                bash "$INSTALL_DIR/port-manager.sh" auto-fix
+                whiptail --title "Conflicts Resolved" --msgbox "
+✅ Port conflicts have been automatically resolved!
+
+View new port assignments:
+  cat /etc/automatic-system/ports.conf" 12 60
+            else
+                # Manual configuration
+                whiptail --title "Manual Configuration" --msgbox "
+You can configure ports for each service during installation.
+
+The installer will prompt you for custom ports when conflicts are detected." 10 60
+            fi
+        else
+            whiptail --title "No Conflicts" --msgbox "
+✅ No port conflicts detected!
+
+All default ports are available." 10 50
+        fi
+    fi
+}
+
 # Main installation flow
 main() {
     # Setup
@@ -506,6 +573,9 @@ main() {
     
     # Network detection
     detect_network
+    
+    # Port configuration
+    configure_ports
     
     # Main loop
     while true; do
