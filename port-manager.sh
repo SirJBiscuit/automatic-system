@@ -237,6 +237,21 @@ Choose a port to customize or scan for conflicts." 20 70 10 \
     echo "$choice"
 }
 
+# Generate random available port
+generate_random_port() {
+    local min_port=${1:-10000}
+    local max_port=${2:-60000}
+    local random_port
+    
+    while true; do
+        random_port=$((RANDOM % (max_port - min_port + 1) + min_port))
+        if ! check_port "$random_port"; then
+            echo "$random_port"
+            return 0
+        fi
+    done
+}
+
 # Auto-fix port conflicts
 auto_fix_conflicts() {
     echo "Auto-fixing port conflicts..."
@@ -258,6 +273,72 @@ auto_fix_conflicts() {
     done
     
     echo "Port conflicts resolved!"
+}
+
+# Generate random ports for all services
+generate_all_random_ports() {
+    echo "Generating random ports for all services..."
+    echo ""
+    
+    for service in "${!DEFAULT_PORTS[@]}"; do
+        local desc="${PORT_DESCRIPTIONS[$service]}"
+        
+        # Skip standard ports (80, 443) and localhost-only ports
+        if [[ "$service" == "PANEL_HTTP" ]] || [[ "$service" == "PANEL_HTTPS" ]] || \
+           [[ "$service" == "MYSQL" ]] || [[ "$service" == "REDIS" ]]; then
+            echo "Keeping $service: ${DEFAULT_PORTS[$service]} (standard port)"
+            continue
+        fi
+        
+        local old_port="${DEFAULT_PORTS[$service]}"
+        local new_port=$(generate_random_port 10000 60000)
+        
+        DEFAULT_PORTS[$service]="$new_port"
+        echo "Generated $service: $old_port → $new_port ($desc)"
+    done
+    
+    echo ""
+    echo "Random ports generated!"
+}
+
+# Configure all ports interactively
+configure_all_ports_interactive() {
+    local services=("WINGS_API" "WINGS_SFTP" "ADMIN_PANEL" "SSH_TERMINAL" "OPENWEBUI" "OLLAMA" "FILEBROWSER" "PINGVIN" "NEXTCLOUD")
+    
+    for port_name in "${services[@]}"; do
+        local default_port="${DEFAULT_PORTS[$port_name]}"
+        local desc="${PORT_DESCRIPTIONS[$port_name]}"
+        
+        # Check if port is in use
+        local status="Available"
+        local color="${GREEN}"
+        if check_port "$default_port"; then
+            status="IN USE"
+            color="${RED}"
+        fi
+        
+        local custom_port=$(whiptail --title "Configure Port" --inputbox "\n\
+Service: $desc\n\
+Default Port: $default_port\n\
+Status: $status\n\n\
+Enter port number (or press Enter to keep default):" 14 60 "$default_port" 3>&1 1>&2 2>&3)
+        
+        if [ -n "$custom_port" ] && [ "$custom_port" != "$default_port" ]; then
+            # Validate port
+            if [[ "$custom_port" =~ ^[0-9]+$ ]] && [ "$custom_port" -ge 1024 ] && [ "$custom_port" -le 65535 ]; then
+                if check_port "$custom_port"; then
+                    whiptail --title "Warning" --msgbox "\n⚠️  Port $custom_port is in use!\n\nKeeping default: $default_port" 10 50
+                else
+                    DEFAULT_PORTS[$port_name]="$custom_port"
+                    echo "$port_name=$custom_port" >> "$PORT_CONFIG"
+                fi
+            else
+                whiptail --title "Error" --msgbox "\n❌ Invalid port number!\n\nMust be between 1024-65535.\nKeeping default: $default_port" 10 50
+            fi
+        fi
+    done
+    
+    whiptail --title "Configuration Complete" --msgbox "\n✅ Port configuration complete!\n\nAll ports have been configured." 10 50
 }
 
 # Get port for service
@@ -346,13 +427,25 @@ case "${1:-scan}" in
         done
         ;;
     
+    "generate-random")
+        generate_all_random_ports
+        save_port_config
+        ;;
+    
+    "configure-all")
+        configure_all_ports_interactive
+        save_port_config
+        ;;
+    
     *)
-        echo "Usage: $0 {scan|configure|auto-fix|get|save|load|list}"
+        echo "Usage: $0 {scan|configure|auto-fix|get|save|load|list|generate-random|configure-all}"
         echo ""
         echo "Commands:"
         echo "  scan              - Scan for port conflicts"
         echo "  configure <svc>   - Configure ports for service"
         echo "  auto-fix          - Automatically fix all conflicts"
+        echo "  generate-random   - Generate random ports for all services"
+        echo "  configure-all     - Interactively configure all service ports"
         echo "  get <port_name>   - Get configured port"
         echo "  save              - Save port configuration"
         echo "  load              - Load port configuration"

@@ -509,49 +509,109 @@ show_system_info() {
 
 # Port configuration menu
 configure_ports() {
-    if whiptail --title "Port Configuration" --yesno "
-Would you like to configure ports before installation?
+    local choice=$(whiptail --title "Port Configuration" --menu "
+How would you like to configure ports?
 
-This will:
-• Scan for port conflicts
-• Allow you to customize ports
-• Auto-fix conflicts if found
+Choose your preferred method:" 18 70 5 \
+        "1" "Use Default Ports (Recommended)" \
+        "2" "Scan & Auto-Fix Conflicts Only" \
+        "3" "Configure All Ports Manually" \
+        "4" "Generate Random Ports (10000-60000)" \
+        "5" "Skip Port Configuration" \
+        3>&1 1>&2 2>&3)
+    
+    case $choice in
+        1)
+            # Scan and only fix if conflicts found
+            bash "$INSTALL_DIR/port-manager.sh" scan > /tmp/port-scan.log 2>&1
+            
+            if ! grep -q "No port conflicts" /tmp/port-scan.log; then
+                whiptail --title "Port Conflicts Detected" --msgbox "
+⚠️  Some default ports are in use!
 
-Recommended if you have other services running!" 14 70; then
-        
-        # Scan for conflicts
-        bash "$INSTALL_DIR/port-manager.sh" scan > /tmp/port-scan.log 2>&1
-        
-        if ! grep -q "No port conflicts" /tmp/port-scan.log; then
-            # Conflicts found
-            if whiptail --title "Port Conflicts Detected" --yesno "
-⚠️  Port conflicts were detected!
-
-Would you like to:
-• YES - Automatically fix conflicts
-• NO - Manually configure ports
-
-Auto-fix will assign alternative ports automatically." 14 70; then
+Automatically fixing conflicts..." 10 50
                 bash "$INSTALL_DIR/port-manager.sh" auto-fix
-                whiptail --title "Conflicts Resolved" --msgbox "
-✅ Port conflicts have been automatically resolved!
-
-View new port assignments:
-  cat /etc/automatic-system/ports.conf" 12 60
+                bash "$INSTALL_DIR/port-manager.sh" save
             else
-                # Manual configuration
-                whiptail --title "Manual Configuration" --msgbox "
-You can configure ports for each service during installation.
+                whiptail --title "No Conflicts" --msgbox "
+✅ All default ports are available!
 
-The installer will prompt you for custom ports when conflicts are detected." 10 60
+Proceeding with standard ports." 10 50
             fi
-        else
-            whiptail --title "No Conflicts" --msgbox "
-✅ No port conflicts detected!
+            ;;
+        
+        2)
+            # Scan and auto-fix
+            bash "$INSTALL_DIR/port-manager.sh" scan > /tmp/port-scan.log 2>&1
+            bash "$INSTALL_DIR/port-manager.sh" auto-fix
+            bash "$INSTALL_DIR/port-manager.sh" save
+            
+            whiptail --title "Conflicts Resolved" --msgbox "
+✅ Port conflicts have been resolved!
 
-All default ports are available." 10 50
-        fi
-    fi
+View configuration:
+  cat /etc/automatic-system/ports.conf" 12 60
+            ;;
+        
+        3)
+            # Configure all ports manually
+            whiptail --title "Manual Configuration" --msgbox "
+You will now configure ports for all services.
+
+For each service:
+• See the default port
+• See if it's available
+• Choose a custom port or keep default
+
+Press OK to begin..." 14 60
+            
+            bash "$INSTALL_DIR/port-manager.sh" configure-all
+            
+            whiptail --title "Configuration Complete" --msgbox "
+✅ All ports have been configured!
+
+View configuration:
+  cat /etc/automatic-system/ports.conf" 12 60
+            ;;
+        
+        4)
+            # Generate random ports
+            if whiptail --title "Generate Random Ports" --yesno "
+This will assign random ports (10000-60000) to all services.
+
+Standard ports (80, 443) will be kept.
+Database ports (MySQL, Redis) will be kept.
+
+This is useful for:
+• Maximum security (obscurity)
+• Avoiding all conflicts
+• Running multiple instances
+
+Continue?" 16 70; then
+                bash "$INSTALL_DIR/port-manager.sh" generate-random
+                bash "$INSTALL_DIR/port-manager.sh" save
+                
+                # Show generated ports
+                local port_list=$(bash "$INSTALL_DIR/port-manager.sh" list)
+                whiptail --title "Random Ports Generated" --msgbox "
+✅ Random ports have been generated!
+
+$port_list
+
+Configuration saved to:
+  /etc/automatic-system/ports.conf" 20 70
+            fi
+            ;;
+        
+        5)
+            # Skip
+            whiptail --title "Skipped" --msgbox "
+Port configuration skipped.
+
+Default ports will be used.
+If conflicts occur during installation, you'll be prompted." 10 60
+            ;;
+    esac
 }
 
 # Main installation flow
