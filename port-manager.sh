@@ -277,20 +277,29 @@ auto_fix_conflicts() {
 
 # Generate random ports for all services
 generate_all_random_ports() {
+    local include_standard=$1  # "all" to include standard ports
+    
     echo "Generating random ports for all services..."
     echo ""
     
     for service in "${!DEFAULT_PORTS[@]}"; do
         local desc="${PORT_DESCRIPTIONS[$service]}"
+        local old_port="${DEFAULT_PORTS[$service]}"
         
-        # Skip standard ports (80, 443) and localhost-only ports
-        if [[ "$service" == "PANEL_HTTP" ]] || [[ "$service" == "PANEL_HTTPS" ]] || \
-           [[ "$service" == "MYSQL" ]] || [[ "$service" == "REDIS" ]]; then
-            echo "Keeping $service: ${DEFAULT_PORTS[$service]} (standard port)"
+        # Skip localhost-only ports (always)
+        if [[ "$service" == "MYSQL" ]] || [[ "$service" == "REDIS" ]]; then
+            echo "Keeping $service: ${DEFAULT_PORTS[$service]} (localhost-only)"
             continue
         fi
         
-        local old_port="${DEFAULT_PORTS[$service]}"
+        # Skip standard ports unless "all" specified
+        if [[ "$include_standard" != "all" ]]; then
+            if [[ "$service" == "PANEL_HTTP" ]] || [[ "$service" == "PANEL_HTTPS" ]]; then
+                echo "Keeping $service: ${DEFAULT_PORTS[$service]} (standard port)"
+                continue
+            fi
+        fi
+        
         local new_port=$(generate_random_port 10000 60000)
         
         DEFAULT_PORTS[$service]="$new_port"
@@ -303,7 +312,16 @@ generate_all_random_ports() {
 
 # Configure all ports interactively
 configure_all_ports_interactive() {
-    local services=("WINGS_API" "WINGS_SFTP" "ADMIN_PANEL" "SSH_TERMINAL" "OPENWEBUI" "OLLAMA" "FILEBROWSER" "PINGVIN" "NEXTCLOUD")
+    local include_standard=$1  # "all" to include standard ports
+    
+    local services=()
+    
+    # Include standard ports if requested
+    if [[ "$include_standard" == "all" ]]; then
+        services=("PANEL_HTTP" "PANEL_HTTPS" "WINGS_API" "WINGS_SFTP" "ADMIN_PANEL" "SSH_TERMINAL" "OPENWEBUI" "OLLAMA" "FILEBROWSER" "PINGVIN" "NEXTCLOUD")
+    else
+        services=("WINGS_API" "WINGS_SFTP" "ADMIN_PANEL" "SSH_TERMINAL" "OPENWEBUI" "OLLAMA" "FILEBROWSER" "PINGVIN" "NEXTCLOUD")
+    fi
     
     for port_name in "${services[@]}"; do
         local default_port="${DEFAULT_PORTS[$port_name]}"

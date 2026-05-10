@@ -555,6 +555,18 @@ View configuration:
         
         3)
             # Configure all ports manually
+            local include_std=""
+            if whiptail --title "Include Standard Ports?" --yesno "
+Do you want to configure standard ports (80, 443)?
+
+• YES - Configure ALL ports including 80/443
+• NO  - Only configure application ports
+
+Note: Changing standard ports requires updating
+DNS/proxy configurations." 14 60; then
+                include_std="all"
+            fi
+            
             whiptail --title "Manual Configuration" --msgbox "
 You will now configure ports for all services.
 
@@ -565,7 +577,7 @@ For each service:
 
 Press OK to begin..." 14 60
             
-            bash "$INSTALL_DIR/port-manager.sh" configure-all
+            bash "$INSTALL_DIR/port-manager.sh" configure-all "$include_std"
             
             whiptail --title "Configuration Complete" --msgbox "
 ✅ All ports have been configured!
@@ -576,10 +588,22 @@ View configuration:
         
         4)
             # Generate random ports
+            local random_mode=$(whiptail --title "Random Port Mode" --menu "
+Which ports should be randomized?" 14 70 2 \
+                "1" "Application Ports Only (Keep 80/443)" \
+                "2" "ALL Ports (Including 80/443)" \
+                3>&1 1>&2 2>&3)
+            
+            local include_std=""
+            if [ "$random_mode" = "2" ]; then
+                include_std="all"
+            fi
+            
             if whiptail --title "Generate Random Ports" --yesno "
-This will assign random ports (10000-60000) to all services.
+This will assign random ports (10000-60000) to services.
 
-Standard ports (80, 443) will be kept.
+Mode: $([ "$random_mode" = "2" ] && echo "ALL ports" || echo "Application ports only")
+
 Database ports (MySQL, Redis) will be kept.
 
 This is useful for:
@@ -588,7 +612,7 @@ This is useful for:
 • Running multiple instances
 
 Continue?" 16 70; then
-                bash "$INSTALL_DIR/port-manager.sh" generate-random
+                bash "$INSTALL_DIR/port-manager.sh" generate-random "$include_std"
                 bash "$INSTALL_DIR/port-manager.sh" save
                 
                 # Show generated ports
