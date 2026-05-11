@@ -297,7 +297,7 @@ Press OK to continue..." 14 70
             else
                 # User wants to delete and recreate
                 # Safety check: only delete if tunnel name matches our pattern
-                if [[ "$existing_tunnel" =~ ^ssh-.*-[0-9]+$ ]]; then
+                if [[ "$existing_tunnel" =~ ^ssh-.*-[0-9]+$ ]] || [[ "$existing_tunnel" == "ssh-terminal-tunnel" ]]; then
                     echo ""
                     echo "🗑️  Deleting old tunnel: $existing_tunnel"
                     echo ""
@@ -361,7 +361,8 @@ Press OK to continue..." 10 70
         fi
     fi
     
-    local tunnel_name="ssh-$(hostname)-$(date +%s)"
+    # Use consistent tunnel name
+    local tunnel_name="ssh-terminal-tunnel"
     local domain=""
     
     # Validate certificate first
