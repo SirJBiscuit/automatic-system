@@ -101,6 +101,33 @@
             border: 2px solid rgba(255,255,255,0.1);
             resize: both;
             overflow: auto;
+            animation: floatIn 0.3s ease;
+        }
+
+        @keyframes floatIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .terminal-container.floating.minimized {
+            height: 42px !important;
+            overflow: hidden;
+            animation: minimizeAnim 0.2s ease;
+        }
+
+        @keyframes minimizeAnim {
+            from {
+                height: 600px;
+            }
+            to {
+                height: 42px;
+            }
         }
 
         .terminal-container.floating .terminal-header {
@@ -126,20 +153,42 @@
         }
 
         .terminal-control-btn {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s ease;
+            color: white;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .terminal-control-btn:hover {
-            transform: scale(1.2);
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
         }
 
-        .terminal-control-btn.close { background: #ff5f56; }
-        .terminal-control-btn.minimize { background: #ffbd2e; }
-        .terminal-control-btn.maximize { background: #27c93f; }
+        .terminal-control-btn.close { 
+            background: rgba(239, 68, 68, 0.3);
+        }
+        .terminal-control-btn.close:hover { 
+            background: rgba(239, 68, 68, 0.5);
+        }
+        .terminal-control-btn.minimize { 
+            background: rgba(251, 191, 36, 0.3);
+        }
+        .terminal-control-btn.minimize:hover { 
+            background: rgba(251, 191, 36, 0.5);
+        }
+        .terminal-control-btn.maximize { 
+            background: rgba(34, 197, 94, 0.3);
+        }
+        .terminal-control-btn.maximize:hover { 
+            background: rgba(34, 197, 94, 0.5);
+        }
 
         iframe {
             width: 100%;
@@ -177,6 +226,28 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100px);
             }
         }
 
@@ -296,7 +367,31 @@
         }
 
         .color-option.active {
-            border-color: white;
+            border: 2px solid white;
+            transform: scale(1.1);
+        }
+
+        .snippet-card {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .snippet-card:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .snippet-card code {
+            display: block;
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
         }
 
         .close-btn {
@@ -439,6 +534,10 @@
             </span>
         </div>
         <div class="toolbar-right">
+            <button class="toolbar-btn" onclick="toggleSnippets()" title="Quick Commands">
+                <span>⚡</span>
+                <span class="btn-text">Snippets</span>
+            </button>
             <button class="toolbar-btn" onclick="toggleFloating()" id="floatBtn" title="Pop out terminal">
                 <span>🪟</span>
                 <span class="btn-text">Pop Out</span>
@@ -520,6 +619,43 @@
          border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); padding: 8px; 
          max-width: 400px; z-index: 9999; border: 1px solid rgba(255,255,255,0.1);">
         <div id="autocompleteList"></div>
+    </div>
+
+    <!-- Quick Snippets Panel -->
+    <div class="modal" id="snippetsPanel" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <span>⚡</span>
+                <span>Quick Command Snippets</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div class="snippet-card" onclick="copySnippet('systemctl status nginx')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">📊 Check Nginx Status</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">systemctl status nginx</code>
+                </div>
+                <div class="snippet-card" onclick="copySnippet('tail -f /var/log/nginx/error.log')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">📜 Watch Nginx Logs</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">tail -f /var/log/nginx/error.log</code>
+                </div>
+                <div class="snippet-card" onclick="copySnippet('docker ps -a')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">🐳 List All Containers</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">docker ps -a</code>
+                </div>
+                <div class="snippet-card" onclick="copySnippet('git status && git log --oneline -5')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">📝 Git Status & Recent Commits</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">git status && git log --oneline -5</code>
+                </div>
+                <div class="snippet-card" onclick="copySnippet('df -h')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">💾 Disk Usage</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">df -h</code>
+                </div>
+                <div class="snippet-card" onclick="copySnippet('htop')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">⚡ System Monitor</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">htop</code>
+                </div>
+            </div>
+            <button class="close-btn" onclick="toggleSnippets()" style="margin-top: 20px;">Close</button>
+        </div>
     </div>
 
     <!-- Settings Modal -->
@@ -645,14 +781,34 @@
             { name: 'Select All', icon: '🔲', action: () => selectAll() }
         ];
 
-        // Context Menu - Only show on terminal area
-        document.querySelector('.terminal-container').addEventListener('contextmenu', (e) => {
+        // Context Menu - Show on right-click anywhere on page
+        document.addEventListener('contextmenu', (e) => {
+            // Allow default context menu on input fields
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
             e.preventDefault();
             e.stopPropagation();
+            
             const menu = document.getElementById('contextMenu');
             menu.style.display = 'block';
-            menu.style.left = e.pageX + 'px';
-            menu.style.top = e.pageY + 'px';
+            
+            // Position menu, but keep it on screen
+            let x = e.pageX;
+            let y = e.pageY;
+            
+            // Check if menu would go off screen
+            const menuRect = menu.getBoundingClientRect();
+            if (x + menuRect.width > window.innerWidth) {
+                x = window.innerWidth - menuRect.width - 10;
+            }
+            if (y + menuRect.height > window.innerHeight) {
+                y = window.innerHeight - menuRect.height - 10;
+            }
+            
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
         });
 
         // Close context menu on any click
@@ -663,11 +819,9 @@
             }
         });
 
-        // Prevent default context menu on whole page
-        document.addEventListener('contextmenu', (e) => {
-            if (!e.target.closest('.terminal-container')) {
-                e.preventDefault();
-            }
+        // Close context menu on scroll
+        document.addEventListener('scroll', () => {
+            document.getElementById('contextMenu').style.display = 'none';
         });
 
         // Settings Modal
@@ -953,25 +1107,51 @@
             isFloating = !isFloating;
             
             if (isFloating) {
+                // Store current iframe
+                const iframe = container.querySelector('iframe');
+                const loading = container.querySelector('.loading');
+                
                 container.classList.add('floating');
                 container.innerHTML = `
                     <div class="terminal-header" id="terminalHeader">
                         <div class="terminal-header-title">🖥️ SSH Terminal</div>
                         <div class="terminal-header-controls">
-                            <div class="terminal-control-btn minimize" onclick="minimizeTerminal()"></div>
-                            <div class="terminal-control-btn maximize" onclick="maximizeTerminal()"></div>
-                            <div class="terminal-control-btn close" onclick="toggleFloating()"></div>
+                            <button class="terminal-control-btn minimize" onclick="minimizeTerminal()" title="Minimize">
+                                <i class="fas fa-window-minimize"></i> Min
+                            </button>
+                            <button class="terminal-control-btn maximize" onclick="maximizeTerminal()" title="Maximize">
+                                <i class="fas fa-window-maximize"></i> Max
+                            </button>
+                            <button class="terminal-control-btn close" onclick="toggleFloating()" title="Dock Terminal">
+                                <i class="fas fa-times"></i> Dock
+                            </button>
                         </div>
                     </div>
-                    ${container.innerHTML}
                 `;
+                
+                // Re-add iframe and loading
+                if (loading) container.appendChild(loading);
+                if (iframe) container.appendChild(iframe);
+                
                 floatBtn.innerHTML = '<span>📌</span><span class="btn-text">Dock</span>';
                 toolbar.style.opacity = '0.5';
                 makeDraggable();
             } else {
+                // Store iframe before removing header
+                const iframe = container.querySelector('iframe');
+                const loading = container.querySelector('.loading');
+                
                 container.classList.remove('floating');
                 const header = container.querySelector('.terminal-header');
                 if (header) header.remove();
+                
+                // Reset to full size
+                container.style.width = '';
+                container.style.height = '';
+                container.style.left = '';
+                container.style.top = '';
+                container.style.overflow = 'hidden';
+                
                 floatBtn.innerHTML = '<span>🪟</span><span class="btn-text">Pop Out</span>';
                 toolbar.style.opacity = '1';
             }
@@ -1001,23 +1181,105 @@
             });
         }
 
+        let isMinimized = false;
+        let savedSize = { width: '800px', height: '600px' };
+
         function minimizeTerminal() {
             const container = document.querySelector('.terminal-container');
-            container.style.height = '42px';
-            container.style.overflow = 'hidden';
+            
+            if (!isMinimized) {
+                // Save current size
+                savedSize.width = container.style.width || '800px';
+                savedSize.height = container.style.height || '600px';
+                
+                container.classList.add('minimized');
+                isMinimized = true;
+                
+                // Update button
+                const btn = event.target.closest('.terminal-control-btn');
+                btn.innerHTML = '<i class="fas fa-window-restore"></i> Restore';
+            } else {
+                // Restore
+                container.classList.remove('minimized');
+                container.style.height = savedSize.height;
+                isMinimized = false;
+                
+                const btn = event.target.closest('.terminal-control-btn');
+                btn.innerHTML = '<i class="fas fa-window-minimize"></i> Min';
+            }
         }
+
+        let isMaximized = false;
+        let savedPosition = { left: '100px', top: '100px', width: '800px', height: '600px' };
 
         function maximizeTerminal() {
             const container = document.querySelector('.terminal-container');
-            container.style.width = '90vw';
-            container.style.height = '90vh';
-            container.style.left = '5vw';
-            container.style.top = '5vh';
+            
+            if (!isMaximized) {
+                // Save current position and size
+                savedPosition = {
+                    left: container.style.left || '100px',
+                    top: container.style.top || '100px',
+                    width: container.style.width || '800px',
+                    height: container.style.height || '600px'
+                };
+                
+                container.style.width = '95vw';
+                container.style.height = '90vh';
+                container.style.left = '2.5vw';
+                container.style.top = '5vh';
+                isMaximized = true;
+                
+                const btn = event.target.closest('.terminal-control-btn');
+                btn.innerHTML = '<i class="fas fa-window-restore"></i> Restore';
+            } else {
+                // Restore
+                container.style.width = savedPosition.width;
+                container.style.height = savedPosition.height;
+                container.style.left = savedPosition.left;
+                container.style.top = savedPosition.top;
+                isMaximized = false;
+                
+                const btn = event.target.closest('.terminal-control-btn');
+                btn.innerHTML = '<i class="fas fa-window-maximize"></i> Max';
+            }
+        }
+
+        // Snippets Panel
+        function toggleSnippets() {
+            const panel = document.getElementById('snippetsPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function copySnippet(command) {
+            navigator.clipboard.writeText(command).then(() => {
+                // Show notification
+                const notification = document.createElement('div');
+                notification.textContent = '✓ Copied to clipboard!';
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                    z-index: 10001;
+                    animation: slideIn 0.3s ease;
+                `;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }, 2000);
+            });
         }
 
         // Play typing sound
         function playTypingSound() {
-            if (document.getElementById('enableSounds').checked) {
+            if (document.getElementById('enableSounds')?.checked) {
                 typingSound.currentTime = 0;
                 typingSound.volume = 0.1;
                 typingSound.play().catch(() => {});
