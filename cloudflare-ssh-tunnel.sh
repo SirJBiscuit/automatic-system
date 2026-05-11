@@ -576,7 +576,62 @@ Press OK to continue..." 12 60
     echo ""
     echo "Creating ttyd service..."
     
-    # Create ttyd service for web SSH (direct login, no nested SSH)
+    # Install enhanced bash features for better terminal experience
+    echo "Installing terminal enhancements..."
+    apt install -y bash-completion command-not-found 2>/dev/null || true
+    
+    # Create enhanced bashrc for ttyd
+    cat > /root/.ttyd_bashrc <<'BASHRC'
+# Enhanced bash configuration for web terminal
+source /etc/bash.bashrc 2>/dev/null || true
+source ~/.bashrc 2>/dev/null || true
+
+# Enable bash completion
+if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+fi
+
+# Better history
+HISTSIZE=10000
+HISTFILESIZE=20000
+HISTCONTROL=ignoreboth:erasedups
+shopt -s histappend
+
+# Colorful prompt
+export PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+
+# Enable color support
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+alias ll='ls -alF'
+alias la='ls -A'
+
+# Useful aliases
+alias ..='cd ..'
+alias ...='cd ../..'
+alias update='apt update && apt upgrade -y'
+alias ports='netstat -tulpn'
+
+# Better less
+export LESS='-R'
+export LESSOPEN='|pygmentize -g %s 2>/dev/null'
+
+# Welcome message
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  🌐 Web SSH Terminal - $(hostname)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "  Features:"
+echo "  • Right-click to copy/paste"
+echo "  • Tab for auto-completion"
+echo "  • Ctrl+C to cancel commands"
+echo "  • Full color support"
+echo ""
+BASHRC
+    
+    # Create ttyd service with all features enabled
     cat > /etc/systemd/system/ttyd-ssh.service <<EOF
 [Unit]
 Description=Web-based SSH Terminal (ttyd)
@@ -585,7 +640,18 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/local/bin/ttyd -p 7681 -W bash
+ExecStart=/usr/local/bin/ttyd \\
+    -p 7681 \\
+    -t fontSize=16 \\
+    -t fontFamily="'Fira Code', 'Cascadia Code', 'Consolas', monospace" \\
+    -t theme='{"background": "#1e1e1e", "foreground": "#d4d4d4"}' \\
+    -t cursorBlink=true \\
+    -t cursorStyle=block \\
+    -t scrollback=10000 \\
+    -t enableZmodem=true \\
+    -t enableTrzsz=true \\
+    -t enableSixel=true \\
+    -W bash --rcfile /root/.ttyd_bashrc
 Restart=on-failure
 RestartSec=5s
 
@@ -883,21 +949,32 @@ show_connection_instructions() {
     fi
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  CONNECT FROM ANYWHERE (Web-Based Terminal):"
+    echo "  CONNECT FROM ANYWHERE (Enhanced Web Terminal):"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "  Open in your browser (phone, tablet, PC):"
-    echo "  ─────────────────────────────────────────"
+    echo "  Open in your browser:"
+    echo "  ────────────────────"
     echo "  https://$domain"
     echo ""
-    echo "  This opens a full SSH terminal in your browser!"
-    echo "  No apps needed - works on any device with a browser."
+    echo "  ✨ Enhanced Features:"
+    echo "  ────────────────────"
+    echo "  • 🎨 Syntax highlighting & colors"
+    echo "  • ⌨️  Tab auto-completion"
+    echo "  • 📋 Right-click copy/paste"
+    echo "  • 🔤 Modern monospace fonts"
+    echo "  • 📜 10,000 line scrollback"
+    echo "  • 💾 File transfer support (zmodem)"
+    echo "  • 📱 Works on any device"
+    echo "  • 🌙 Dark theme optimized"
+    echo "  • ⚡ Blinking cursor"
+    echo "  • 📊 Command history (10k lines)"
     echo ""
-    echo "  Features:"
-    echo "  • Full terminal access"
-    echo "  • Copy/paste support"
-    echo "  • Works on mobile"
-    echo "  • No SSH client needed"
+    echo "  Keyboard Shortcuts:"
+    echo "  ──────────────────"
+    echo "  • Tab - Auto-complete commands"
+    echo "  • Ctrl+C - Cancel command"
+    echo "  • Ctrl+L - Clear screen"
+    echo "  • Up/Down - Command history"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  BENEFITS:"
@@ -922,25 +999,39 @@ show_connection_instructions() {
     
     # Save to file for later reference
     cat > "$TUNNEL_DIR/connection-info.txt" <<EOF
-SSH TUNNEL CONNECTION INFORMATION (Web Terminal)
+SSH TUNNEL CONNECTION INFORMATION (Enhanced Web Terminal)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Domain: $domain
 Server SSH Port: $ssh_port (internal)
-Mode: Web-based SSH Terminal (ttyd)
+Mode: Enhanced Web-based SSH Terminal (ttyd)
 
 CONNECT FROM ANY DEVICE:
 
 Open in browser: https://$domain
 
-Works on:
-  • Phone (any browser)
-  • Tablet
-  • PC/Mac
-  • Chromebook
-  • Anything with a web browser!
+✨ ENHANCED FEATURES:
+  • 🎨 Syntax highlighting & colors
+  • ⌨️  Tab auto-completion
+  • 📋 Right-click copy/paste
+  • 🔤 Modern monospace fonts (Fira Code, Cascadia Code)
+  • 📜 10,000 line scrollback buffer
+  • 💾 File transfer support (zmodem/trzsz)
+  • 📱 Responsive on all devices
+  • 🌙 Dark theme optimized
+  • ⚡ Blinking cursor
+  • 📊 10,000 line command history
 
-No apps or SSH client needed!
+KEYBOARD SHORTCUTS:
+  • Tab - Auto-complete commands
+  • Ctrl+C - Cancel command
+  • Ctrl+L - Clear screen
+  • Up/Down - Command history
+
+USEFUL ALIASES:
+  • ll - Detailed file listing
+  • update - Update system packages
+  • ports - Show open ports
 
 MANAGE SERVICES:
 
@@ -948,11 +1039,13 @@ Web Terminal:
   systemctl start ttyd-ssh
   systemctl stop ttyd-ssh
   systemctl status ttyd-ssh
+  systemctl restart ttyd-ssh
 
 Cloudflare Tunnel:
   systemctl start cloudflared-ssh
   systemctl stop cloudflared-ssh
   systemctl status cloudflared-ssh
+  systemctl restart cloudflared-ssh
 
 Created: $(date)
 EOF
