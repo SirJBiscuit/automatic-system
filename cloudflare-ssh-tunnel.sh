@@ -474,20 +474,44 @@ Press OK to exit..." 8 50
     mkdir -p "$TUNNEL_DIR"
     
     # Install ttyd for web-based SSH terminal
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Installing ttyd (web-based SSH terminal)..."
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    
     if ! command -v ttyd &> /dev/null; then
-        # Install ttyd
+        # Try to install from package manager first
         if command -v apt &> /dev/null; then
-            apt install -y ttyd 2>/dev/null || {
-                # Build from source if not in repos
-                echo "Installing ttyd from GitHub..."
-                wget -q https://github.com/tsl0922/ttyd/releases/download/1.7.4/ttyd.x86_64 -O /usr/local/bin/ttyd
-                chmod +x /usr/local/bin/ttyd
-            }
+            echo "Trying to install ttyd from apt..."
+            if apt install -y ttyd 2>&1 | grep -q "Unable to locate"; then
+                # Not in repos, download binary
+                echo "Not in repos, downloading binary from GitHub..."
+                if wget -q https://github.com/tsl0922/ttyd/releases/download/1.7.4/ttyd.x86_64 -O /usr/local/bin/ttyd; then
+                    chmod +x /usr/local/bin/ttyd
+                    echo "✅ ttyd installed successfully"
+                else
+                    echo "❌ Failed to download ttyd"
+                    exit 1
+                fi
+            else
+                echo "✅ ttyd installed from apt"
+            fi
         fi
+    else
+        echo "✅ ttyd already installed"
     fi
     
-    # Create ttyd service for web SSH
+    # Verify ttyd is available
+    if ! command -v ttyd &> /dev/null; then
+        echo "❌ ERROR: ttyd not found after installation!"
+        exit 1
+    fi
+    
+    echo ""
+    echo "Creating ttyd service..."
+    
+    # Create ttyd service for web SSH (direct login, no nested SSH)
     cat > /etc/systemd/system/ttyd-ssh.service <<EOF
 [Unit]
 Description=Web-based SSH Terminal (ttyd)
@@ -496,7 +520,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/local/bin/ttyd -p 7681 -W bash -c 'ssh localhost -p $ssh_port'
+ExecStart=/usr/local/bin/ttyd -p 7681 -W bash
 Restart=on-failure
 RestartSec=5s
 
@@ -507,6 +531,17 @@ EOF
     systemctl daemon-reload
     systemctl enable ttyd-ssh.service
     systemctl start ttyd-ssh.service
+    
+    # Verify ttyd service started
+    sleep 2
+    if systemctl is-active --quiet ttyd-ssh.service; then
+        echo "✅ ttyd service is running"
+    else
+        echo "❌ ttyd service failed to start!"
+        echo "Checking logs:"
+        journalctl -u ttyd-ssh.service -n 20 --no-pager
+        exit 1
+    fi
     
     # Create tunnel configuration using HTTP for web terminal
     cat > "$TUNNEL_CONFIG" <<EOF
@@ -675,27 +710,44 @@ RestartSec=5s
 WantedBy=multi-user.target
 EOF
     
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Starting Cloudflare Tunnel service..."
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    
     systemctl daemon-reload
     systemctl enable cloudflared-ssh.service
     systemctl start cloudflared-ssh.service
     
+    # Wait for service to start
+    sleep 3
+    
     if systemctl is-active --quiet cloudflared-ssh.service; then
-        whiptail --title "Success" --msgbox "
-✅ SSH Tunnel service is running!
-
-Service: cloudflared-ssh.service
-Status: Active
-
-Press OK to continue..." 10 60
+        echo "✅ Cloudflare Tunnel service is running!"
+        echo ""
+        echo "Checking tunnel connections..."
+        sleep 2
+        
+        # Check if tunnel has registered connections
+        if journalctl -u cloudflared-ssh.service -n 50 --no-pager | grep -q "Registered tunnel connection"; then
+            echo "✅ Tunnel connected to Cloudflare!"
+        else
+            echo "⚠️  Tunnel may not be fully connected yet. Checking logs..."
+            journalctl -u cloudflared-ssh.service -n 20 --no-pager
+        fi
     else
-        whiptail --title "Warning" --msgbox "
-⚠️  Service may not be running properly!
-
-Check status with:
-  systemctl status cloudflared-ssh.service
-
-Press OK to continue..." 12 70
+        echo "❌ Cloudflare Tunnel service failed to start!"
+        echo ""
+        echo "Service status:"
+        systemctl status cloudflared-ssh.service --no-pager
+        echo ""
+        echo "Recent logs:"
+        journalctl -u cloudflared-ssh.service -n 30 --no-pager
+        exit 1
     fi
+    
+    echo ""
 }
 
 # Show connection instructions
