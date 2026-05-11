@@ -298,21 +298,37 @@ Press OK to continue..." 14 70
                 # User wants to delete and recreate
                 # Safety check: only delete if tunnel name matches our pattern
                 if [[ "$existing_tunnel" =~ ^ssh-.*-[0-9]+$ ]]; then
-                    whiptail --title "Deleting Old Tunnel" --msgbox "
-🗑️  Deleting old tunnel...
-
-This will remove:
-• Tunnel: $existing_tunnel
-• Domain: $existing_domain
-
-This tunnel was created by this script.
-
-Press OK to continue..." 14 70
+                    echo ""
+                    echo "🗑️  Deleting old tunnel: $existing_tunnel"
+                    echo ""
                     
-                    # Delete old tunnel
-                    cloudflared tunnel delete "$existing_tunnel" -f 2>/dev/null || true
+                    # Stop the tunnel service first
+                    systemctl stop cloudflared-ssh 2>/dev/null || true
+                    
+                    # Delete DNS route
+                    echo "Removing DNS route..."
+                    cloudflared tunnel route dns delete "$existing_tunnel" "$existing_domain" 2>/dev/null || true
+                    
+                    # Delete the tunnel
+                    echo "Deleting tunnel..."
+                    if cloudflared tunnel delete "$existing_tunnel" -f 2>&1 | tee /tmp/tunnel-delete.log; then
+                        echo "✅ Tunnel deleted successfully"
+                    else
+                        echo "⚠️  Tunnel deletion may have failed:"
+                        cat /tmp/tunnel-delete.log
+                        echo ""
+                        echo "Continuing anyway..."
+                    fi
+                    
+                    # Clean up local files
+                    echo "Cleaning up configuration files..."
                     rm -rf "$TUNNEL_DIR"
                     mkdir -p "$TUNNEL_DIR"
+                    
+                    echo ""
+                    echo "✅ Cleanup complete. Creating new tunnel..."
+                    echo ""
+                    sleep 2
                 else
                     whiptail --title "Safety Check" --msgbox "
 ⚠️  Cannot delete tunnel: $existing_tunnel
