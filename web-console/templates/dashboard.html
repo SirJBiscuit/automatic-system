@@ -352,7 +352,7 @@
             <div id="overview-tab" class="tab-pane active">
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 fade-in">
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 hover-lift card-interactive">
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-400 text-sm font-medium">Total Servers</p>
@@ -363,7 +363,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 hover-lift card-interactive">
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-400 text-sm font-medium">Online</p>
@@ -374,7 +374,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 hover-lift card-interactive">
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-400 text-sm font-medium">Offline</p>
@@ -385,7 +385,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 hover-lift card-interactive">
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-400 text-sm font-medium">CPU Usage</p>
@@ -1176,8 +1176,14 @@
             document.getElementById('modal-server-name').textContent = serverName;
             document.getElementById('server-modal').classList.remove('hidden');
             
+            // Clear console
+            document.getElementById('console-output').innerHTML = '<p class="text-gray-500">Connecting to console...</p>';
+            
             // Load server details
             await updateModalStats();
+            
+            // Subscribe to console output via WebSocket
+            socket.emit('subscribe_console', { server_id: serverId });
         }
 
         function closeModal() {
@@ -1243,20 +1249,13 @@
             
             if (!command || !currentServerId) return;
             
-            try {
-                const response = await fetch(`/api/servers/${currentServerId}/command`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({command})
-                });
-                
-                if (response.ok) {
-                    addConsoleMessage(`> ${command}`);
-                    input.value = '';
-                }
-            } catch (error) {
-                console.error('Error sending command:', error);
-            }
+            // Send command via WebSocket for real-time response
+            socket.emit('send_console_command', {
+                server_id: currentServerId,
+                command: command
+            });
+            
+            input.value = '';
         }
 
         function handleConsoleEnter(event) {
@@ -1275,6 +1274,57 @@
         // Socket.IO events
         socket.on('connected', function(data) {
             console.log('Connected to server');
+        });
+
+        // Console streaming events
+        socket.on('console_subscribed', function(data) {
+            console.log('Subscribed to console for server:', data.server_id);
+            const output = document.getElementById('console-output');
+            output.innerHTML = '<p class="text-green-500">✓ Connected to console</p>';
+        });
+
+        socket.on('console_output', function(data) {
+            if (data.server_id === currentServerId) {
+                const output = document.getElementById('console-output');
+                // Append new console line
+                const line = document.createElement('span');
+                line.textContent = data.output;
+                output.appendChild(line);
+                // Auto-scroll to bottom
+                output.scrollTop = output.scrollHeight;
+            }
+        });
+
+        socket.on('console_error', function(data) {
+            console.error('Console error:', data.error);
+            const output = document.getElementById('console-output');
+            output.innerHTML += `<p class="text-red-500">Error: ${data.error}</p>`;
+        });
+
+        socket.on('console_disconnected', function(data) {
+            if (data.server_id === currentServerId) {
+                const output = document.getElementById('console-output');
+                output.innerHTML += '<p class="text-yellow-500">Console disconnected</p>';
+            }
+        });
+
+        socket.on('server_status', function(data) {
+            if (data.server_id === currentServerId) {
+                document.getElementById('modal-status').textContent = data.status;
+            }
+        });
+
+        socket.on('server_stats', function(data) {
+            if (data.server_id === currentServerId && data.stats) {
+                const stats = data.stats;
+                if (stats.cpu_absolute !== undefined) {
+                    document.getElementById('modal-cpu').textContent = stats.cpu_absolute.toFixed(1) + '%';
+                }
+                if (stats.memory_bytes !== undefined) {
+                    document.getElementById('modal-ram').textContent = 
+                        (stats.memory_bytes / (1024 * 1024)).toFixed(0) + ' MB';
+                }
+            }
         });
 
         // Close modal on escape key

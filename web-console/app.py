@@ -12,6 +12,9 @@ import os
 from datetime import datetime
 import secrets
 import logging
+import websocket
+import threading
+import json as json_lib
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +33,9 @@ PTERODACTYL_URL = os.getenv('PTERODACTYL_URL', 'https://panel.yourdomain.com')
 PTERODACTYL_API_KEY = os.getenv('PTERODACTYL_API_KEY', '')
 WEB_USERNAME = os.getenv('WEB_USERNAME', 'admin')
 WEB_PASSWORD = os.getenv('WEB_PASSWORD', 'changeme')
+
+# Active WebSocket connections for console streaming
+active_console_connections = {}
 
 # API Headers
 headers = {
@@ -479,13 +485,196 @@ def handle_connect():
     if not check_auth():
         return False
     emit('connected', {'message': 'Connected to server'})
+    logger.info(f"Client connected: {request.sid}")
 
-@socketio.on('subscribe_server')
-def handle_subscribe(data):
-    """Subscribe to server updates"""
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle WebSocket disconnection"""
+    # Clean up any active console connections for this client
+    if request.sid in active_console_connections:
+        ws = active_console_connections[request.sid]
+        try:
+            ws.close()
+        except:
+            pass
+        del active_console_connections[request.sid]
+    logger.info(f"Client disconnected: {request.sid}")
+
+@socketio.on('subscribe_console')
+def handle_subscribe_console(data):
+    """Subscribe to server console output"""
+    if not check_auth():
+        return False
+    
     server_id = data.get('server_id')
-    # In production, you'd set up actual console streaming here
-    emit('subscribed', {'server_id': server_id})
+    if not server_id:
+        emit('console_error', {'error': 'No server_id provided'})
+        return
+    
+    logger.info(f"Client {request.sid} subscribing to console for server {server_id}")
+    
+    try:
+        # Get WebSocket credentials from Pterodactyl API
+        response = requests.get(
+            f'{PTERODACTYL_URL}/api/client/servers/{server_id}/websocket',
+            headers=headers
+        )
+        
+        if response.status_code != 200:
+            emit('console_error', {'error': 'Failed to get WebSocket credentials'})
+            return
+        
+        ws_data = response.json().get('data', {})
+        ws_url = ws_data.get('socket')
+        ws_token = ws_data.get('token')
+        
+        if not ws_url or not ws_token:
+            emit('console_error', {'error': 'Invalid WebSocket credentials'})
+            return
+        
+        # Start WebSocket connection in a separate thread
+        thread = threading.Thread(
+            target=connect_to_pterodactyl_console,
+            args=(server_id, ws_url, ws_token, request.sid)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        emit('console_subscribed', {'server_id': server_id})
+        
+    except Exception as e:
+        logger.error(f"Error subscribing to console: {e}")
+        emit('console_error', {'error': str(e)})
+
+@socketio.on('send_console_command')
+def handle_console_command(data):
+    """Send command to server console via WebSocket"""
+    if not check_auth():
+        return False
+    
+    server_id = data.get('server_id')
+    command = data.get('command')
+    
+    if not server_id or not command:
+        emit('console_error', {'error': 'Missing server_id or command'})
+        return
+    
+    # Get the active WebSocket connection for this client
+    if request.sid in active_console_connections:
+        ws = active_console_connections[request.sid]
+        try:
+            # Send command through WebSocket
+            ws.send(json_lib.dumps({
+                'event': 'send command',
+                'args': [command]
+            }))
+            logger.info(f"Sent command to {server_id}: {command}")
+        except Exception as e:
+            logger.error(f"Error sending command: {e}")
+            emit('console_error', {'error': str(e)})
+    else:
+        # Fallback to REST API if WebSocket not available
+        try:
+            response = requests.post(
+                f'{PTERODACTYL_URL}/api/client/servers/{server_id}/command',
+                headers=headers,
+                json={'command': command}
+            )
+            if response.status_code == 204:
+                emit('console_output', {'output': f'> {command}\n'})
+            else:
+                emit('console_error', {'error': 'Failed to send command'})
+        except Exception as e:
+            logger.error(f"Error sending command via API: {e}")
+            emit('console_error', {'error': str(e)})
+
+def connect_to_pterodactyl_console(server_id, ws_url, ws_token, client_sid):
+    """Connect to Pterodactyl's WebSocket for real-time console output"""
+    
+    def on_message(ws, message):
+        try:
+            data = json_lib.loads(message)
+            event = data.get('event')
+            
+            if event == 'console output':
+                # Forward console output to the client
+                args = data.get('args', [])
+                if args:
+                    output = args[0]
+                    socketio.emit('console_output', {
+                        'server_id': server_id,
+                        'output': output
+                    }, room=client_sid)
+            
+            elif event == 'status':
+                # Forward status updates
+                status = data.get('args', [None])[0]
+                socketio.emit('server_status', {
+                    'server_id': server_id,
+                    'status': status
+                }, room=client_sid)
+            
+            elif event == 'stats':
+                # Forward resource stats
+                stats = data.get('args', [{}])[0]
+                socketio.emit('server_stats', {
+                    'server_id': server_id,
+                    'stats': stats
+                }, room=client_sid)
+                
+        except Exception as e:
+            logger.error(f"Error processing WebSocket message: {e}")
+    
+    def on_error(ws, error):
+        logger.error(f"WebSocket error for {server_id}: {error}")
+        socketio.emit('console_error', {
+            'server_id': server_id,
+            'error': str(error)
+        }, room=client_sid)
+    
+    def on_close(ws, close_status_code, close_msg):
+        logger.info(f"WebSocket closed for {server_id}")
+        if client_sid in active_console_connections:
+            del active_console_connections[client_sid]
+        socketio.emit('console_disconnected', {
+            'server_id': server_id
+        }, room=client_sid)
+    
+    def on_open(ws):
+        logger.info(f"WebSocket opened for {server_id}")
+        # Authenticate with the token
+        ws.send(json_lib.dumps({
+            'event': 'auth',
+            'args': [ws_token]
+        }))
+        # Request console logs
+        ws.send(json_lib.dumps({
+            'event': 'send logs',
+            'args': [None]
+        }))
+    
+    try:
+        # Create WebSocket connection
+        ws = websocket.WebSocketApp(
+            ws_url,
+            on_open=on_open,
+            on_message=on_message,
+            on_error=on_error,
+            on_close=on_close
+        )
+        
+        # Store the connection
+        active_console_connections[client_sid] = ws
+        
+        # Run WebSocket connection (blocking)
+        ws.run_forever()
+        
+    except Exception as e:
+        logger.error(f"Error connecting to Pterodactyl WebSocket: {e}")
+        socketio.emit('console_error', {
+            'server_id': server_id,
+            'error': str(e)
+        }, room=client_sid)
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 8080))

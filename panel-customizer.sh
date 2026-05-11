@@ -570,6 +570,46 @@ generate_custom_css() {
     --border-radius: ${BORDER_RADIUS}px;
 }
 
+/* Fix Animation Issues - Prevent Zooming/Flickering */
+*, *::before, *::after {
+    animation-duration: 0s !important;
+    transition-duration: 0.2s !important;
+}
+
+/* Disable problematic transforms */
+*:hover, *:focus, *:active {
+    transform: none !important;
+}
+
+/* Improve Text Readability */
+body {
+    font-size: 16px !important;
+}
+
+[class*="text-3xl"] {
+    font-size: 2rem !important;
+}
+
+[class*="text-2xl"] {
+    font-size: 1.75rem !important;
+}
+
+[class*="text-xl"] {
+    font-size: 1.5rem !important;
+}
+
+[class*="text-lg"] {
+    font-size: 1.25rem !important;
+}
+
+[class*="text-sm"] {
+    font-size: 0.95rem !important;
+}
+
+[class*="text-xs"] {
+    font-size: 0.85rem !important;
+}
+
 /* Primary Color Overrides */
 .btn-primary,
 .bg-primary,
@@ -870,10 +910,23 @@ inject_customizations() {
            "$PANEL_DIR/resources/views/templates/wrapper.blade.php.backup"
     fi
     
+    # Inject inline CSS fix for animations (highest priority)
+    if ! grep -q "NUCLEAR OPTION" "$PANEL_DIR/resources/views/templates/wrapper.blade.php"; then
+        sed -i '/<head>/a \    <style>\n        /* NUCLEAR OPTION - Inline styles have highest priority */\n        *, *::before, *::after {\n            animation: none !important;\n            animation-duration: 0s !important;\n            transition: none !important;\n            transform: none !important;\n        }\n        \n        *:hover, *:focus, *:active {\n            transform: none !important;\n            animation: none !important;\n        }\n        \n        body { font-size: 16px !important; }\n        [class*="text-3xl"] { font-size: 2rem !important; }\n        [class*="text-2xl"] { font-size: 1.75rem !important; }\n        [class*="text-xl"] { font-size: 1.5rem !important; }\n        [class*="text-lg"] { font-size: 1.25rem !important; }\n        [class*="text-sm"] { font-size: 0.95rem !important; }\n        [class*="text-xs"] { font-size: 0.85rem !important; }\n    </style>' \
+            "$PANEL_DIR/resources/views/templates/wrapper.blade.php"
+    fi
+    
     # Inject custom CSS link
     if ! grep -q "custom.css" "$PANEL_DIR/resources/views/templates/wrapper.blade.php"; then
         sed -i '/<\/head>/i \    <link rel="stylesheet" href="{{ asset('"'"'themes/pterodactyl/css/custom.css'"'"') }}">' \
             "$PANEL_DIR/resources/views/templates/wrapper.blade.php"
+    fi
+    
+    # Also create a copy in public root for fallback
+    if [ -f "$CUSTOM_CSS" ]; then
+        cp "$CUSTOM_CSS" "$PANEL_DIR/public/custom.css"
+        sed -i '/<\/head>/i \    <link rel="stylesheet" href="/custom.css">' \
+            "$PANEL_DIR/resources/views/templates/wrapper.blade.php" 2>/dev/null || true
     fi
     
     # Inject custom JS if particles enabled
@@ -966,15 +1019,22 @@ Navigation: $NAV_STYLE style
 Border Radius: ${BORDER_RADIUS}px
 Animations: $ANIMATIONS_ENABLED
 
+Performance Fixes Applied:
+  ✓ Animation zooming/flickering prevention
+  ✓ Improved text readability (larger font sizes)
+  ✓ Optimized CSS transitions
+
 Files Created:
   • $CUSTOM_CSS
+  • $PANEL_DIR/public/custom.css (fallback)
   • /etc/ptero-customizer/config.json
 
 Next Steps:
   1. Visit your panel to see the changes
-  2. Further customize by editing $CUSTOM_CSS
-  3. To revert changes, restore from backups
-  4. Run this script again to change customization
+  2. Clear browser cache (Ctrl+F5) for best results
+  3. Further customize by editing $CUSTOM_CSS
+  4. To revert changes, restore from backups
+  5. Run this script again to change customization
 
 Backup Files:
   • $PANEL_DIR/resources/views/templates/wrapper.blade.php.backup
