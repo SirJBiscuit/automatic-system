@@ -302,8 +302,18 @@ Press OK to continue..." 14 70
                     echo "🗑️  Deleting old tunnel: $existing_tunnel"
                     echo ""
                     
-                    # Stop the tunnel service first
+                    # Stop ALL services first
+                    echo "Stopping services..."
                     systemctl stop cloudflared-ssh 2>/dev/null || true
+                    systemctl stop ttyd-ssh 2>/dev/null || true
+                    systemctl disable cloudflared-ssh 2>/dev/null || true
+                    systemctl disable ttyd-ssh 2>/dev/null || true
+                    
+                    # Kill any running processes
+                    echo "Killing any running processes..."
+                    pkill cloudflared 2>/dev/null || true
+                    pkill ttyd 2>/dev/null || true
+                    sleep 2
                     
                     # Delete DNS route
                     echo "Removing DNS route..."
@@ -320,13 +330,16 @@ Press OK to continue..." 14 70
                         echo "Continuing anyway..."
                     fi
                     
-                    # Clean up local files
-                    echo "Cleaning up configuration files..."
+                    # Clean up ALL config files and services
+                    echo "Cleaning up configuration files and services..."
                     rm -rf "$TUNNEL_DIR"
+                    rm -f /etc/systemd/system/cloudflared-ssh.service
+                    rm -f /etc/systemd/system/ttyd-ssh.service
+                    systemctl daemon-reload
                     mkdir -p "$TUNNEL_DIR"
                     
                     echo ""
-                    echo "✅ Cleanup complete. Creating new tunnel..."
+                    echo "✅ Complete cleanup done. Creating fresh tunnel..."
                     echo ""
                     sleep 2
                 else
