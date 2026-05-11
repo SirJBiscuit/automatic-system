@@ -1,20 +1,27 @@
 #!/bin/bash
 
-# Termux SSH Setup - Complete mobile SSH solution
-# Includes Cloudflare Tunnel, syntax highlighting, auto-completion, and more
+# Termux SSH Setup Script
+# Configures server for optimal mobile SSH access from Termux
+# Version: 2.0.0
+# Last Updated: 2026-05-11
 
-set -e
+# Configuration
+INSTALL_DIR="/opt/termux-ssh"
+CONFIG_DIR="/etc/termux-ssh"
+SCRIPT_VERSION="2.0.0"
 
+# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+NC='\033[0m' # No Color
 
-INSTALL_DIR="/opt/termux-ssh"
-CONFIG_DIR="/etc/termux-ssh"
-TUNNEL_CONFIG="/etc/cloudflared/termux-ssh.yml"
+# Show version on start
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}  Termux SSH Setup v${SCRIPT_VERSION}${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
@@ -414,6 +421,8 @@ port forwarding:
 
 Highly recommended for Termux!" 16 70; then
         
+        echo -e "${YELLOW}Setting up Cloudflare SSH Tunnel...${NC}"
+        
         # Find cloudflare-ssh-tunnel.sh
         local script_dir="$(dirname "$0")"
         local tunnel_script=""
@@ -431,12 +440,35 @@ Downloading cloudflare-ssh-tunnel.sh...
 
 Press OK to continue..." 8 60
             
-            curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/cloudflare-ssh-tunnel.sh -o /tmp/cloudflare-ssh-tunnel.sh
-            chmod +x /tmp/cloudflare-ssh-tunnel.sh
-            tunnel_script="/tmp/cloudflare-ssh-tunnel.sh"
+            echo "Downloading cloudflare-ssh-tunnel.sh from GitHub..."
+            if curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/cloudflare-ssh-tunnel.sh -o /tmp/cloudflare-ssh-tunnel.sh; then
+                chmod +x /tmp/cloudflare-ssh-tunnel.sh
+                tunnel_script="/tmp/cloudflare-ssh-tunnel.sh"
+                echo -e "${GREEN}✓ Downloaded successfully${NC}"
+            else
+                whiptail --title "Download Failed" --msgbox "
+❌ Failed to download cloudflare-ssh-tunnel.sh
+
+Please check your internet connection and try again.
+
+Press OK to continue without Cloudflare tunnel..." 12 60
+                return 1
+            fi
         fi
         
-        bash "$tunnel_script" setup
+        echo "Running Cloudflare SSH tunnel setup..."
+        if bash "$tunnel_script" setup; then
+            echo -e "${GREEN}✓ Cloudflare SSH tunnel setup completed${NC}"
+        else
+            whiptail --title "Setup Failed" --msgbox "
+❌ Cloudflare SSH tunnel setup failed!
+
+You can run it manually later with:
+  bash /tmp/cloudflare-ssh-tunnel.sh setup
+
+Press OK to continue..." 12 60
+            return 1
+        fi
     fi
 }
 
