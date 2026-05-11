@@ -654,23 +654,25 @@ def connect_to_pterodactyl_console(server_id, ws_url, ws_token, client_sid):
         }))
     
     try:
-        # Create WebSocket connection with Origin header
+        # Create WebSocket connection
         # Use the panel URL as origin since it's already in Wings' allowed_origins
-        # This is a workaround since Wings is rejecting console.cloudmc.online
         ws = websocket.WebSocketApp(
             ws_url,
             on_open=on_open,
             on_message=on_message,
             on_error=on_error,
-            on_close=on_close,
-            header=['Origin: https://panel.cloudmc.online']
+            on_close=on_close
         )
         
         # Store the connection
         active_console_connections[client_sid] = ws
         
-        # Run WebSocket connection (blocking)
-        ws.run_forever()
+        # Run WebSocket connection with origin header
+        # Pass origin in run_forever which is the correct way for websocket-client
+        ws.run_forever(
+            origin='https://panel.cloudmc.online',
+            host='wings.cloudmc.online'
+        )
         
     except Exception as e:
         logger.error(f"Error connecting to Pterodactyl WebSocket: {e}")
