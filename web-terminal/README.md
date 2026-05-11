@@ -53,7 +53,7 @@ A beautiful, feature-rich web interface for your SSH terminal with animations, c
 
    ingress:
      - hostname: termux.cloudmc.online
-       service: http://localhost:8080
+       service: http://localhost:8095
      - service: http_status:404
    EOF
    ```
@@ -62,13 +62,13 @@ A beautiful, feature-rich web interface for your SSH terminal with animations, c
    ```bash
    # Option 1: Python server
    cd /var/www/enhanced-terminal
-   python3 -m http.server 8080
+   python3 -m http.server 8095
 
    # Option 2: Node.js server
-   npx http-server -p 8080
+   npx http-server -p 8095
 
    # Option 3: nginx (recommended for production)
-   # Configure nginx to serve on port 8080
+   # Configure nginx to serve on port 8095
    ```
 
 5. **Restart Cloudflare tunnel:**
@@ -124,7 +124,7 @@ For production use, serve this with nginx for better performance:
 
 ```nginx
 server {
-    listen 8080;
+    listen 8095;
     server_name localhost;
     root /var/www/enhanced-terminal;
     index index.html;

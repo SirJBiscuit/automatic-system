@@ -8,7 +8,7 @@ import http.server
 import socketserver
 import os
 
-PORT = 8080
+PORT = 8095
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
