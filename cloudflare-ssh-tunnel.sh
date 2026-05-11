@@ -222,10 +222,59 @@ Press OK to exit..." 14 60
     rm -f /tmp/cloudflared-login.log
 }
 
+# Validate certificate
+validate_certificate() {
+    if [ ! -f "/root/.cloudflared/cert.pem" ]; then
+        return 1
+    fi
+    
+    # Check if cert file is not empty
+    if [ ! -s "/root/.cloudflared/cert.pem" ]; then
+        return 1
+    fi
+    
+    # Try to list tunnels to validate cert
+    if cloudflared tunnel list &>/dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # Create SSH tunnel
 create_ssh_tunnel() {
     local tunnel_name="ssh-$(hostname)-$(date +%s)"
     local domain=""
+    
+    # Validate certificate first
+    if ! validate_certificate; then
+        whiptail --title "Certificate Error" --msgbox "
+❌ Certificate validation failed!
+
+The certificate file exists but appears to be corrupted.
+This usually happens if authentication was interrupted.
+
+Removing corrupted certificate...
+
+Press OK to re-authenticate..." 14 60
+        
+        # Remove corrupted cert
+        rm -f /root/.cloudflared/cert.pem
+        
+        # Re-authenticate
+        authenticate_cloudflare
+        
+        # Validate again
+        if ! validate_certificate; then
+            whiptail --title "Error" --msgbox "
+❌ Certificate still invalid after re-authentication!
+
+Please try running the setup again.
+
+Press OK to exit..." 12 60
+            exit 1
+        fi
+    fi
     
     # Ask for domain
     domain=$(whiptail --title "SSH Domain" --inputbox "
@@ -254,15 +303,20 @@ Domain: $domain
 
 Press OK to continue..." 12 70
     
-    cloudflared tunnel create "$tunnel_name"
-    
-    if [ $? -ne 0 ]; then
+    echo "Creating tunnel: $tunnel_name"
+    if ! cloudflared tunnel create "$tunnel_name" 2>&1 | tee /tmp/tunnel-create.log; then
+        local error_msg=$(cat /tmp/tunnel-create.log)
         whiptail --title "Error" --msgbox "
 ❌ Failed to create tunnel!
 
-Please check your Cloudflare account and try again.
+Error: $error_msg
 
-Press OK to exit..." 10 60
+Common fixes:
+• Delete old certificate: rm -f /root/.cloudflared/cert.pem
+• Re-run setup
+• Check Cloudflare account permissions
+
+Press OK to exit..." 16 70
         exit 1
     fi
     
