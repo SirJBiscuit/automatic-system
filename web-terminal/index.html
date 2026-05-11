@@ -86,14 +86,72 @@
         .terminal-container {
             height: calc(100vh - 60px);
             position: relative;
+            overflow: hidden;
         }
+
+        .terminal-container.floating {
+            position: fixed;
+            top: 100px;
+            left: 100px;
+            width: 800px;
+            height: 600px;
+            z-index: 9998;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.1);
+            resize: both;
+            overflow: auto;
+        }
+
+        .terminal-container.floating .terminal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px 15px;
+            cursor: move;
+            border-radius: 10px 10px 0 0;
+            user-select: none;
+        }
+
+        .terminal-header-title {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .terminal-header-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .terminal-control-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .terminal-control-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .terminal-control-btn.close { background: #ff5f56; }
+        .terminal-control-btn.minimize { background: #ffbd2e; }
+        .terminal-control-btn.maximize { background: #27c93f; }
 
         iframe {
             width: 100%;
             height: 100%;
             border: none;
-            transform-origin: top left;
+            transform-origin: center center;
             transition: transform 0.3s ease;
+        }
+
+        .terminal-container.floating iframe {
+            height: calc(100% - 42px);
+            border-radius: 0 0 10px 10px;
         }
 
         /* Context Menu */
@@ -381,6 +439,10 @@
             </span>
         </div>
         <div class="toolbar-right">
+            <button class="toolbar-btn" onclick="toggleFloating()" id="floatBtn" title="Pop out terminal">
+                <span>🪟</span>
+                <span class="btn-text">Pop Out</span>
+            </button>
             <button class="toolbar-btn" onclick="openSettings()">
                 <span>⚙️</span>
                 <span class="btn-text">Settings</span>
@@ -540,6 +602,12 @@
     <script>
         let currentZoom = 100;
         let currentTheme = '#667eea';
+        let isFloating = false;
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        
+        // Typing sound (soft click)
+        const typingSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGi78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy');
         
         // Common terminal commands for autocomplete
         const commonCommands = [
@@ -687,12 +755,20 @@
         function updateZoom(value) {
             currentZoom = value;
             const iframe = document.getElementById('terminal-frame');
+            const container = document.querySelector('.terminal-container');
             const scale = value / 100;
             
-            // Scale the iframe and adjust container to prevent overflow
+            // Scale from center and adjust dimensions
             iframe.style.transform = `scale(${scale})`;
             iframe.style.width = `${100 / scale}%`;
             iframe.style.height = `${100 / scale}%`;
+            
+            // Keep terminal centered and scrollable
+            if (scale > 1) {
+                container.style.overflow = 'auto';
+            } else {
+                container.style.overflow = 'hidden';
+            }
             
             document.getElementById('zoomLevel').value = value;
             document.getElementById('zoomValue').textContent = value + '%';
@@ -868,6 +944,93 @@
             console.log('Cursor style:', style);
         }
 
+        // Floating Terminal Functions
+        function toggleFloating() {
+            const container = document.querySelector('.terminal-container');
+            const toolbar = document.querySelector('.toolbar');
+            const floatBtn = document.getElementById('floatBtn');
+            
+            isFloating = !isFloating;
+            
+            if (isFloating) {
+                container.classList.add('floating');
+                container.innerHTML = `
+                    <div class="terminal-header" id="terminalHeader">
+                        <div class="terminal-header-title">🖥️ SSH Terminal</div>
+                        <div class="terminal-header-controls">
+                            <div class="terminal-control-btn minimize" onclick="minimizeTerminal()"></div>
+                            <div class="terminal-control-btn maximize" onclick="maximizeTerminal()"></div>
+                            <div class="terminal-control-btn close" onclick="toggleFloating()"></div>
+                        </div>
+                    </div>
+                    ${container.innerHTML}
+                `;
+                floatBtn.innerHTML = '<span>📌</span><span class="btn-text">Dock</span>';
+                toolbar.style.opacity = '0.5';
+                makeDraggable();
+            } else {
+                container.classList.remove('floating');
+                const header = container.querySelector('.terminal-header');
+                if (header) header.remove();
+                floatBtn.innerHTML = '<span>🪟</span><span class="btn-text">Pop Out</span>';
+                toolbar.style.opacity = '1';
+            }
+        }
+
+        function makeDraggable() {
+            const header = document.getElementById('terminalHeader');
+            const container = document.querySelector('.terminal-container');
+            
+            header.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                dragOffset.x = e.clientX - container.offsetLeft;
+                dragOffset.y = e.clientY - container.offsetTop;
+                container.style.cursor = 'grabbing';
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    container.style.left = (e.clientX - dragOffset.x) + 'px';
+                    container.style.top = (e.clientY - dragOffset.y) + 'px';
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                if (header) header.style.cursor = 'move';
+            });
+        }
+
+        function minimizeTerminal() {
+            const container = document.querySelector('.terminal-container');
+            container.style.height = '42px';
+            container.style.overflow = 'hidden';
+        }
+
+        function maximizeTerminal() {
+            const container = document.querySelector('.terminal-container');
+            container.style.width = '90vw';
+            container.style.height = '90vh';
+            container.style.left = '5vw';
+            container.style.top = '5vh';
+        }
+
+        // Play typing sound
+        function playTypingSound() {
+            if (document.getElementById('enableSounds').checked) {
+                typingSound.currentTime = 0;
+                typingSound.volume = 0.1;
+                typingSound.play().catch(() => {});
+            }
+        }
+
+        // Listen for typing in iframe (if accessible)
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                playTypingSound();
+            }
+        });
+
         // Loading
         window.addEventListener('load', () => {
             detectDevice();
@@ -877,28 +1040,80 @@
             }, 1000);
         });
 
-        // Mobile touch support
+        // Mobile touch support with gestures
         let touchStartX = 0;
         let touchStartY = 0;
+        let touchStartTime = 0;
+        let lastTap = 0;
 
         document.addEventListener('touchstart', (e) => {
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
+            touchStartTime = Date.now();
+            
+            // Double tap detection
+            const currentTime = Date.now();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 300 && tapLength > 0) {
+                // Double tap - toggle floating
+                if (e.target.closest('.terminal-container')) {
+                    toggleFloating();
+                }
+            }
+            lastTap = currentTime;
         });
 
         document.addEventListener('touchend', (e) => {
             const touchEndX = e.changedTouches[0].clientX;
             const touchEndY = e.changedTouches[0].clientY;
+            const touchDuration = Date.now() - touchStartTime;
             
-            // Detect swipe gestures
-            const deltaX = touchEndX - touchStartX;
-            const deltaY = touchEndY - touchStartY;
+            const diffX = touchStartX - touchEndX;
+            const diffY = touchStartY - touchEndY;
             
-            if (Math.abs(deltaX) > 100) {
-                // Horizontal swipe
-                console.log('Swipe detected');
+            // Swipe right - open settings
+            if (Math.abs(diffX) > 100 && Math.abs(diffY) < 50 && diffX < 0) {
+                openSettings();
+            }
+            
+            // Swipe left - close modals
+            if (Math.abs(diffX) > 100 && Math.abs(diffY) < 50 && diffX > 0) {
+                closeSettings();
+                closeCommandPalette();
+            }
+            
+            // Swipe down - open command palette
+            if (Math.abs(diffY) > 100 && Math.abs(diffX) < 50 && diffY < 0) {
+                toggleCommandPalette();
             }
         });
+
+        // Pinch to zoom on mobile
+        let initialDistance = 0;
+        let currentScale = 1;
+
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                initialDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                currentScale = currentZoom / 100;
+            }
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const distance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const scale = (distance / initialDistance) * currentScale;
+                const newZoom = Math.min(150, Math.max(50, scale * 100));
+                updateZoom(newZoom);
+            }
+        }, { passive: false });    
     </script>
 </body>
 </html>
