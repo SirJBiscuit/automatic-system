@@ -57,12 +57,14 @@ Press OK to continue..." 14 70
 
     echo "Installing packages..."
     
-    # Detect package manager
+    # Detect package manager and install packages
     if command -v apt-get &> /dev/null; then
         apt-get update -qq
-        apt-get install -y bash-completion command-not-found highlight source-highlight
+        # Install packages that are available, skip if not found
+        apt-get install -y bash-completion highlight source-highlight 2>/dev/null || true
+        apt-get install -y command-not-found 2>/dev/null || true
     elif command -v yum &> /dev/null; then
-        yum install -y bash-completion highlight
+        yum install -y bash-completion highlight 2>/dev/null || true
     fi
     
     whiptail --title "Success" --msgbox "
@@ -359,9 +361,14 @@ Recommended for better mobile experience!" 16 70; then
         echo "Installing optional packages..."
         
         if command -v apt-get &> /dev/null; then
-            apt-get install -y neofetch htop ncdu tmux vim vim-syntax-extra
+            # Install packages individually, skip if not available
+            apt-get install -y neofetch 2>/dev/null || true
+            apt-get install -y htop 2>/dev/null || true
+            apt-get install -y ncdu 2>/dev/null || true
+            apt-get install -y tmux 2>/dev/null || true
+            apt-get install -y vim 2>/dev/null || true
         elif command -v yum &> /dev/null; then
-            yum install -y neofetch htop ncdu tmux vim-enhanced
+            yum install -y neofetch htop ncdu tmux vim-enhanced 2>/dev/null || true
         fi
         
         # Configure vim
@@ -407,7 +414,29 @@ port forwarding:
 
 Highly recommended for Termux!" 16 70; then
         
-        bash "$(dirname "$0")/cloudflare-ssh-tunnel.sh" setup
+        # Find cloudflare-ssh-tunnel.sh
+        local script_dir="$(dirname "$0")"
+        local tunnel_script=""
+        
+        if [ -f "$script_dir/cloudflare-ssh-tunnel.sh" ]; then
+            tunnel_script="$script_dir/cloudflare-ssh-tunnel.sh"
+        elif [ -f "/opt/ptero/cloudflare-ssh-tunnel.sh" ]; then
+            tunnel_script="/opt/ptero/cloudflare-ssh-tunnel.sh"
+        elif [ -f "./cloudflare-ssh-tunnel.sh" ]; then
+            tunnel_script="./cloudflare-ssh-tunnel.sh"
+        else
+            # Download it if not found
+            whiptail --title "Downloading Script" --msgbox "
+Downloading cloudflare-ssh-tunnel.sh...
+
+Press OK to continue..." 8 60
+            
+            curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/cloudflare-ssh-tunnel.sh -o /tmp/cloudflare-ssh-tunnel.sh
+            chmod +x /tmp/cloudflare-ssh-tunnel.sh
+            tunnel_script="/tmp/cloudflare-ssh-tunnel.sh"
+        fi
+        
+        bash "$tunnel_script" setup
     fi
 }
 
