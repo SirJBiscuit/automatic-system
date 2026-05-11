@@ -18,7 +18,8 @@ FEATURE_CONFIG="/etc/automatic-system/features.conf"
 declare -A FEATURES=(
     ["DISCORD_BOT"]="enabled"
     ["WEB_CONSOLE"]="enabled"
-    ["SSH_TERMINAL"]="enabled"
+    ["SSH_TUNNEL"]="disabled"
+    ["TERMUX_SSH"]="enabled"
     ["AI_ASSISTANT"]="enabled"
     ["ADMIN_PANEL"]="enabled"
     ["FILE_BROWSER"]="enabled"
@@ -34,7 +35,8 @@ declare -A FEATURES=(
 declare -A FEATURE_DESCRIPTIONS=(
     ["DISCORD_BOT"]="Discord Bot - Server notifications and management"
     ["WEB_CONSOLE"]="Web Console - Browser-based server console"
-    ["SSH_TERMINAL"]="SSH Terminal - Web-based SSH access"
+    ["SSH_TUNNEL"]="SSH Terminal (Old) - Web-based SSH (slow, deprecated)"
+    ["TERMUX_SSH"]="Termux SSH - Mobile SSH with syntax highlighting & auto-complete"
     ["AI_ASSISTANT"]="AI Assistant - Ollama + Open WebUI"
     ["ADMIN_PANEL"]="Admin Panel - Unified management interface"
     ["FILE_BROWSER"]="FileBrowser - Web file management"
@@ -50,7 +52,8 @@ declare -A FEATURE_DESCRIPTIONS=(
 declare -A FEATURE_CATEGORIES=(
     ["DISCORD_BOT"]="Communication"
     ["WEB_CONSOLE"]="Management"
-    ["SSH_TERMINAL"]="Management"
+    ["SSH_TUNNEL"]="Management (Deprecated)"
+    ["TERMUX_SSH"]="Mobile Access"
     ["AI_ASSISTANT"]="AI & Automation"
     ["ADMIN_PANEL"]="Management"
     ["FILE_BROWSER"]="File Management"
@@ -189,7 +192,7 @@ show_preset_menu() {
                 FEATURES[$feature]="disabled"
             done
             FEATURES["ADMIN_PANEL"]="enabled"
-            FEATURES["SSH_TERMINAL"]="enabled"
+            FEATURES["TERMUX_SSH"]="enabled"
             FEATURES["WEB_CONSOLE"]="enabled"
             FEATURES["IP_MONITOR"]="enabled"
             ;;
@@ -208,7 +211,7 @@ show_preset_menu() {
             done
             FEATURES["AI_ASSISTANT"]="enabled"
             FEATURES["ADMIN_PANEL"]="enabled"
-            FEATURES["SSH_TERMINAL"]="enabled"
+            FEATURES["TERMUX_SSH"]="enabled"
             FEATURES["WEB_CONSOLE"]="enabled"
             ;;
         

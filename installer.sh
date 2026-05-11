@@ -81,7 +81,7 @@ Press OK to begin..." 30 75
 
 # Main menu
 show_main_menu() {
-    CHOICE=$(whiptail --title "Installation Mode" --menu "\nChoose your installation mode:\n\nSelect the option that best fits your needs." 25 78 12 \
+    CHOICE=$(whiptail --title "Installation Mode" --menu "\nChoose your installation mode:\n\nSelect the option that best fits your needs." 25 78 14 \
         "1" "🤖 AI-Assisted (Recommended for Beginners)" \
         "2" "🎮 Full Stack (Panel + Wings + Everything)" \
         "3" "🖥️  Panel Only (Web Interface)" \
@@ -92,8 +92,10 @@ show_main_menu() {
         "8" "📊 Custom Selection (Pick Components)" \
         "9" "🌐 Network Setup Only" \
         "10" "🔥 Firewall Setup Only" \
-        "11" "ℹ️  System Information" \
-        "12" "❌ Exit Installer" \
+        "11" "📡 IP Monitor Setup" \
+        "12" "� Termux SSH Setup (Mobile SSH + Syntax Highlighting)" \
+        "13" "ℹ️  System Information" \
+        "0" "❌ Exit Installer" \
         3>&1 1>&2 2>&3)
     
     echo "$CHOICE"
@@ -462,6 +464,42 @@ automatically when your IP changes." 12 70; then
 
 Your system will automatically handle IP changes." 10 60
     fi
+}
+
+# Install Termux SSH Setup
+install_termux_ssh() {
+    # Check if Termux SSH feature is enabled
+    if ! bash "$INSTALL_DIR/feature-manager.sh" is-enabled TERMUX_SSH 2>/dev/null; then
+        whiptail --title "Feature Disabled" --msgbox "
+❌ Termux SSH feature is disabled!
+
+Enable it in feature selection to install.
+
+Press OK to continue..." 10 60
+        return
+    fi
+    
+    log "Starting Termux SSH setup..."
+    
+    whiptail --title "Termux SSH Setup" --msgbox "
+� Termux SSH Complete Setup
+
+This will configure your server for optimal mobile SSH access:
+
+✅ Cloudflare SSH Tunnel (connect from anywhere)
+✅ Syntax Highlighting (colorful commands)
+✅ Auto-completion (tab completion)
+✅ Custom aliases and shortcuts
+✅ Enhanced bash prompt
+✅ Mobile-optimized settings
+
+Perfect for managing your server from your phone!
+
+Press OK to begin..." 20 75
+    
+    bash "$INSTALL_DIR/termux-ssh-setup.sh"
+    
+    log "Termux SSH setup completed"
 }
 
 # Installation summary
@@ -859,15 +897,7 @@ main() {
                 ;;
             8)
                 # Custom Selection
-                selected=$(show_component_menu)
-                if [ -n "$selected" ]; then
-                    SELECTED_COMPONENTS=($selected)
-                    # Install selected components
-                    run_network_setup
-                    run_firewall_setup
-                    run_ip_monitor_setup
-                    show_summary "${SELECTED_COMPONENTS[*]}"
-                fi
+                show_component_selection
                 ;;
             9)
                 # Network Setup
@@ -878,18 +908,24 @@ main() {
                 run_firewall_setup
                 ;;
             11)
+                # IP Monitor
+                run_ip_monitor_setup
+                ;;
+            12)
+                # Termux SSH Setup
+                install_termux_ssh
+                ;;
+            13)
                 # System Info
                 show_system_info
                 ;;
-            12)
+            0)
                 # Exit
                 if whiptail --title "Exit Installer" --yesno "
 Are you sure you want to exit?
 
-You can run this installer again anytime." 10 60; then
-                    clear
-                    echo -e "${GREEN}Thank you for using Pterodactyl Automatic System!${NC}"
-                    log "=== Installer Exited ==="
+Any unsaved progress will be lost." 10 50; then
+                    log "Installer exited by user"
                     exit 0
                 fi
                 ;;
