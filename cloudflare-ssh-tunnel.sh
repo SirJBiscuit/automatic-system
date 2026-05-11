@@ -477,65 +477,77 @@ Press OK to continue..." 10 70
     
     # Try to create DNS route
     echo "Creating DNS route for $domain..."
-    if ! cloudflared tunnel route dns "$tunnel_name" "$domain" 2>&1 | tee /tmp/dns-route.log; then
-        # Check if it failed due to existing record
+    cloudflared tunnel route dns "$tunnel_name" "$domain" 2>&1 | tee /tmp/dns-route.log
+    local dns_exit_code=${PIPESTATUS[0]}
+    
+    # Check if it failed due to existing record
+    if grep -q "already exists" /tmp/dns-route.log || [ $dns_exit_code -ne 0 ]; then
         if grep -q "already exists" /tmp/dns-route.log; then
-            whiptail --title "Existing DNS Record" --yesno "
-⚠️  A DNS record for $domain already exists!
-
-This is usually from a previous tunnel setup.
-
-Would you like to:
-• YES - Delete the old record and create new one
-• NO  - Keep existing record (tunnel may not work)
-
-Delete and recreate DNS record?" 16 70
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "⚠️  WARNING: DNS Record Already Exists!"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "A DNS record for $domain already exists!"
+            echo "This is usually from a previous tunnel setup."
+            echo ""
+            echo "Options:"
+            echo "  1) Delete old record and create new (recommended)"
+            echo "  2) Keep existing record (may not work)"
+            echo "  3) Use a different subdomain"
+            echo ""
+            read -p "Enter choice [1-3]: " choice
             
-            if [ $? -eq 0 ]; then
+            if [ "$choice" = "1" ]; then
                 # User wants to delete old record
-                whiptail --title "Cleaning DNS" --msgbox "
-🧹 Removing old DNS record...
-
-This requires manual cleanup via Cloudflare API.
-
-Press OK to continue..." 10 70
+                echo ""
+                echo "🧹 Attempting to remove old DNS record..."
+                echo ""
                 
                 # Extract subdomain and domain
                 local subdomain="${domain%%.*}"
                 local base_domain="${domain#*.}"
                 
                 # Try to delete via cloudflared (may not work for all cases)
-                cloudflared tunnel route dns --overwrite-dns "$tunnel_name" "$domain" 2>/dev/null || {
-                    whiptail --title "Manual Cleanup Required" --msgbox "
-⚠️  Automatic DNS cleanup failed!
-
-Please manually delete the DNS record:
-
-1. Go to: https://dash.cloudflare.com
-2. Select your domain: $base_domain
-3. Go to DNS → Records
-4. Find and delete record: $subdomain
-5. Run this setup again
-
-Or you can use a different subdomain.
-
-Press OK to continue..." 18 70
-                    
-                    # Ask for new domain
-                    domain=$(whiptail --title "New Domain" --inputbox "
-Enter a different subdomain:
-
-Current (conflicting): $domain
-
-New subdomain:" 12 70 "ssh2.${base_domain}" 3>&1 1>&2 2>&3)
-                    
-                    if [ -z "$domain" ]; then
-                        exit 1
-                    fi
-                    
-                    # Try again with new domain
-                    cloudflared tunnel route dns "$tunnel_name" "$domain"
-                }
+                if ! cloudflared tunnel route dns --overwrite-dns "$tunnel_name" "$domain" 2>&1 | tee /tmp/dns-cleanup.log; then
+                    echo ""
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo "⚠️  Automatic DNS cleanup failed!"
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo ""
+                    echo "Please manually delete the DNS record:"
+                    echo ""
+                    echo "1. Go to: https://dash.cloudflare.com"
+                    echo "2. Select your domain: $base_domain"
+                    echo "3. Go to DNS → Records"
+                    echo "4. Find and delete record: $subdomain"
+                    echo "5. Then run this setup again"
+                    echo ""
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo ""
+                    exit 1
+                fi
+            elif [ "$choice" = "3" ]; then
+                # User wants different subdomain
+                echo ""
+                read -p "Enter a different subdomain (e.g., ssh2.${base_domain#*.}): " new_domain
+                
+                if [ -z "$new_domain" ]; then
+                    echo "❌ Domain is required!"
+                    exit 1
+                fi
+                
+                domain="$new_domain"
+                
+                # Try again with new domain
+                echo "Creating DNS route for $domain..."
+                cloudflared tunnel route dns "$tunnel_name" "$domain" 2>&1 | tee /tmp/dns-route.log
+            else
+                # Keep existing or invalid choice
+                echo ""
+                echo "⚠️  Keeping existing DNS record."
+                echo "The tunnel may not work correctly."
+                echo ""
             fi
         else
             # Different error
@@ -552,8 +564,8 @@ Press OK to continue..." 16 70
         fi
     fi
     
-    # Verify DNS was created
-    if cloudflared tunnel route dns "$tunnel_name" "$domain" 2>&1 | grep -q "already exists"; then
+    # Final verification
+    if grep -q "already exists" /tmp/dns-route.log || grep -q "Created" /tmp/dns-route.log; then
         whiptail --title "Success" --msgbox "
 ✅ DNS configured successfully!
 
@@ -561,7 +573,19 @@ Your SSH tunnel is ready at:
   $domain
 
 Press OK to continue..." 10 60
+    else
+        whiptail --title "Warning" --msgbox "
+⚠️  DNS configuration status unclear.
+
+Please verify the tunnel works by testing the connection.
+
+Domain: $domain
+
+Press OK to continue..." 12 70
     fi
+    
+    # Clean up
+    rm -f /tmp/dns-route.log
     
     # Save domain and port for later use
     echo "$domain" > "$TUNNEL_DIR/ssh-domain.txt"
