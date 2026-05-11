@@ -483,28 +483,74 @@ Press OK to exit..." 8 50
     if ! command -v ttyd &> /dev/null; then
         # Try to install from package manager first
         if command -v apt &> /dev/null; then
-            echo "Trying to install ttyd from apt..."
-            if apt install -y ttyd 2>&1 | grep -q "Unable to locate"; then
-                # Not in repos, download binary
-                echo "Not in repos, downloading binary from GitHub..."
-                if wget -q https://github.com/tsl0922/ttyd/releases/download/1.7.4/ttyd.x86_64 -O /usr/local/bin/ttyd; then
-                    chmod +x /usr/local/bin/ttyd
-                    echo "✅ ttyd installed successfully"
+            echo "Trying to install ttyd from apt repository..."
+            echo ""
+            
+            # Show live output from apt
+            if apt install -y ttyd 2>&1 | tee /tmp/ttyd-install.log; then
+                # Check if installation succeeded
+                if command -v ttyd &> /dev/null; then
+                    echo ""
+                    echo "✅ ttyd installed from apt"
                 else
-                    echo "❌ Failed to download ttyd"
+                    echo ""
+                    echo "⚠️  Package installed but ttyd not found, checking logs..."
+                    if grep -q "Unable to locate" /tmp/ttyd-install.log; then
+                        echo "Package not in repository, trying GitHub..."
+                    fi
+                fi
+            fi
+            
+            # If still not installed, download from GitHub
+            if ! command -v ttyd &> /dev/null; then
+                echo ""
+                echo "Downloading ttyd binary from GitHub..."
+                echo "URL: https://github.com/tsl0922/ttyd/releases/download/1.7.4/ttyd.x86_64"
+                echo ""
+                
+                # Use wget with progress bar
+                if wget --progress=bar:force https://github.com/tsl0922/ttyd/releases/download/1.7.4/ttyd.x86_64 -O /usr/local/bin/ttyd 2>&1; then
+                    chmod +x /usr/local/bin/ttyd
+                    echo ""
+                    
+                    # Verify download worked
+                    if command -v ttyd &> /dev/null && ttyd --version &> /dev/null; then
+                        echo "✅ ttyd installed successfully from GitHub"
+                    else
+                        echo "❌ Downloaded ttyd but it's not working!"
+                        ls -lh /usr/local/bin/ttyd
+                        file /usr/local/bin/ttyd
+                        exit 1
+                    fi
+                else
+                    echo ""
+                    echo "❌ Failed to download ttyd from GitHub"
                     exit 1
                 fi
-            else
-                echo "✅ ttyd installed from apt"
             fi
         fi
     else
         echo "✅ ttyd already installed"
+        ttyd --version
     fi
     
-    # Verify ttyd is available
-    if ! command -v ttyd &> /dev/null; then
+    # Final verification - make absolutely sure ttyd works
+    echo ""
+    echo "Verifying ttyd installation..."
+    if command -v ttyd &> /dev/null; then
+        if ttyd --version 2>&1 | head -1; then
+            echo "✅ ttyd is installed and working"
+        else
+            echo "❌ ttyd command exists but won't run!"
+            which ttyd
+            ls -lh $(which ttyd)
+            exit 1
+        fi
+    else
         echo "❌ ERROR: ttyd not found after installation!"
+        echo "Checking common locations..."
+        ls -lh /usr/bin/ttyd 2>/dev/null || echo "Not in /usr/bin/"
+        ls -lh /usr/local/bin/ttyd 2>/dev/null || echo "Not in /usr/local/bin/"
         exit 1
     fi
     
