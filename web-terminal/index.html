@@ -92,6 +92,8 @@
             width: 100%;
             height: 100%;
             border: none;
+            transform-origin: top left;
+            transition: transform 0.3s ease;
         }
 
         /* Context Menu */
@@ -105,6 +107,8 @@
             z-index: 10000;
             display: none;
             animation: menuSlideIn 0.2s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         @keyframes menuSlideIn {
@@ -129,8 +133,9 @@
         }
 
         .context-menu-item:hover {
-            background: #3d3d3d;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            transform: translateX(5px);
         }
 
         .context-menu-item.disabled {
@@ -463,7 +468,12 @@
                 <span id="zoomValue" style="color: #667eea;">100%</span>
             </div>
 
-            <button class="close-btn" onclick="closeSettings()">Close Settings</button>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="close-btn" style="flex: 1; background: #10B981;" onclick="saveSettings()">
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+                <button class="close-btn" style="flex: 1;" onclick="closeSettings()">Close</button>
+            </div>
         </div>
     </div>
 
@@ -471,17 +481,29 @@
         let currentZoom = 100;
         let currentTheme = '#667eea';
 
-        // Context Menu
-        document.addEventListener('contextmenu', (e) => {
+        // Context Menu - Only show on terminal area
+        document.querySelector('.terminal-container').addEventListener('contextmenu', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             const menu = document.getElementById('contextMenu');
             menu.style.display = 'block';
             menu.style.left = e.pageX + 'px';
             menu.style.top = e.pageY + 'px';
         });
 
-        document.addEventListener('click', () => {
-            document.getElementById('contextMenu').style.display = 'none';
+        // Close context menu on any click
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('contextMenu');
+            if (!menu.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+
+        // Prevent default context menu on whole page
+        document.addEventListener('contextmenu', (e) => {
+            if (!e.target.closest('.terminal-container')) {
+                e.preventDefault();
+            }
         });
 
         // Settings Modal
@@ -491,6 +513,47 @@
 
         function closeSettings() {
             document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function saveSettings() {
+            // Save settings to localStorage
+            const settings = {
+                zoom: currentZoom,
+                theme: currentTheme,
+                fontSize: document.getElementById('fontSize').value
+            };
+            localStorage.setItem('terminalSettings', JSON.stringify(settings));
+            
+            // Show success message
+            const saveBtn = event.target.closest('button');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+            saveBtn.style.background = '#10B981';
+            
+            setTimeout(() => {
+                saveBtn.innerHTML = originalText;
+                closeSettings();
+            }, 1500);
+        }
+
+        // Load saved settings on page load
+        function loadSettings() {
+            const saved = localStorage.getItem('terminalSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                if (settings.zoom) {
+                    currentZoom = settings.zoom;
+                    updateZoom(settings.zoom);
+                }
+                if (settings.theme) {
+                    currentTheme = settings.theme;
+                    setTheme(settings.theme);
+                }
+                if (settings.fontSize) {
+                    document.getElementById('fontSize').value = settings.fontSize;
+                    updateFontSize(settings.fontSize);
+                }
+            }
         }
 
         // Zoom Functions
@@ -511,8 +574,14 @@
 
         function updateZoom(value) {
             currentZoom = value;
-            document.getElementById('terminal-frame').style.transform = `scale(${value / 100})`;
-            document.getElementById('terminal-frame').style.transformOrigin = 'top left';
+            const iframe = document.getElementById('terminal-frame');
+            const scale = value / 100;
+            
+            // Scale the iframe and adjust container to prevent overflow
+            iframe.style.transform = `scale(${scale})`;
+            iframe.style.width = `${100 / scale}%`;
+            iframe.style.height = `${100 / scale}%`;
+            
             document.getElementById('zoomLevel').value = value;
             document.getElementById('zoomValue').textContent = value + '%';
         }
@@ -597,6 +666,7 @@
         // Loading
         window.addEventListener('load', () => {
             detectDevice();
+            loadSettings();
             setTimeout(() => {
                 document.getElementById('loading').style.display = 'none';
             }, 1000);
