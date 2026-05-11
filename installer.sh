@@ -276,6 +276,41 @@ install_panel() {
     export PANEL_HTTP_PORT="$http_port"
     export PANEL_HTTPS_PORT="$https_port"
     
+    # Check if custom ports are being used
+    if [ "$http_port" != "80" ] || [ "$https_port" != "443" ]; then
+        if whiptail --title "Custom Ports Detected" --yesno "
+⚠️  You're using custom ports!
+
+HTTP Port: $http_port (standard: 80)
+HTTPS Port: $https_port (standard: 443)
+
+Would you like to run the Custom Ports Configuration Guide?
+
+This guide will help you:
+• Configure reverse proxy
+• Set up DNS/Cloudflare
+• Configure firewall
+• Understand access URLs
+
+Highly recommended!" 18 70; then
+            # Run custom ports guide
+            bash "$INSTALL_DIR/custom-ports-guide.sh" "$http_port" "$https_port" "panel.yourdomain.com"
+        else
+            whiptail --title "Important" --msgbox "
+📝 Important Information
+
+You're using custom ports: $http_port / $https_port
+
+Users will need to access your panel with:
+  http://your-domain:$http_port
+
+You can run the configuration guide anytime:
+  sudo bash custom-ports-guide.sh
+
+Press OK to continue installation..." 14 70
+        fi
+    fi
+    
     (
         echo "0"
         echo "Preparing installation..."
@@ -422,6 +457,24 @@ Your system will automatically handle IP changes." 10 60
 show_summary() {
     local components="$1"
     
+    # Check if custom ports are used
+    local http_port=$(bash "$INSTALL_DIR/port-manager.sh" get PANEL_HTTP 2>/dev/null || echo "80")
+    local https_port=$(bash "$INSTALL_DIR/port-manager.sh" get PANEL_HTTPS 2>/dev/null || echo "443")
+    local custom_ports_note=""
+    
+    if [ "$http_port" != "80" ] || [ "$https_port" != "443" ]; then
+        custom_ports_note="
+⚠️  CUSTOM PORTS IN USE:
+  HTTP: $http_port | HTTPS: $https_port
+  
+  Access with port numbers:
+  http://your-domain:$http_port
+  
+  Run configuration guide:
+  sudo bash custom-ports-guide.sh
+"
+    fi
+    
     local summary="╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
 ║              🎉 INSTALLATION COMPLETE! 🎉                    ║
@@ -443,7 +496,7 @@ Access Your Services:
   🔧 Admin: https://admin.yourdomain.com
   💻 SSH: https://ssh.yourdomain.com
   🤖 AI: https://ai.yourdomain.com
-
+$custom_ports_note
 Next Steps:
 
   1. Configure your domain DNS records
@@ -457,7 +510,7 @@ Need Help?
   📝 Logs: $LOG_FILE
 "
     
-    whiptail --title "Installation Complete!" --msgbox "$summary" 30 75
+    whiptail --title "Installation Complete!" --msgbox "$summary" 32 75
 }
 
 # System information
