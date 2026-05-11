@@ -482,7 +482,7 @@ Press OK to continue..." 10 60
     log "Starting Termux SSH setup..."
     
     whiptail --title "Termux SSH Setup" --msgbox "
-� Termux SSH Complete Setup
+📱 Termux SSH Complete Setup
 
 This will configure your server for optimal mobile SSH access:
 
@@ -497,7 +497,16 @@ Perfect for managing your server from your phone!
 
 Press OK to begin..." 20 75
     
-    bash "$INSTALL_DIR/termux-ssh-setup.sh"
+    # Check if script exists locally, otherwise download
+    local termux_script="$INSTALL_DIR/termux-ssh-setup.sh"
+    
+    if [ ! -f "$termux_script" ]; then
+        log "Downloading termux-ssh-setup.sh..."
+        curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/termux-ssh-setup.sh -o "$termux_script"
+        chmod +x "$termux_script"
+    fi
+    
+    bash "$termux_script"
     
     log "Termux SSH setup completed"
 }
