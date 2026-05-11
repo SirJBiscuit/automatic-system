@@ -203,6 +203,21 @@
             border-radius: 0 0 10px 10px;
         }
 
+        /* Overlay for capturing right-clicks on iframe */
+        .iframe-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .iframe-overlay.active {
+            pointer-events: auto;
+        }
+
         /* Context Menu */
         .context-menu {
             position: fixed;
@@ -564,6 +579,7 @@
             <div class="spinner"></div>
             <div>Loading terminal...</div>
         </div>
+        <div class="iframe-overlay" id="iframeOverlay"></div>
         <iframe id="terminal-frame" src="/terminal/"></iframe>
     </div>
 
@@ -792,7 +808,10 @@
             e.stopPropagation();
             
             const menu = document.getElementById('contextMenu');
+            const overlay = document.getElementById('iframeOverlay');
+            
             menu.style.display = 'block';
+            overlay.classList.add('active');
             
             // Position menu, but keep it on screen
             let x = e.pageX;
@@ -811,11 +830,36 @@
             menu.style.top = y + 'px';
         });
 
+        // Enable overlay right-click
+        document.getElementById('iframeOverlay').addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const menu = document.getElementById('contextMenu');
+            menu.style.display = 'block';
+            
+            let x = e.pageX;
+            let y = e.pageY;
+            
+            const menuRect = menu.getBoundingClientRect();
+            if (x + menuRect.width > window.innerWidth) {
+                x = window.innerWidth - menuRect.width - 10;
+            }
+            if (y + menuRect.height > window.innerHeight) {
+                y = window.innerHeight - menuRect.height - 10;
+            }
+            
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+        });
+
         // Close context menu on any click
         document.addEventListener('click', (e) => {
             const menu = document.getElementById('contextMenu');
+            const overlay = document.getElementById('iframeOverlay');
             if (!menu.contains(e.target)) {
                 menu.style.display = 'none';
+                overlay.classList.remove('active');
             }
         });
 
@@ -1132,7 +1176,6 @@
                 if (iframe) container.appendChild(iframe);
                 
                 floatBtn.innerHTML = '<span>📌</span><span class="btn-text">Dock</span>';
-                toolbar.style.opacity = '0.5';
                 makeDraggable();
             } else {
                 // Store iframe before removing header
@@ -1151,7 +1194,6 @@
                 container.style.overflow = 'hidden';
                 
                 floatBtn.innerHTML = '<span>🪟</span><span class="btn-text">Pop Out</span>';
-                toolbar.style.opacity = '1';
             }
         }
 

@@ -1077,10 +1077,10 @@
                     <div class="title">Web Console</div>
                     <div class="subtitle">Terminal Access</div>
                 </div>
-                <div class="shortcut-card" onclick="window.open('https://ssh.cloudmc.online', '_blank')">
-                    <div class="icon">🌐</div>
-                    <div class="title">SSH Terminal</div>
-                    <div class="subtitle">Web SSH + AI Editor</div>
+                <div class="shortcut-card" onclick="openSSHTerminal()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="icon">🖥️</div>
+                    <div class="title">Enhanced SSH Terminal</div>
+                    <div class="subtitle">VS Code Features + Mobile</div>
                 </div>
                 <div class="shortcut-card" onclick="window.open('https://panel.cloudmc.online', '_blank')">
                     <div class="icon">🎮</div>
@@ -1149,13 +1149,6 @@
                         Configure Pterodactyl
                     </button>
                     <span class="tooltip-text">Auto-configures Wings (port 8083, HTTP) and Cloudflare tunnel. Use this if Wings won't connect or after server reboot.</span>
-                </span>
-                <span class="tooltip-container" style="width: 100%;">
-                    <button class="quick-btn" onclick="openSSHTerminal()" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                        <div class="icon">🖥️</div>
-                        SSH Terminal
-                    </button>
-                    <span class="tooltip-text">Open enhanced web-based SSH terminal with VS Code features, mobile support, and command snippets.</span>
                 </span>
                 <span class="tooltip-container" style="width: 100%;">
                     <button class="quick-btn" onclick="updateOpenWebUI()" style="width: 100%; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
@@ -1247,6 +1240,7 @@
                     <button class="service-btn" onclick="loadService('nextcloud')">☁️ Nextcloud</button>
                     <button class="service-btn" onclick="loadService('webui')">🤖 Open WebUI</button>
                     <button class="service-btn" onclick="loadService('console')">💻 Web Console</button>
+                    <button class="service-btn" onclick="loadService('ssh')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">🖥️ Enhanced SSH</button>
                     <button class="service-btn" onclick="loadService('pterodactyl')">🎮 Pterodactyl</button>
                 </div>
                 <div class="iframe-container">
@@ -2248,7 +2242,7 @@
             }
         }
 
-        function loadService(service) {
+        async function loadService(service) {
             const serviceUrls = {
                 'pingvin': 'https://share.cloudmc.online',
                 'nextcloud': 'https://next.cloudmc.online',
@@ -2257,8 +2251,22 @@
                 'pterodactyl': 'https://panel.cloudmc.online'
             };
             
-            const iframe = document.getElementById('serviceFrame');
-            iframe.src = serviceUrls[service];
+            // Handle SSH terminal specially
+            if (service === 'ssh') {
+                try {
+                    const response = await fetch('/api/quick/open-ssh-terminal');
+                    const data = await response.json();
+                    if (data.success) {
+                        const iframe = document.getElementById('serviceFrame');
+                        iframe.src = data.url;
+                    }
+                } catch (error) {
+                    console.error('Failed to load SSH terminal:', error);
+                }
+            } else {
+                const iframe = document.getElementById('serviceFrame');
+                iframe.src = serviceUrls[service];
+            }
             
             // Update active button
             document.querySelectorAll('.service-btn').forEach(btn => btn.classList.remove('active'));
