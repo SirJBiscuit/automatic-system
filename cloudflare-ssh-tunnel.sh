@@ -652,71 +652,72 @@ show_connection_instructions() {
     local ssh_port=$(cat "$TUNNEL_DIR/ssh-port.txt" 2>/dev/null || echo "22")
     local username=$(whoami)
     
-    # Note about port
-    local port_note=""
-    if [ "$ssh_port" != "22" ]; then
-        port_note="
-⚠️  NOTE: Your SSH server runs on port $ssh_port internally,
-   but Cloudflare Tunnel handles this automatically.
-   You connect using standard port 22 (or no port specified)."
-    fi
+    # Clear screen for better visibility
+    clear
     
-    whiptail --title "SSH Tunnel Ready!" --msgbox "
-🎉 SSH Tunnel Setup Complete!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-CONNECTION INFORMATION:
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  🎉 SSH TUNNEL SETUP COMPLETE!"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "CONNECTION INFO:"
+    echo "  Domain: $domain"
+    if [ "$ssh_port" != "22" ]; then
+        echo "  Server Port: $ssh_port (Cloudflare routes to this)"
+    fi
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  CONNECT FROM TERMUX:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  ssh root@$domain"
+    echo ""
+    echo "  (No port needed - Cloudflare handles routing)"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  BENEFITS:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  ✅ Works from anywhere (mobile data, WiFi, etc.)"
+    echo "  ✅ No port forwarding needed"
+    echo "  ✅ DDoS protection included"
+    echo "  ✅ Fast and secure"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  MANAGE TUNNEL:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  Start:   systemctl start cloudflared-ssh"
+    echo "  Stop:    systemctl stop cloudflared-ssh"
+    echo "  Status:  systemctl status cloudflared-ssh"
+    echo "  Restart: systemctl restart cloudflared-ssh"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    
+    # Save to file for later reference
+    cat > "$TUNNEL_DIR/connection-info.txt" <<EOF
+SSH TUNNEL CONNECTION INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Domain: $domain
 Server SSH Port: $ssh_port (internal)
-Connection Port: 22 (standard SSH - Cloudflare handles routing)
-Protocol: SSH over Cloudflare Tunnel
-$port_note
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-CONNECT FROM TERMUX:
+CONNECT:
+  ssh root@$domain
 
-1. Install OpenSSH in Termux:
-   pkg install openssh
+MANAGE:
+  systemctl start cloudflared-ssh
+  systemctl stop cloudflared-ssh
+  systemctl status cloudflared-ssh
+  systemctl restart cloudflared-ssh
 
-2. Connect to your server:
-   ssh username@$domain
-
-3. Or with specific user:
-   ssh root@$domain
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-CONNECT FROM ANY SSH CLIENT:
-
-Host: $domain
-Port: 22 (or leave blank for default)
-Username: Your server username
-Password/Key: Your SSH credentials
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-BENEFITS:
-
-✅ No port forwarding needed
-✅ Works from anywhere
-✅ Cloudflare DDoS protection
-✅ Fast and secure
-✅ Works on mobile data
-✅ No IP address needed
-✅ Custom SSH port ($ssh_port) handled automatically
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-MANAGE TUNNEL:
-
-Start:   systemctl start cloudflared-ssh
-Stop:    systemctl stop cloudflared-ssh
-Status:  systemctl status cloudflared-ssh
-Restart: systemctl restart cloudflared-ssh
-
-Press OK to finish..." 45 75
+Created: $(date)
+EOF
+    
+    echo "📄 Connection info saved to: $TUNNEL_DIR/connection-info.txt"
+    echo ""
+    read -p "Press ENTER to continue..."
 }
 
 # Backup old SSH terminal
