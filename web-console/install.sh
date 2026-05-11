@@ -188,7 +188,7 @@ Type=simple
 User=root
 WorkingDirectory=$WEB_DIR
 EnvironmentFile=$WEB_DIR/.env
-ExecStart=$WEB_DIR/venv/bin/python $WEB_DIR/app.py
+ExecStart=$WEB_DIR/venv/bin/gunicorn -w 1 -k eventlet -b 0.0.0.0:8081 --timeout 300 --access-logfile - --error-logfile - app:app
 Restart=always
 RestartSec=10
 
@@ -204,7 +204,7 @@ server {
     server_name _;
 
     location / {
-        proxy_pass http://127.0.0.1:5000;
+        proxy_pass http://127.0.0.1:8081;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -215,7 +215,7 @@ server {
     }
 
     location /socket.io {
-        proxy_pass http://127.0.0.1:5000/socket.io;
+        proxy_pass http://127.0.0.1:8081/socket.io;
         proxy_http_version 1.1;
         proxy_buffering off;
         proxy_set_header Upgrade \$http_upgrade;

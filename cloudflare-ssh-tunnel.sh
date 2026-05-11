@@ -66,126 +66,207 @@ Version: $(cloudflared --version)
 Press OK to continue..." 10 60
 }
 
-# Manual authentication with API token
+# Manual authentication with origin cert
 authenticate_manual() {
     whiptail --title "Manual Authentication" --msgbox "
-📝 Manual Authentication Setup
+📝 Manual Authentication - Origin Certificate
 
-You'll need to create a Cloudflare API token.
-
-Steps:
-1. Go to: https://dash.cloudflare.com/profile/api-tokens
-2. Click 'Create Token'
-3. Use 'Edit Cloudflare Zero Trust' template
-4. Copy the token
-
-Press OK to continue..." 16 70
-
-    local api_token=$(whiptail --title "API Token" --inputbox "
-Paste your Cloudflare API token:" 10 70 3>&1 1>&2 2>&3)
-    
-    if [ -z "$api_token" ]; then
-        whiptail --title "Error" --msgbox "
-❌ API token is required!
-
-Press OK to exit..." 8 50
-        exit 1
-    fi
-    
-    # Create credentials directory
-    mkdir -p /root/.cloudflared
-    
-    # Create cert.pem with token
-    cat > /root/.cloudflared/cert.pem <<EOF
-$api_token
-EOF
-    
-    chmod 600 /root/.cloudflared/cert.pem
-    
-    whiptail --title "Success" --msgbox "
-✅ API token saved!
-
-Press OK to continue..." 8 50
-}
-
-# Authenticate with Cloudflare
-authenticate_cloudflare() {
-    local auth_method=$(whiptail --title "Authentication Method" --menu "
-Choose authentication method:" 14 70 2 \
-        "1" "Automatic (shows URL to copy)" \
-        "2" "Manual (use API token)" \
-        3>&1 1>&2 2>&3)
-    
-    if [ "$auth_method" = "2" ]; then
-        authenticate_manual
-        return
-    fi
-    
-    whiptail --title "Cloudflare Authentication" --msgbox "
-🔐 Cloudflare Authentication Required
-
-For headless servers, cloudflared will provide a URL.
+The API token method doesn't work for tunnels.
+You need to get the origin certificate instead.
 
 Steps:
-1. Copy the URL that appears
-2. Open it on your phone/computer browser
-3. Log in to Cloudflare
-4. Authorize cloudflared
-5. Return to this terminal
+1. On your phone/computer, open:
+   https://dash.cloudflare.com/argotunnel
+2. Log in to Cloudflare
+3. Click 'Authorize' when prompted
+4. You'll get a certificate file
+5. We'll download it to your server
 
-Press OK to continue..." 16 70
+Press OK to continue..." 18 70
 
-    # Run cloudflared login and capture output
-    echo ""
-    echo "Please wait for the authentication URL..."
-    echo ""
-    cloudflared tunnel login 2>&1 | tee /tmp/cloudflared-login.log
+    # Try to login and get the cert
+    whiptail --title "Getting Certificate" --msgbox "
+🔐 Attempting to get origin certificate...
+
+This will show you a URL to open on your phone/computer.
+
+Copy the URL and open it in your browser.
+
+Press OK to continue..." 12 70
     
-    if [ $? -eq 0 ]; then
-        whiptail --title "Success" --msgbox "
-✅ Successfully authenticated with Cloudflare!
-
-Press OK to continue..." 8 60
-    else
-        # Show the URL if authentication is pending
-        local auth_url=$(grep -oP 'https://dash\.cloudflare\.com/argotunnel\?[^\s]+' /tmp/cloudflared-login.log | head -1)
-        
-        if [ -n "$auth_url" ]; then
-            whiptail --title "Authentication URL" --msgbox "
+    # Run cloudflared login in background and capture URL
+    timeout 60 cloudflared tunnel login > /tmp/cf-login.log 2>&1 &
+    local login_pid=$!
+    
+    # Wait a moment for URL to appear
+    sleep 3
+    
+    # Extract URL from log
+    local auth_url=$(grep -oP 'https://dash\.cloudflare\.com/argotunnel\?[^\s]+' /tmp/cf-login.log 2>/dev/null | head -1)
+    
+    if [ -n "$auth_url" ]; then
+        whiptail --title "Open This URL" --msgbox "
 📱 Open this URL on your phone or computer:
 
 $auth_url
 
-After authorizing, press OK to continue..." 12 70
-            
-            # Wait for user to complete authentication
-            sleep 5
-            
-            # Check if cert file was created
-            if [ -f "/root/.cloudflared/cert.pem" ]; then
-                whiptail --title "Success" --msgbox "
-✅ Successfully authenticated with Cloudflare!
+Steps:
+1. Copy the URL above
+2. Open it in your browser
+3. Log in to Cloudflare
+4. Click 'Authorize'
+5. Wait for confirmation
+6. Press OK here when done
 
-Press OK to continue..." 8 60
-            else
-                whiptail --title "Error" --msgbox "
-❌ Authentication may have failed!
+Press OK when you've authorized..." 18 75
+        
+        # Wait for cert file to appear
+        local timeout=120
+        local elapsed=0
+        while [ ! -f "/root/.cloudflared/cert.pem" ] && [ $elapsed -lt $timeout ]; do
+            sleep 2
+            elapsed=$((elapsed + 2))
+        done
+        
+        if [ -f "/root/.cloudflared/cert.pem" ]; then
+            whiptail --title "Success" --msgbox "
+✅ Successfully authenticated!
 
-Please try again or check your Cloudflare account.
+Certificate saved to:
+  /root/.cloudflared/cert.pem
 
-Press OK to exit..." 10 60
-                exit 1
-            fi
+Press OK to continue..." 10 60
         else
-            whiptail --title "Error" --msgbox "
-❌ Authentication failed!
+            whiptail --title "Timeout" --msgbox "
+⏱️  Authentication timed out!
 
-Please try again or check your Cloudflare account.
+Please try again or use the automatic method.
 
 Press OK to exit..." 10 60
             exit 1
         fi
+    else
+        whiptail --title "Error" --msgbox "
+❌ Could not get authentication URL!
+
+Please try the automatic method instead.
+
+Press OK to exit..." 10 60
+        exit 1
     fi
+    
+    # Clean up
+    kill $login_pid 2>/dev/null || true
+    rm -f /tmp/cf-login.log
+}
+
+# Authenticate with Cloudflare
+authenticate_cloudflare() {
+    whiptail --title "Cloudflare Authentication" --msgbox "
+🔐 Cloudflare Authentication Required
+
+This will generate an authentication URL for you.
+
+Steps:
+1. We'll run a command to generate the URL
+2. Copy the URL that appears
+3. Open it on your phone/computer browser
+4. Log in to Cloudflare
+5. Click 'Authorize'
+6. Return here and press OK
+
+Press OK to generate the URL..." 16 70
+
+    # Clear the screen and show the command
+    clear
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  CLOUDFLARE AUTHENTICATION"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Generating authentication URL..."
+    echo ""
+    echo "Please wait..."
+    echo ""
+    
+    # Run cloudflared login and capture output
+    cloudflared tunnel login 2>&1 | tee /tmp/cloudflared-login.log &
+    local login_pid=$!
+    
+    # Wait for URL to appear in log
+    local timeout=30
+    local elapsed=0
+    local auth_url=""
+    
+    while [ -z "$auth_url" ] && [ $elapsed -lt $timeout ]; do
+        sleep 1
+        auth_url=$(grep -oP 'https://dash\.cloudflare\.com/argotunnel\?[^\s]+' /tmp/cloudflared-login.log 2>/dev/null | head -1)
+        elapsed=$((elapsed + 1))
+    done
+    
+    if [ -n "$auth_url" ]; then
+        clear
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "  📱 OPEN THIS URL ON YOUR PHONE OR COMPUTER"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "  $auth_url"
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "Steps:"
+        echo "  1. Copy the URL above"
+        echo "  2. Open it in your browser (phone or computer)"
+        echo "  3. Log in to Cloudflare"
+        echo "  4. Click 'Authorize'"
+        echo "  5. Wait for 'You may now close this window' message"
+        echo "  6. Return here and press ENTER"
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        read -p "Press ENTER when you've authorized in the browser..."
+        
+        # Wait for cert file to appear
+        local cert_timeout=60
+        local cert_elapsed=0
+        while [ ! -f "/root/.cloudflared/cert.pem" ] && [ $cert_elapsed -lt $cert_timeout ]; do
+            sleep 2
+            cert_elapsed=$((cert_elapsed + 2))
+        done
+        
+        # Kill the login process
+        kill $login_pid 2>/dev/null || true
+        
+        if [ -f "/root/.cloudflared/cert.pem" ]; then
+            whiptail --title "Success" --msgbox "
+✅ Successfully authenticated with Cloudflare!
+
+Certificate saved to:
+  /root/.cloudflared/cert.pem
+
+Press OK to continue..." 10 60
+            return 0
+        else
+            whiptail --title "Error" --msgbox "
+❌ Certificate not found!
+
+The authorization may not have completed.
+Please try again.
+
+Press OK to exit..." 10 60
+            exit 1
+        fi
+    else
+        whiptail --title "Error" --msgbox "
+❌ Could not generate authentication URL!
+
+Please check your internet connection and try again.
+
+Press OK to exit..." 10 60
+        exit 1
+    fi
+    
+    # Clean up
+    rm -f /tmp/cloudflared-login.log
 }
 
 # Create SSH tunnel

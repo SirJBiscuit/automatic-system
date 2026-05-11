@@ -599,8 +599,89 @@ View full guide:
 Press OK to finish..." 32 75
 }
 
+# Update termux SSH setup
+update_termux_ssh() {
+    whiptail --title "Update Termux SSH" --msgbox "
+🔄 Updating Termux SSH Setup
+
+This will:
+• Download the latest version
+• Update bash configuration
+• Refresh aliases and shortcuts
+• Keep your existing settings
+
+Press OK to continue..." 14 70
+
+    # Download latest version
+    curl -sSL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/termux-ssh-setup.sh -o /tmp/termux-ssh-setup-new.sh
+    chmod +x /tmp/termux-ssh-setup-new.sh
+    
+    # Backup current config
+    if [ -f "$CONFIG_DIR/enhanced-bashrc" ]; then
+        cp "$CONFIG_DIR/enhanced-bashrc" "$CONFIG_DIR/enhanced-bashrc.backup"
+    fi
+    
+    # Run update (skip intro and optional packages)
+    install_server_enhancements
+    configure_bash
+    generate_termux_guide
+    
+    whiptail --title "Update Complete" --msgbox "
+✅ Termux SSH setup updated successfully!
+
+Your bash configuration has been refreshed.
+Run 'source ~/.bashrc' to apply changes.
+
+Press OK to finish..." 12 60
+    
+    # Update install date
+    echo "$(date)" > "$CONFIG_DIR/update-date.txt"
+}
+
+# Show version info
+show_version() {
+    local install_date=$(cat "$CONFIG_DIR/install-date.txt" 2>/dev/null || echo "Unknown")
+    local update_date=$(cat "$CONFIG_DIR/update-date.txt" 2>/dev/null || echo "Never")
+    
+    whiptail --title "Termux SSH Version" --msgbox "
+📦 Termux SSH Setup
+
+Installed: $install_date
+Last Updated: $update_date
+
+Configuration: $CONFIG_DIR
+Install Directory: $INSTALL_DIR
+
+Press OK to close..." 14 70
+}
+
 # Main setup process
 main() {
+    # Check for command line arguments
+    case "${1:-install}" in
+        "update")
+            update_termux_ssh
+            exit 0
+            ;;
+        "version"|"--version"|"-v")
+            show_version
+            exit 0
+            ;;
+        "help"|"--help"|"-h")
+            echo "Termux SSH Setup"
+            echo ""
+            echo "Usage: $0 [command]"
+            echo ""
+            echo "Commands:"
+            echo "  install  - Install Termux SSH setup (default)"
+            echo "  update   - Update to latest version"
+            echo "  version  - Show version information"
+            echo "  help     - Show this help message"
+            echo ""
+            exit 0
+            ;;
+    esac
+    
     # Create directories
     mkdir -p "$INSTALL_DIR"
     mkdir -p "$CONFIG_DIR"
@@ -629,6 +710,13 @@ main() {
     # Mark as installed
     touch "$CONFIG_DIR/.installed"
     echo "$(date)" > "$CONFIG_DIR/install-date.txt"
+    
+    # Add update alias to bashrc
+    if ! grep -q "alias update-termux-ssh" /root/.bashrc 2>/dev/null; then
+        echo "" >> /root/.bashrc
+        echo "# Termux SSH Update Alias" >> /root/.bashrc
+        echo "alias update-termux-ssh='bash <(curl -sL https://raw.githubusercontent.com/SirJBiscuit/automatic-system/main/termux-ssh-setup.sh) update'" >> /root/.bashrc
+    fi
 }
 
 # Run main
