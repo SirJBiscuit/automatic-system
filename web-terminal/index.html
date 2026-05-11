@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Enhanced SSH Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1e1e1e;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .toolbar-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toolbar-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .toolbar-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Terminal Container */
+        .terminal-container {
+            height: calc(100vh - 60px);
+            position: relative;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: #2d2d2d;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            padding: 8px 0;
+            min-width: 200px;
+            z-index: 10000;
+            display: none;
+            animation: menuSlideIn 0.2s ease;
+        }
+
+        @keyframes menuSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .context-menu-item {
+            padding: 10px 20px;
+            color: #e0e0e0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .context-menu-item:hover {
+            background: #3d3d3d;
+            color: white;
+        }
+
+        .context-menu-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: #3d3d3d;
+            margin: 4px 0;
+        }
+
+        /* Settings Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: #2d2d2d;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            color: white;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #b0b0b0;
+            font-size: 14px;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 10px;
+            background: #1e1e1e;
+            border: 1px solid #3d3d3d;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.active {
+            border-color: white;
+        }
+
+        .close-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .toolbar {
+                padding: 10px 15px;
+            }
+
+            .toolbar-title {
+                font-size: 16px;
+            }
+
+            .toolbar-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .modal-content {
+                margin: 20px;
+                padding: 20px;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="toolbar-title">
+                <span>🖥️</span>
+                <span>Enhanced SSH Terminal</span>
+            </div>
+        </div>
+        <div class="toolbar-right">
+            <button class="toolbar-btn" onclick="openSettings()">
+                <span>⚙️</span>
+                <span>Settings</span>
+            </button>
+            <button class="toolbar-btn" onclick="zoomIn()">
+                <span>🔍+</span>
+            </button>
+            <button class="toolbar-btn" onclick="zoomOut()">
+                <span>🔍-</span>
+            </button>
+            <button class="toolbar-btn" onclick="resetZoom()">
+                <span>↺</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Terminal Container -->
+    <div class="terminal-container">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Loading terminal...</div>
+        </div>
+        <iframe id="terminal-frame" src="http://localhost:7681"></iframe>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" onclick="copyText()">
+            <span>📋</span>
+            <span>Copy</span>
+        </div>
+        <div class="context-menu-item" onclick="pasteText()">
+            <span>📄</span>
+            <span>Paste</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="selectAll()">
+            <span>🔲</span>
+            <span>Select All</span>
+        </div>
+        <div class="context-menu-item" onclick="clearSelection()">
+            <span>✖️</span>
+            <span>Clear Selection</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="clearTerminal()">
+            <span>🗑️</span>
+            <span>Clear Terminal</span>
+        </div>
+        <div class="context-menu-item" onclick="openSettings()">
+            <span>⚙️</span>
+            <span>Settings</span>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>⚙️</span>
+                <span>Terminal Settings</span>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Font Size</label>
+                <input type="range" class="setting-input" min="10" max="24" value="16" id="fontSize" oninput="updateFontSize(this.value)">
+                <span id="fontSizeValue" style="color: #667eea;">16px</span>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Theme Color</label>
+                <div class="color-picker">
+                    <div class="color-option active" style="background: #667eea;" onclick="setTheme('#667eea')"></div>
+                    <div class="color-option" style="background: #f093fb;" onclick="setTheme('#f093fb')"></div>
+                    <div class="color-option" style="background: #4facfe;" onclick="setTheme('#4facfe')"></div>
+                    <div class="color-option" style="background: #43e97b;" onclick="setTheme('#43e97b')"></div>
+                    <div class="color-option" style="background: #fa709a;" onclick="setTheme('#fa709a')"></div>
+                    <div class="color-option" style="background: #feca57;" onclick="setTheme('#feca57')"></div>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Zoom Level</label>
+                <input type="range" class="setting-input" min="50" max="150" value="100" id="zoomLevel" oninput="updateZoom(this.value)">
+                <span id="zoomValue" style="color: #667eea;">100%</span>
+            </div>
+
+            <button class="close-btn" onclick="closeSettings()">Close Settings</button>
+        </div>
+    </div>
+
+    <script>
+        let currentZoom = 100;
+        let currentTheme = '#667eea';
+
+        // Context Menu
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const menu = document.getElementById('contextMenu');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+        });
+
+        document.addEventListener('click', () => {
+            document.getElementById('contextMenu').style.display = 'none';
+        });
+
+        // Settings Modal
+        function openSettings() {
+            document.getElementById('settingsModal').style.display = 'block';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        // Zoom Functions
+        function zoomIn() {
+            currentZoom = Math.min(150, currentZoom + 10);
+            updateZoom(currentZoom);
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(50, currentZoom - 10);
+            updateZoom(currentZoom);
+        }
+
+        function resetZoom() {
+            currentZoom = 100;
+            updateZoom(100);
+        }
+
+        function updateZoom(value) {
+            currentZoom = value;
+            document.getElementById('terminal-frame').style.transform = `scale(${value / 100})`;
+            document.getElementById('terminal-frame').style.transformOrigin = 'top left';
+            document.getElementById('zoomLevel').value = value;
+            document.getElementById('zoomValue').textContent = value + '%';
+        }
+
+        // Font Size
+        function updateFontSize(value) {
+            document.getElementById('fontSizeValue').textContent = value + 'px';
+            // This would need to be passed to ttyd via URL params or config
+        }
+
+        // Theme
+        function setTheme(color) {
+            currentTheme = color;
+            document.querySelector('.toolbar').style.background = `linear-gradient(135deg, ${color} 0%, ${adjustColor(color, -20)} 100%)`;
+            document.querySelectorAll('.color-option').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function adjustColor(color, percent) {
+            const num = parseInt(color.replace("#",""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 +
+                (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255))
+                .toString(16).slice(1);
+        }
+
+        // Context Menu Actions
+        function copyText() {
+            document.execCommand('copy');
+        }
+
+        function pasteText() {
+            navigator.clipboard.readText().then(text => {
+                // Send to terminal
+                console.log('Paste:', text);
+            });
+        }
+
+        function selectAll() {
+            document.execCommand('selectAll');
+        }
+
+        function clearSelection() {
+            window.getSelection().removeAllRanges();
+        }
+
+        function clearTerminal() {
+            // Send Ctrl+L to terminal
+            const frame = document.getElementById('terminal-frame');
+            frame.contentWindow.postMessage({type: 'clear'}, '*');
+        }
+
+        // Loading
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+        });
+
+        // Mobile touch support
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            
+            // Detect swipe gestures
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            
+            if (Math.abs(deltaX) > 100) {
+                // Horizontal swipe
+                console.log('Swipe detected');
+            }
+        });
+    </script>
+</body>
+</html>
