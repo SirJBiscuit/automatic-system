@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Enhanced SSH Terminal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -66,6 +67,19 @@
         .toolbar-btn:hover {
             background: rgba(255,255,255,0.3);
             transform: translateY(-2px);
+        }
+
+        .device-badge {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3B82F6;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
         }
 
         /* Terminal Container */
@@ -244,20 +258,81 @@
         @media (max-width: 768px) {
             .toolbar {
                 padding: 10px 15px;
+                flex-wrap: wrap;
+            }
+
+            .toolbar-left {
+                flex: 1;
+                min-width: 200px;
             }
 
             .toolbar-title {
-                font-size: 16px;
+                font-size: 14px;
+            }
+
+            .toolbar-title span:last-child {
+                display: none;
+            }
+
+            .device-badge {
+                font-size: 11px;
+                padding: 4px 8px;
             }
 
             .toolbar-btn {
-                padding: 6px 12px;
+                padding: 6px 10px;
                 font-size: 12px;
+            }
+
+            .btn-text {
+                display: none;
             }
 
             .modal-content {
                 margin: 20px;
                 padding: 20px;
+                max-width: 90%;
+            }
+
+            .context-menu {
+                min-width: 180px;
+            }
+
+            .terminal-container {
+                height: calc(100vh - 50px);
+            }
+
+            /* Better touch targets for mobile */
+            .toolbar-btn {
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            .context-menu-item {
+                padding: 14px 20px;
+                font-size: 16px;
+            }
+        }
+
+        /* Tablet Optimizations */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .toolbar-title {
+                font-size: 16px;
+            }
+
+            .device-badge {
+                font-size: 12px;
+            }
+        }
+
+        /* Mobile landscape */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .toolbar {
+                padding: 6px 10px;
+            }
+
+            .terminal-container {
+                height: calc(100vh - 45px);
             }
         }
 
@@ -296,11 +371,14 @@
                 <span>🖥️</span>
                 <span>Enhanced SSH Terminal</span>
             </div>
+            <span class="device-badge" id="device-indicator">
+                <i class="fas fa-desktop"></i> Desktop
+            </span>
         </div>
         <div class="toolbar-right">
             <button class="toolbar-btn" onclick="openSettings()">
                 <span>⚙️</span>
-                <span>Settings</span>
+                <span class="btn-text">Settings</span>
             </button>
             <button class="toolbar-btn" onclick="zoomIn()">
                 <span>🔍+</span>
@@ -490,8 +568,35 @@
             frame.contentWindow.postMessage({type: 'clear'}, '*');
         }
 
+        // Device Detection
+        function detectDevice() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isMobile = /mobile|android|iphone|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+            const isTablet = /ipad|android(?!.*mobile)|tablet/i.test(userAgent);
+            
+            const deviceIndicator = document.getElementById('device-indicator');
+            
+            if (isMobile && !isTablet) {
+                deviceIndicator.innerHTML = '<i class="fas fa-mobile-alt"></i> Mobile';
+                deviceIndicator.style.background = 'rgba(16, 185, 129, 0.2)';
+                deviceIndicator.style.color = '#10B981';
+                document.body.classList.add('mobile-device');
+            } else if (isTablet) {
+                deviceIndicator.innerHTML = '<i class="fas fa-tablet-alt"></i> Tablet';
+                deviceIndicator.style.background = 'rgba(139, 92, 246, 0.2)';
+                deviceIndicator.style.color = '#8B5CF6';
+                document.body.classList.add('tablet-device');
+            } else {
+                deviceIndicator.innerHTML = '<i class="fas fa-desktop"></i> Desktop';
+                deviceIndicator.style.background = 'rgba(59, 130, 246, 0.2)';
+                deviceIndicator.style.color = '#3B82F6';
+                document.body.classList.add('desktop-device');
+            }
+        }
+
         // Loading
         window.addEventListener('load', () => {
+            detectDevice();
             setTimeout(() => {
                 document.getElementById('loading').style.display = 'none';
             }, 1000);

@@ -32,8 +32,22 @@ mkdir -p "$INSTALL_DIR"
 
 # Copy files
 echo "📋 Copying enhanced terminal files..."
-cp index.html "$INSTALL_DIR/"
-echo "✅ Files copied"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ -f "$SCRIPT_DIR/index.html" ]; then
+    cp "$SCRIPT_DIR/index.html" "$INSTALL_DIR/"
+    echo "✅ Files copied from: $SCRIPT_DIR"
+else
+    echo "❌ index.html not found in: $SCRIPT_DIR"
+    echo "Please make sure you're running this script from the web-terminal directory"
+    exit 1
+fi
+
+# Verify files were copied
+if [ ! -f "$INSTALL_DIR/index.html" ]; then
+    echo "❌ Failed to copy files to $INSTALL_DIR"
+    exit 1
+fi
 
 # Create nginx config
 echo ""
