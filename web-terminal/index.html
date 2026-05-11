@@ -436,6 +436,30 @@
         </div>
     </div>
 
+    <!-- Command Palette (Ctrl+Shift+P) -->
+    <div class="modal" id="commandPalette" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <span>⌘</span>
+                <span>Command Palette</span>
+            </div>
+            <input type="text" id="commandSearch" placeholder="Type a command..." 
+                   style="width: 100%; padding: 12px; background: #1e1e1e; border: 1px solid #3d3d3d; 
+                          border-radius: 6px; color: white; font-size: 14px; margin-bottom: 15px;"
+                   oninput="filterCommands(this.value)">
+            <div id="commandList" style="max-height: 400px; overflow-y: auto;">
+                <!-- Commands will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Autocomplete Suggestions -->
+    <div id="autocomplete" style="display: none; position: fixed; background: #2d2d2d; 
+         border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); padding: 8px; 
+         max-width: 400px; z-index: 9999; border: 1px solid rgba(255,255,255,0.1);">
+        <div id="autocompleteList"></div>
+    </div>
+
     <!-- Settings Modal -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
@@ -468,6 +492,42 @@
                 <span id="zoomValue" style="color: #667eea;">100%</span>
             </div>
 
+            <div class="setting-group">
+                <label class="setting-label">Cursor Style</label>
+                <select class="setting-input" id="cursorStyle" onchange="updateCursorStyle(this.value)">
+                    <option value="block">Block</option>
+                    <option value="underline">Underline</option>
+                    <option value="bar">Bar</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Enable Autocomplete</label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="enableAutocomplete" checked 
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="color: #b0b0b0;">Show command suggestions</span>
+                </label>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Enable Typing Sounds</label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="enableSounds" 
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="color: #b0b0b0;">Keyboard click sounds</span>
+                </label>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Cursor Blink</label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="cursorBlink" checked 
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="color: #b0b0b0;">Blinking cursor</span>
+                </label>
+            </div>
+
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="close-btn" style="flex: 1; background: #10B981;" onclick="saveSettings()">
                     <i class="fas fa-save"></i> Save Settings
@@ -480,6 +540,42 @@
     <script>
         let currentZoom = 100;
         let currentTheme = '#667eea';
+        
+        // Common terminal commands for autocomplete
+        const commonCommands = [
+            { cmd: 'ls -la', desc: 'List all files with details' },
+            { cmd: 'cd ', desc: 'Change directory' },
+            { cmd: 'mkdir ', desc: 'Create directory' },
+            { cmd: 'rm -rf ', desc: 'Remove directory recursively' },
+            { cmd: 'systemctl status ', desc: 'Check service status' },
+            { cmd: 'systemctl restart ', desc: 'Restart service' },
+            { cmd: 'docker ps', desc: 'List running containers' },
+            { cmd: 'docker logs ', desc: 'View container logs' },
+            { cmd: 'git status', desc: 'Check git status' },
+            { cmd: 'git commit -m ""', desc: 'Commit changes' },
+            { cmd: 'git push origin main', desc: 'Push to main branch' },
+            { cmd: 'npm install', desc: 'Install npm packages' },
+            { cmd: 'npm start', desc: 'Start npm project' },
+            { cmd: 'sudo apt update', desc: 'Update package list' },
+            { cmd: 'sudo apt upgrade', desc: 'Upgrade packages' },
+            { cmd: 'tail -f ', desc: 'Follow log file' },
+            { cmd: 'grep -r "" .', desc: 'Search in files' },
+            { cmd: 'find . -name ""', desc: 'Find files by name' },
+            { cmd: 'chmod +x ', desc: 'Make file executable' },
+            { cmd: 'chown -R user:group ', desc: 'Change ownership' }
+        ];
+
+        // Command palette actions
+        const paletteCommands = [
+            { name: 'Open Settings', icon: '⚙️', action: () => openSettings() },
+            { name: 'Clear Terminal', icon: '🗑️', action: () => clearTerminal() },
+            { name: 'Zoom In', icon: '🔍+', action: () => zoomIn() },
+            { name: 'Zoom Out', icon: '🔍-', action: () => zoomOut() },
+            { name: 'Reset Zoom', icon: '↺', action: () => resetZoom() },
+            { name: 'Copy', icon: '📋', action: () => copyText() },
+            { name: 'Paste', icon: '📄', action: () => pasteText() },
+            { name: 'Select All', icon: '🔲', action: () => selectAll() }
+        ];
 
         // Context Menu - Only show on terminal area
         document.querySelector('.terminal-container').addEventListener('contextmenu', (e) => {
@@ -520,7 +616,11 @@
             const settings = {
                 zoom: currentZoom,
                 theme: currentTheme,
-                fontSize: document.getElementById('fontSize').value
+                fontSize: document.getElementById('fontSize').value,
+                cursorStyle: document.getElementById('cursorStyle').value,
+                enableAutocomplete: document.getElementById('enableAutocomplete').checked,
+                enableSounds: document.getElementById('enableSounds').checked,
+                cursorBlink: document.getElementById('cursorBlink').checked
             };
             localStorage.setItem('terminalSettings', JSON.stringify(settings));
             
@@ -552,6 +652,18 @@
                 if (settings.fontSize) {
                     document.getElementById('fontSize').value = settings.fontSize;
                     updateFontSize(settings.fontSize);
+                }
+                if (settings.cursorStyle) {
+                    document.getElementById('cursorStyle').value = settings.cursorStyle;
+                }
+                if (settings.enableAutocomplete !== undefined) {
+                    document.getElementById('enableAutocomplete').checked = settings.enableAutocomplete;
+                }
+                if (settings.enableSounds !== undefined) {
+                    document.getElementById('enableSounds').checked = settings.enableSounds;
+                }
+                if (settings.cursorBlink !== undefined) {
+                    document.getElementById('cursorBlink').checked = settings.cursorBlink;
                 }
             }
         }
@@ -661,6 +773,99 @@
                 deviceIndicator.style.color = '#3B82F6';
                 document.body.classList.add('desktop-device');
             }
+        }
+
+        // Keyboard Shortcuts (VS Code style)
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+P or Cmd+Shift+P - Command Palette
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
+                e.preventDefault();
+                toggleCommandPalette();
+            }
+            
+            // Ctrl+, or Cmd+, - Settings
+            if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+                e.preventDefault();
+                openSettings();
+            }
+            
+            // Ctrl+= or Cmd+= - Zoom In
+            if ((e.ctrlKey || e.metaKey) && e.key === '=') {
+                e.preventDefault();
+                zoomIn();
+            }
+            
+            // Ctrl+- or Cmd+- - Zoom Out
+            if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+                e.preventDefault();
+                zoomOut();
+            }
+            
+            // Ctrl+0 or Cmd+0 - Reset Zoom
+            if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+                e.preventDefault();
+                resetZoom();
+            }
+            
+            // Escape - Close modals
+            if (e.key === 'Escape') {
+                closeCommandPalette();
+                closeSettings();
+            }
+        });
+
+        // Command Palette Functions
+        function toggleCommandPalette() {
+            const palette = document.getElementById('commandPalette');
+            if (palette.style.display === 'none') {
+                palette.style.display = 'block';
+                document.getElementById('commandSearch').focus();
+                populateCommands();
+            } else {
+                closeCommandPalette();
+            }
+        }
+
+        function closeCommandPalette() {
+            document.getElementById('commandPalette').style.display = 'none';
+            document.getElementById('commandSearch').value = '';
+        }
+
+        function populateCommands(filter = '') {
+            const list = document.getElementById('commandList');
+            const filtered = paletteCommands.filter(cmd => 
+                cmd.name.toLowerCase().includes(filter.toLowerCase())
+            );
+            
+            list.innerHTML = filtered.map(cmd => `
+                <div onclick="executeCommand('${cmd.name}')" 
+                     style="padding: 12px; cursor: pointer; border-radius: 6px; 
+                            display: flex; align-items: center; gap: 12px; 
+                            transition: all 0.2s ease; color: #e0e0e0;"
+                     onmouseover="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'"
+                     onmouseout="this.style.background='transparent'">
+                    <span style="font-size: 20px;">${cmd.icon}</span>
+                    <span>${cmd.name}</span>
+                </div>
+            `).join('');
+        }
+
+        function filterCommands(value) {
+            populateCommands(value);
+        }
+
+        function executeCommand(cmdName) {
+            const cmd = paletteCommands.find(c => c.name === cmdName);
+            if (cmd && cmd.action) {
+                cmd.action();
+                closeCommandPalette();
+            }
+        }
+
+        // Update cursor style
+        function updateCursorStyle(style) {
+            // This would need to be passed to ttyd
+            console.log('Cursor style:', style);
         }
 
         // Loading
