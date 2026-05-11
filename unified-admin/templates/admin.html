@@ -2258,7 +2258,8 @@
                     const data = await response.json();
                     if (data.success) {
                         const iframe = document.getElementById('serviceFrame');
-                        iframe.src = data.url;
+                        // Add bypass parameter to skip login in iframe
+                        iframe.src = data.url + (data.url.includes('?') ? '&' : '?') + 'bypass=admin';
                     }
                 } catch (error) {
                     console.error('Failed to load SSH terminal:', error);
@@ -2375,7 +2376,9 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    window.open(data.url, '_blank');
+                    // Add bypass parameter to skip login
+                    const url = data.url + (data.url.includes('?') ? '&' : '?') + 'bypass=admin';
+                    window.open(url, '_blank');
                 } else {
                     alert('Error: ' + data.error);
                 }

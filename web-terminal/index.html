@@ -223,14 +223,19 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 1;
-            pointer-events: none;
+            z-index: 999;
+            pointer-events: auto;
             transition: background 0.3s ease;
         }
 
         .iframe-overlay.active {
-            pointer-events: auto;
             background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Hide overlay when not needed */
+        .iframe-overlay.hidden {
+            pointer-events: none;
+            opacity: 0;
         }
 
         /* Click ripple effect */
@@ -353,9 +358,32 @@
             margin: 50px auto;
             padding: 30px;
             border-radius: 12px;
-            max-width: 500px;
-            color: white;
-            animation: slideDown 0.3s ease;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            animation: modalFadeIn 0.3s ease;
+            position: relative;
+        }
+
+        /* Custom scrollbar for modals */
+        .modal-content::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: #1e1e1e;
+            border-radius: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         }
 
         @keyframes slideDown {
@@ -375,7 +403,36 @@
             margin-bottom: 20px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 10px;
+        }
+
+        .modal-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #EF4444;
+            color: #FCA5A5;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 18px;
+            border: none;
+        }
+
+        .modal-close-btn:hover {
+            background: #EF4444;
+            color: white;
+            transform: scale(1.1);
         }
 
         .setting-group {
@@ -449,18 +506,38 @@
         .close-btn {
             background: #667eea;
             color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            width: 100%;
-            margin-top: 20px;
-            transition: all 0.3s ease;
         }
 
-        .close-btn:hover {
-            background: #764ba2;
+        *::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        *::-webkit-scrollbar-track {
+            background: #1e1e1e;
+            border-radius: 10px;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            border: 2px solid #1e1e1e;
+        }
+
+        *::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        /* Command palette scrollbar */
+        .command-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Snippets panel scrollbar */
+        .snippet-grid {
+            max-height: 60vh;
+            overflow-y: auto;
             transform: translateY(-2px);
         }
 
@@ -516,11 +593,45 @@
             .toolbar-btn {
                 min-width: 44px;
                 min-height: 44px;
+                padding: 10px 12px;
             }
 
             .context-menu-item {
-                padding: 14px 20px;
+                padding: 15px 20px;
                 font-size: 16px;
+            }
+
+            .modal-close-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 20px;
+            }
+
+            .close-btn {
+                padding: 15px 30px;
+                font-size: 16px;
+                min-height: 48px;
+            }
+
+            /* Mobile scrollbar styling */
+            *::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+
+            /* Larger tap targets for snippets */
+            .snippet-card {
+                padding: 20px;
+                min-height: 80px;
+            }
+
+            /* Command palette mobile */
+            .command-list {
+                max-height: 50vh;
+            }
+
+            .terminal-container {
+                height: calc(100vh - 45px);
             }
         }
 
@@ -654,8 +765,11 @@
     <div class="modal" id="commandPalette" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
-                <span>⌘</span>
-                <span>Command Palette</span>
+                <div class="modal-header-left">
+                    <span>⌘</span>
+                    <span>Command Palette</span>
+                </div>
+                <button class="modal-close-btn" onclick="closeCommandPalette()" title="Close (Esc)">✕</button>
             </div>
             <input type="text" id="commandSearch" placeholder="Type a command..." 
                    style="width: 100%; padding: 12px; background: #1e1e1e; border: 1px solid #3d3d3d; 
@@ -678,8 +792,11 @@
     <div class="modal" id="snippetsPanel" style="display: none;">
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
-                <span>⚡</span>
-                <span>Quick Command Snippets</span>
+                <div class="modal-header-left">
+                    <span>⚡</span>
+                    <span>Quick Command Snippets</span>
+                </div>
+                <button class="modal-close-btn" onclick="toggleSnippets()" title="Close">✕</button>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 15px;">
                 <div class="snippet-card" onclick="copySnippet('systemctl status nginx')">
@@ -715,8 +832,11 @@
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <div class="modal-header">
-                <span>⚙️</span>
-                <span>Terminal Settings</span>
+                <div class="modal-header-left">
+                    <span>⚙️</span>
+                    <span>Terminal Settings</span>
+                </div>
+                <button class="modal-close-btn" onclick="closeSettings()" title="Close">✕</button>
             </div>
 
             <div class="setting-group">
@@ -914,7 +1034,10 @@
         });
 
         // Enable overlay right-click
-        document.getElementById('iframeOverlay').addEventListener('contextmenu', (e) => {
+        const iframeOverlay = document.getElementById('iframeOverlay');
+        iframeOverlay.classList.remove('hidden');
+        
+        iframeOverlay.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
             
@@ -923,6 +1046,7 @@
             
             menu.style.display = 'block';
             overlay.classList.add('active');
+            overlay.classList.remove('hidden');
             
             // Add ripple effect at right-click location
             createRipple(e);
@@ -949,6 +1073,7 @@
             if (!menu.contains(e.target)) {
                 menu.style.display = 'none';
                 overlay.classList.remove('active');
+                overlay.classList.add('hidden');
             }
         });
 
@@ -1299,14 +1424,26 @@
                     <div class="terminal-header" id="terminalHeader">
                         <div class="terminal-header-title">🖥️ SSH Terminal</div>
                         <div class="terminal-header-controls">
+                            <button class="terminal-control-btn" onclick="zoomOut()" title="Zoom Out">
+                                <i class="fas fa-search-minus"></i>
+                            </button>
+                            <button class="terminal-control-btn" onclick="zoomIn()" title="Zoom In">
+                                <i class="fas fa-search-plus"></i>
+                            </button>
+                            <button class="terminal-control-btn" onclick="resetZoom()" title="Reset Zoom">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                            <button class="terminal-control-btn" onclick="openSettings()" title="Customize">
+                                <i class="fas fa-cog"></i>
+                            </button>
                             <button class="terminal-control-btn minimize" onclick="minimizeTerminal()" title="Minimize">
-                                <i class="fas fa-window-minimize"></i> Min
+                                <i class="fas fa-window-minimize"></i>
                             </button>
                             <button class="terminal-control-btn maximize" onclick="maximizeTerminal()" title="Maximize">
-                                <i class="fas fa-window-maximize"></i> Max
+                                <i class="fas fa-window-maximize"></i>
                             </button>
                             <button class="terminal-control-btn close" onclick="toggleFloating()" title="Dock Terminal">
-                                <i class="fas fa-times"></i> Dock
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>
                     </div>

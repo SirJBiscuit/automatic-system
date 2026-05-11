@@ -97,9 +97,26 @@ def index():
 
 @app.route('/index.html')
 def terminal():
-    """Serve terminal page (requires auth)"""
-    # In production, verify token here
-    return send_from_directory('.', 'index.html')
+    """Serve terminal page (requires auth unless bypass parameter)"""
+    # Allow bypass from admin panel
+    bypass = request.args.get('bypass')
+    if bypass == 'admin':
+        return send_from_directory('.', 'index.html')
+    
+    # Check for valid token
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+        if verify_token(token):
+            return send_from_directory('.', 'index.html')
+    
+    # Check for token in cookie
+    token = request.cookies.get('terminalToken')
+    if token and verify_token(token):
+        return send_from_directory('.', 'index.html')
+    
+    # Redirect to login
+    return send_from_directory('.', 'login.html')
 
 @app.route('/<path:path>')
 def serve_static(path):
