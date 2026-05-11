@@ -188,80 +188,33 @@ Press OK to generate the URL..." 16 70
     echo "Please wait..."
     echo ""
     
-    # Run cloudflared login and capture output
-    cloudflared tunnel login 2>&1 | tee /tmp/cloudflared-login.log &
-    local login_pid=$!
+    # Run cloudflared login in foreground and capture output
+    # This will block until user completes authentication
+    cloudflared tunnel login 2>&1 | tee /tmp/cloudflared-login.log
     
-    # Wait for URL to appear in log
-    local timeout=30
-    local elapsed=0
-    local auth_url=""
-    
-    while [ -z "$auth_url" ] && [ $elapsed -lt $timeout ]; do
-        sleep 1
-        auth_url=$(grep -oP 'https://dash\.cloudflare\.com/argotunnel\?[^\s]+' /tmp/cloudflared-login.log 2>/dev/null | head -1)
-        elapsed=$((elapsed + 1))
-    done
-    
-    if [ -n "$auth_url" ]; then
-        clear
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "  📱 OPEN THIS URL ON YOUR PHONE OR COMPUTER"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo ""
-        echo "  $auth_url"
-        echo ""
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo ""
-        echo "Steps:"
-        echo "  1. Copy the URL above"
-        echo "  2. Open it in your browser (phone or computer)"
-        echo "  3. Log in to Cloudflare"
-        echo "  4. Click 'Authorize'"
-        echo "  5. Wait for 'You may now close this window' message"
-        echo "  6. Return here and press ENTER"
-        echo ""
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo ""
-        read -p "Press ENTER when you've authorized in the browser..."
-        
-        # Wait for cert file to appear
-        local cert_timeout=60
-        local cert_elapsed=0
-        while [ ! -f "/root/.cloudflared/cert.pem" ] && [ $cert_elapsed -lt $cert_timeout ]; do
-            sleep 2
-            cert_elapsed=$((cert_elapsed + 2))
-        done
-        
-        # Kill the login process
-        kill $login_pid 2>/dev/null || true
-        
-        if [ -f "/root/.cloudflared/cert.pem" ]; then
-            whiptail --title "Success" --msgbox "
+    # Check if cert was created
+    if [ -f "/root/.cloudflared/cert.pem" ]; then
+        whiptail --title "Success" --msgbox "
 ✅ Successfully authenticated with Cloudflare!
 
 Certificate saved to:
   /root/.cloudflared/cert.pem
 
 Press OK to continue..." 10 60
-            return 0
-        else
-            whiptail --title "Error" --msgbox "
-❌ Certificate not found!
-
-The authorization may not have completed.
-Please try again.
-
-Press OK to exit..." 10 60
-            exit 1
-        fi
+        return 0
     else
         whiptail --title "Error" --msgbox "
-❌ Could not generate authentication URL!
+❌ Authentication failed!
 
-Please check your internet connection and try again.
+The certificate file was not created.
+This usually means:
+• You didn't complete the authorization in the browser
+• The browser authorization timed out
+• There was a network issue
 
-Press OK to exit..." 10 60
+Please try again.
+
+Press OK to exit..." 14 60
         exit 1
     fi
     
