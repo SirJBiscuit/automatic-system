@@ -1,0 +1,17 @@
+[Unit]
+Description=Enhanced SSH Terminal Authentication
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/enhanced-terminal
+Environment="TERMINAL_ADMIN_USER=admin"
+Environment="TERMINAL_ADMIN_PASS_HASH=b99d87bdb0ff1627462dbfb098cdbe7268dded49a43cf3412d07e989eaf52f45"
+Environment="TERMINAL_SECRET_KEY=CHANGE_THIS_TO_YOUR_SECRET_KEY"
+ExecStart=/usr/bin/python3 /var/www/enhanced-terminal/auth.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
