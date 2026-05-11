@@ -470,6 +470,48 @@ def quick_check_health():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/quick/open-ssh-terminal', methods=['GET'])
+def quick_open_ssh_terminal():
+    """Get SSH terminal URL"""
+    try:
+        # Check if enhanced terminal is configured
+        terminal_url = os.getenv('SSH_TERMINAL_URL', 'https://termux.cloudmc.online')
+        return jsonify({'success': True, 'url': terminal_url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/quick/update-openwebui', methods=['POST'])
+def quick_update_openwebui():
+    """Update Open WebUI to latest version"""
+    try:
+        # Pull latest image
+        result = subprocess.run(['docker', 'pull', 'ghcr.io/open-webui/open-webui:main'], 
+                              capture_output=True, text=True, timeout=300)
+        
+        if result.returncode != 0:
+            return jsonify({'error': 'Failed to pull latest image', 'details': result.stderr}), 500
+        
+        # Restart container with new image
+        container_name = 'open-webui'
+        subprocess.run(['docker', 'stop', container_name], check=False)
+        subprocess.run(['docker', 'rm', container_name], check=False)
+        
+        # Recreate container (assumes standard setup)
+        subprocess.run([
+            'docker', 'run', '-d',
+            '--name', container_name,
+            '-p', '3000:8080',
+            '-v', 'open-webui:/app/backend/data',
+            '--restart', 'always',
+            'ghcr.io/open-webui/open-webui:main'
+        ], check=True)
+        
+        return jsonify({'success': True, 'message': 'Open WebUI updated successfully'})
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Update timed out'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 def get_disk_space():
     """Get disk space usage"""
     result = subprocess.run(['df', '-h', '/'], capture_output=True, text=True)

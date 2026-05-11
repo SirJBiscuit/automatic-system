@@ -1151,6 +1151,20 @@
                     <span class="tooltip-text">Auto-configures Wings (port 8083, HTTP) and Cloudflare tunnel. Use this if Wings won't connect or after server reboot.</span>
                 </span>
                 <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="openSSHTerminal()" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="icon">🖥️</div>
+                        SSH Terminal
+                    </button>
+                    <span class="tooltip-text">Open enhanced web-based SSH terminal with VS Code features, mobile support, and command snippets.</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
+                    <button class="quick-btn" onclick="updateOpenWebUI()" style="width: 100%; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
+                        <div class="icon">🤖</div>
+                        Update Open WebUI
+                    </button>
+                    <span class="tooltip-text">Update Open WebUI to the latest version. This will pull the latest Docker image and restart the container.</span>
+                </span>
+                <span class="tooltip-container" style="width: 100%;">
                     <button class="quick-btn" onclick="window.location.href='/customize'" style="width: 100%;">
                         <div class="icon">🎨</div>
                         Customize Panel
@@ -2344,6 +2358,46 @@
                 }
             } catch (error) {
                 alert('Failed to configure Pterodactyl');
+            }
+        }
+
+        async function openSSHTerminal() {
+            try {
+                const response = await fetch('/api/quick/open-ssh-terminal');
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.open(data.url, '_blank');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to open SSH terminal');
+            }
+        }
+
+        async function updateOpenWebUI() {
+            if (!confirm('Update Open WebUI to latest version? This will pull the latest Docker image and restart the container. This may take a few minutes.')) return;
+            
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<div class="icon">⏳</div>Updating...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/quick/update-openwebui', {method: 'POST'});
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                } else {
+                    alert('Error: ' + data.error + (data.details ? '\n\nDetails: ' + data.details : ''));
+                }
+            } catch (error) {
+                alert('Failed to update Open WebUI: ' + error.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
 

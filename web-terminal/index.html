@@ -910,19 +910,11 @@
             currentZoom = value;
             const iframe = document.getElementById('terminal-frame');
             const container = document.querySelector('.terminal-container');
-            const scale = value / 100;
             
-            // Scale from center and adjust dimensions
-            iframe.style.transform = `scale(${scale})`;
-            iframe.style.width = `${100 / scale}%`;
-            iframe.style.height = `${100 / scale}%`;
-            
-            // Keep terminal centered and scrollable
-            if (scale > 1) {
-                container.style.overflow = 'auto';
-            } else {
-                container.style.overflow = 'hidden';
-            }
+            // Update ttyd URL with font size parameter based on zoom
+            const fontSize = Math.round(14 * (value / 100));
+            const currentSrc = iframe.src.split('?')[0];
+            iframe.src = `${currentSrc}?fontSize=${fontSize}`;
             
             document.getElementById('zoomLevel').value = value;
             document.getElementById('zoomValue').textContent = value + '%';
@@ -1100,6 +1092,12 @@
 
         // Floating Terminal Functions
         function toggleFloating() {
+            // Disable on mobile devices
+            if (window.innerWidth < 768) {
+                alert('Pop-out mode is not available on mobile devices. Use pinch to zoom instead!');
+                return;
+            }
+            
             const container = document.querySelector('.terminal-container');
             const toolbar = document.querySelector('.toolbar');
             const floatBtn = document.getElementById('floatBtn');
@@ -1350,19 +1348,20 @@
             }
         });
 
-        // Pinch to zoom on mobile
+        // Pinch to adjust font size on mobile
         let initialDistance = 0;
-        let currentScale = 1;
+        let initialFontSize = 100;
 
         document.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
+                e.preventDefault();
                 initialDistance = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
                 );
-                currentScale = currentZoom / 100;
+                initialFontSize = currentZoom;
             }
-        });
+        }, { passive: false });
 
         document.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2) {
@@ -1371,11 +1370,50 @@
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
                 );
-                const scale = (distance / initialDistance) * currentScale;
-                const newZoom = Math.min(150, Math.max(50, scale * 100));
-                updateZoom(newZoom);
+                
+                // Calculate zoom based on pinch distance
+                const scale = distance / initialDistance;
+                const newZoom = Math.min(200, Math.max(50, initialFontSize * scale));
+                
+                // Update zoom (which updates font size)
+                updateZoom(Math.round(newZoom));
+                
+                // Show visual feedback
+                showZoomIndicator(Math.round(newZoom));
             }
-        }, { passive: false });    
+        }, { passive: false });
+
+        // Visual zoom indicator for mobile
+        function showZoomIndicator(zoom) {
+            let indicator = document.getElementById('zoomIndicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'zoomIndicator';
+                indicator.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0,0,0,0.8);
+                    color: white;
+                    padding: 20px 30px;
+                    border-radius: 12px;
+                    font-size: 24px;
+                    font-weight: bold;
+                    z-index: 10002;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(indicator);
+            }
+            
+            indicator.textContent = `${zoom}%`;
+            indicator.style.display = 'block';
+            
+            clearTimeout(indicator.timeout);
+            indicator.timeout = setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 1000);
+        }    
     </script>
 </body>
 </html>
