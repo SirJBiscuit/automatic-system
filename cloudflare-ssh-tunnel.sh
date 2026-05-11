@@ -670,9 +670,17 @@ show_connection_instructions() {
     echo "  CONNECT FROM TERMUX:"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "  ssh root@$domain"
+    echo "  METHOD 1: Using cloudflared (Recommended)"
+    echo "  ─────────────────────────────────────────"
+    echo "  1. Install cloudflared in Termux:"
+    echo "     pkg install cloudflared"
     echo ""
-    echo "  (No port needed - Cloudflare handles routing)"
+    echo "  2. Connect via SSH:"
+    echo "     ssh -o ProxyCommand='cloudflared access ssh --hostname %h' root@$domain"
+    echo ""
+    echo "  METHOD 2: Direct SSH (if tunnel is public)"
+    echo "  ──────────────────────────────────────────"
+    echo "  ssh root@$domain"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  BENEFITS:"
@@ -703,10 +711,16 @@ SSH TUNNEL CONNECTION INFORMATION
 Domain: $domain
 Server SSH Port: $ssh_port (internal)
 
-CONNECT:
+CONNECT FROM TERMUX:
+
+Method 1: Using cloudflared (Recommended)
+  1. Install: pkg install cloudflared
+  2. Connect: ssh -o ProxyCommand='cloudflared access ssh --hostname %h' root@$domain
+
+Method 2: Direct SSH (if tunnel is public)
   ssh root@$domain
 
-MANAGE:
+MANAGE TUNNEL:
   systemctl start cloudflared-ssh
   systemctl stop cloudflared-ssh
   systemctl status cloudflared-ssh
