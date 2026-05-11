@@ -35,7 +35,16 @@ pip3 install flask flask-cors pyjwt --break-system-packages
 
 **Generate password hash:**
 ```bash
-python3 -c "import hashlib; print(hashlib.sha256(b'YOUR_SECURE_PASSWORD').hexdigest())"
+# Use single quotes to prevent special character interpretation
+python3 -c 'import hashlib; print(hashlib.sha256(b"YOUR_SECURE_PASSWORD").hexdigest())'
+
+# Or escape special characters with backslash
+python3 -c "import hashlib; print(hashlib.sha256(b'cpwe256\!').hexdigest())"
+```
+
+**Example with your password:**
+```bash
+python3 -c 'import hashlib; print(hashlib.sha256(b"cpwe256!").hexdigest())'
 ```
 
 **Set environment variable:**
