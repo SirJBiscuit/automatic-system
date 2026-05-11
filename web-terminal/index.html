@@ -22,13 +22,18 @@
         /* Toolbar */
         .toolbar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
             padding: 12px 20px;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            z-index: 1000;
+            align-items: center;
+            color: white;
+            box-shadow: 
+                0 4px 12px rgba(102, 126, 234, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toolbar.no-shadows {
+            box-shadow: none;
         }
 
         .toolbar-left {
@@ -87,6 +92,14 @@
             height: calc(100vh - 60px);
             position: relative;
             overflow: hidden;
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.3),
+                0 1px 8px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .terminal-container.no-shadows {
+            box-shadow: none;
         }
 
         .terminal-container.floating {
@@ -212,10 +225,34 @@
             height: 100%;
             z-index: 1;
             pointer-events: none;
+            transition: background 0.3s ease;
         }
 
         .iframe-overlay.active {
             pointer-events: auto;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Click ripple effect */
+        @keyframes ripple {
+            0% {
+                transform: scale(0);
+                opacity: 0.6;
+            }
+            100% {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .ripple-effect {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(102, 126, 234, 0.5);
+            width: 20px;
+            height: 20px;
+            animation: ripple 0.6s ease-out;
+            pointer-events: none;
         }
 
         /* Context Menu */
@@ -742,6 +779,43 @@
                 </label>
             </div>
 
+            <div class="setting-group">
+                <label class="setting-label">Font Family</label>
+                <select class="setting-input" id="fontFamily" onchange="updateFontFamily(this.value)">
+                    <option value="'Fira Code', monospace">Fira Code</option>
+                    <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+                    <option value="'Cascadia Code', monospace">Cascadia Code</option>
+                    <option value="'Source Code Pro', monospace">Source Code Pro</option>
+                    <option value="'Consolas', monospace">Consolas</option>
+                    <option value="'Monaco', monospace">Monaco</option>
+                    <option value="'Courier New', monospace">Courier New</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Line Height</label>
+                <input type="range" class="setting-input" min="1.0" max="2.0" step="0.1" value="1.5" id="lineHeight" oninput="updateLineHeight(this.value)">
+                <span id="lineHeightValue" style="color: #667eea;">1.5</span>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Enable Shadows</label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="enableShadows" checked 
+                           style="width: 20px; height: 20px; cursor: pointer;" onchange="toggleShadows(this.checked)">
+                    <span style="color: #b0b0b0;">IDE-style depth shadows</span>
+                </label>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Smooth Scrolling</label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="smoothScroll" checked 
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="color: #b0b0b0;">Smooth scroll behavior</span>
+                </label>
+            </div>
+
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="close-btn" style="flex: 1; background: #10B981;" onclick="saveSettings()">
                     <i class="fas fa-save"></i> Save Settings
@@ -757,10 +831,19 @@
         let isFloating = false;
         let isDragging = false;
         let dragOffset = { x: 0, y: 0 };
+        let audioInitialized = false;
         
         // Typing sound (soft click)
-        const typingSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGi78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy');
+        const typingSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGi78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy');
         
+        // Initialize audio on first user interaction
+        function initAudio() {
+            if (!audioInitialized) {
+                typingSound.load();
+                audioInitialized = true;
+            }
+        }
+
         // Common terminal commands for autocomplete
         const commonCommands = [
             { cmd: 'ls -la', desc: 'List all files with details' },
@@ -836,7 +919,13 @@
             e.stopPropagation();
             
             const menu = document.getElementById('contextMenu');
+            const overlay = document.getElementById('iframeOverlay');
+            
             menu.style.display = 'block';
+            overlay.classList.add('active');
+            
+            // Add ripple effect at right-click location
+            createRipple(e);
             
             let x = e.pageX;
             let y = e.pageY;
@@ -886,20 +975,21 @@
                 cursorStyle: document.getElementById('cursorStyle').value,
                 enableAutocomplete: document.getElementById('enableAutocomplete').checked,
                 enableSounds: document.getElementById('enableSounds').checked,
-                cursorBlink: document.getElementById('cursorBlink').checked
+                cursorBlink: document.getElementById('cursorBlink').checked,
+                fontFamily: document.getElementById('fontFamily').value,
+                lineHeight: document.getElementById('lineHeight').value,
+                enableShadows: document.getElementById('enableShadows').checked,
+                smoothScroll: document.getElementById('smoothScroll').checked
             };
             localStorage.setItem('terminalSettings', JSON.stringify(settings));
             
-            // Show success message
-            const saveBtn = event.target.closest('button');
-            const originalText = saveBtn.innerHTML;
-            saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
-            saveBtn.style.background = '#10B981';
+            // Show success notification
+            showNotification('✓ Settings saved successfully!', 'success');
             
+            // Close settings after short delay
             setTimeout(() => {
-                saveBtn.innerHTML = originalText;
                 closeSettings();
-            }, 1500);
+            }, 1000);
         }
 
         // Load saved settings on page load
@@ -931,6 +1021,22 @@
                 if (settings.cursorBlink !== undefined) {
                     document.getElementById('cursorBlink').checked = settings.cursorBlink;
                 }
+                if (settings.fontFamily) {
+                    document.getElementById('fontFamily').value = settings.fontFamily;
+                    updateFontFamily(settings.fontFamily);
+                }
+                if (settings.lineHeight) {
+                    document.getElementById('lineHeight').value = settings.lineHeight;
+                    updateLineHeight(settings.lineHeight);
+                }
+                if (settings.enableShadows !== undefined) {
+                    document.getElementById('enableShadows').checked = settings.enableShadows;
+                    toggleShadows(settings.enableShadows);
+                }
+                if (settings.smoothScroll !== undefined) {
+                    document.getElementById('smoothScroll').checked = settings.smoothScroll;
+                    document.documentElement.style.scrollBehavior = settings.smoothScroll ? 'smooth' : 'auto';
+                }
             }
         }
 
@@ -954,11 +1060,19 @@
             currentZoom = value;
             const iframe = document.getElementById('terminal-frame');
             const container = document.querySelector('.terminal-container');
+            const scale = value / 100;
             
-            // Update ttyd URL with font size parameter based on zoom
-            const fontSize = Math.round(14 * (value / 100));
-            const currentSrc = iframe.src.split('?')[0];
-            iframe.src = `${currentSrc}?fontSize=${fontSize}`;
+            // Use CSS transform instead of reloading iframe
+            iframe.style.transform = `scale(${scale})`;
+            iframe.style.width = `${100 / scale}%`;
+            iframe.style.height = `${100 / scale}%`;
+            
+            // Enable scrolling if zoomed in
+            if (scale > 1) {
+                container.style.overflow = 'auto';
+            } else {
+                container.style.overflow = 'hidden';
+            }
             
             document.getElementById('zoomLevel').value = value;
             document.getElementById('zoomValue').textContent = value + '%';
@@ -967,7 +1081,9 @@
         // Font Size
         function updateFontSize(value) {
             document.getElementById('fontSizeValue').textContent = value + 'px';
-            // This would need to be passed to ttyd via URL params or config
+            const iframe = document.getElementById('terminal-frame');
+            const currentSrc = iframe.src.split('?')[0];
+            iframe.src = `${currentSrc}?fontSize=${value}`;
         }
 
         // Theme
@@ -1134,6 +1250,31 @@
             console.log('Cursor style:', style);
         }
 
+        // Update font family
+        function updateFontFamily(font) {
+            document.body.style.fontFamily = font;
+        }
+
+        // Update line height
+        function updateLineHeight(value) {
+            document.getElementById('lineHeightValue').textContent = value;
+            document.body.style.lineHeight = value;
+        }
+
+        // Toggle shadows
+        function toggleShadows(enabled) {
+            const toolbar = document.querySelector('.toolbar');
+            const container = document.querySelector('.terminal-container');
+            
+            if (enabled) {
+                toolbar.classList.remove('no-shadows');
+                container.classList.remove('no-shadows');
+            } else {
+                toolbar.classList.add('no-shadows');
+                container.classList.add('no-shadows');
+            }
+        }
+
         // Floating Terminal Functions
         function toggleFloating() {
             // Disable on mobile devices
@@ -1293,45 +1434,79 @@
 
         function copySnippet(command) {
             navigator.clipboard.writeText(command).then(() => {
-                // Show notification
-                const notification = document.createElement('div');
-                notification.textContent = '✓ Copied to clipboard!';
-                notification.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-                    color: white;
-                    padding: 15px 25px;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-                    z-index: 10001;
-                    animation: slideIn 0.3s ease;
-                `;
-                document.body.appendChild(notification);
-                
-                setTimeout(() => {
-                    notification.style.animation = 'slideOut 0.3s ease';
-                    setTimeout(() => notification.remove(), 300);
-                }, 2000);
+                showNotification('✓ Copied to clipboard!', 'success');
             });
+        }
+
+        // Unified notification system
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            
+            const colors = {
+                success: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                error: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                info: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)'
+            };
+            
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${colors[type] || colors.success};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                z-index: 10001;
+                animation: slideIn 0.3s ease;
+                font-weight: 500;
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
         }
 
         // Play typing sound
         function playTypingSound() {
             if (document.getElementById('enableSounds')?.checked) {
+                initAudio();
                 typingSound.currentTime = 0;
                 typingSound.volume = 0.1;
                 typingSound.play().catch(() => {});
             }
         }
 
-        // Listen for typing in iframe (if accessible)
+        // Listen for typing on overlay and page
         document.addEventListener('keydown', (e) => {
             if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
                 playTypingSound();
             }
         });
+
+        // Enable typing sounds and ripple effect on overlay clicks
+        document.getElementById('iframeOverlay').addEventListener('click', (e) => {
+            playTypingSound();
+            createRipple(e);
+        });
+
+        // Create ripple animation
+        function createRipple(e) {
+            const overlay = document.getElementById('iframeOverlay');
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple-effect';
+            
+            const rect = overlay.getBoundingClientRect();
+            ripple.style.left = (e.clientX - rect.left - 10) + 'px';
+            ripple.style.top = (e.clientY - rect.top - 10) + 'px';
+            
+            overlay.appendChild(ripple);
+            
+            setTimeout(() => ripple.remove(), 600);
+        }
 
         // Loading
         window.addEventListener('load', () => {
