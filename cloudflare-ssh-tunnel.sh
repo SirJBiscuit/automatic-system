@@ -243,6 +243,71 @@ validate_certificate() {
 
 # Create SSH tunnel
 create_ssh_tunnel() {
+    # Check if tunnel already exists
+    if [ -f "$TUNNEL_DIR/ssh-tunnel-name.txt" ] && [ -f "$TUNNEL_DIR/ssh-domain.txt" ]; then
+        local existing_tunnel=$(cat "$TUNNEL_DIR/ssh-tunnel-name.txt")
+        local existing_domain=$(cat "$TUNNEL_DIR/ssh-domain.txt")
+        local existing_port=$(cat "$TUNNEL_DIR/ssh-port.txt" 2>/dev/null || echo "22")
+        
+        # Check if tunnel still exists in Cloudflare
+        if cloudflared tunnel list 2>/dev/null | grep -q "$existing_tunnel"; then
+            if whiptail --title "Existing Tunnel Found" --yesno "
+📡 An existing SSH tunnel was found:
+
+Tunnel Name: $existing_tunnel
+Domain: $existing_domain
+SSH Port: $existing_port
+
+Would you like to:
+• YES - Keep and use the existing tunnel
+• NO  - Delete and create a new tunnel
+
+Keep existing tunnel?" 16 70; then
+                whiptail --title "Using Existing Tunnel" --msgbox "
+✅ Using existing tunnel!
+
+Tunnel: $existing_tunnel
+Domain: $existing_domain
+
+The tunnel configuration will be verified and
+the systemd service will be updated.
+
+Press OK to continue..." 14 70
+                
+                # Verify and update systemd service
+                create_systemd_service
+                show_connection_instructions
+                return 0
+            else
+                # User wants to delete and recreate
+                whiptail --title "Deleting Old Tunnel" --msgbox "
+🗑️  Deleting old tunnel...
+
+This will remove:
+• Tunnel: $existing_tunnel
+• Domain: $existing_domain
+
+Press OK to continue..." 12 70
+                
+                # Delete old tunnel
+                cloudflared tunnel delete "$existing_tunnel" -f 2>/dev/null || true
+                rm -rf "$TUNNEL_DIR"
+                mkdir -p "$TUNNEL_DIR"
+            fi
+        else
+            # Tunnel doesn't exist in Cloudflare but config files exist
+            whiptail --title "Stale Configuration" --msgbox "
+⚠️  Found old configuration files but tunnel doesn't exist.
+
+Cleaning up and creating new tunnel...
+
+Press OK to continue..." 10 70
+            
+            rm -rf "$TUNNEL_DIR"
+            mkdir -p "$TUNNEL_DIR"
+        fi
+    fi
+    
     local tunnel_name="ssh-$(hostname)-$(date +%s)"
     local domain=""
     
@@ -274,6 +339,26 @@ Please try running the setup again.
 Press OK to exit..." 12 60
             exit 1
         fi
+    fi
+    
+    # Detect SSH port
+    local ssh_port=$(grep "^Port" /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+    if [ -z "$ssh_port" ]; then
+        ssh_port="22"
+    fi
+    
+    # Ask user to confirm or change SSH port
+    ssh_port=$(whiptail --title "SSH Port" --inputbox "
+What port is your SSH server running on?
+
+Auto-detected: $ssh_port
+
+If this is incorrect, enter the correct port:
+
+Port:" 14 70 "$ssh_port" 3>&1 1>&2 2>&3)
+    
+    if [ -z "$ssh_port" ]; then
+        ssh_port="22"
     fi
     
     # Ask for domain
@@ -341,7 +426,7 @@ credentials-file: /root/.cloudflared/$tunnel_id.json
 
 ingress:
   - hostname: $domain
-    service: ssh://localhost:22
+    service: ssh://localhost:$ssh_port
   - service: http_status:404
 EOF
     
@@ -374,10 +459,11 @@ You may need to manually add a CNAME record:
 Press OK to continue..." 12 70
     fi
     
-    # Save domain for later use
+    # Save domain and port for later use
     echo "$domain" > "$TUNNEL_DIR/ssh-domain.txt"
     echo "$tunnel_name" > "$TUNNEL_DIR/ssh-tunnel-name.txt"
     echo "$tunnel_id" > "$TUNNEL_DIR/ssh-tunnel-id.txt"
+    echo "$ssh_port" > "$TUNNEL_DIR/ssh-port.txt"
 }
 
 # Create systemd service
@@ -431,7 +517,17 @@ Press OK to continue..." 12 70
 # Show connection instructions
 show_connection_instructions() {
     local domain=$(cat "$TUNNEL_DIR/ssh-domain.txt" 2>/dev/null || echo "ssh.yourdomain.com")
+    local ssh_port=$(cat "$TUNNEL_DIR/ssh-port.txt" 2>/dev/null || echo "22")
     local username=$(whoami)
+    
+    # Note about port
+    local port_note=""
+    if [ "$ssh_port" != "22" ]; then
+        port_note="
+⚠️  NOTE: Your SSH server runs on port $ssh_port internally,
+   but Cloudflare Tunnel handles this automatically.
+   You connect using standard port 22 (or no port specified)."
+    fi
     
     whiptail --title "SSH Tunnel Ready!" --msgbox "
 🎉 SSH Tunnel Setup Complete!
@@ -441,9 +537,10 @@ show_connection_instructions() {
 CONNECTION INFORMATION:
 
 Domain: $domain
-Port: 22 (standard SSH port)
+Server SSH Port: $ssh_port (internal)
+Connection Port: 22 (standard SSH - Cloudflare handles routing)
 Protocol: SSH over Cloudflare Tunnel
-
+$port_note
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 CONNECT FROM TERMUX:
@@ -462,7 +559,7 @@ CONNECT FROM TERMUX:
 CONNECT FROM ANY SSH CLIENT:
 
 Host: $domain
-Port: 22
+Port: 22 (or leave blank for default)
 Username: Your server username
 Password/Key: Your SSH credentials
 
@@ -476,6 +573,7 @@ BENEFITS:
 ✅ Fast and secure
 ✅ Works on mobile data
 ✅ No IP address needed
+✅ Custom SSH port ($ssh_port) handled automatically
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -486,7 +584,7 @@ Stop:    systemctl stop cloudflared-ssh
 Status:  systemctl status cloudflared-ssh
 Restart: systemctl restart cloudflared-ssh
 
-Press OK to finish..." 40 75
+Press OK to finish..." 45 75
 }
 
 # Backup old SSH terminal
