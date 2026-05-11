@@ -474,6 +474,15 @@ Press OK to exit..." 8 50
     mkdir -p "$TUNNEL_DIR"
     
     # Install ttyd for web-based SSH terminal
+    whiptail --title "Installing ttyd" --msgbox "
+🌐 Installing Web-Based SSH Terminal (ttyd)...
+
+This provides a full SSH terminal in your browser.
+
+The installation will show live progress.
+
+Press OK to continue..." 12 60
+    
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Installing ttyd (web-based SSH terminal)..."
@@ -538,8 +547,18 @@ Press OK to exit..." 8 50
     echo ""
     echo "Verifying ttyd installation..."
     if command -v ttyd &> /dev/null; then
-        if ttyd --version 2>&1 | head -1; then
+        if ttyd_version=$(ttyd --version 2>&1 | head -1); then
             echo "✅ ttyd is installed and working"
+            
+            whiptail --title "Installation Complete" --msgbox "
+✅ ttyd Installed Successfully!
+
+Version: $ttyd_version
+Location: $(which ttyd)
+
+Now creating systemd service...
+
+Press OK to continue..." 12 60
         else
             echo "❌ ttyd command exists but won't run!"
             which ttyd
@@ -582,10 +601,28 @@ EOF
     sleep 2
     if systemctl is-active --quiet ttyd-ssh.service; then
         echo "✅ ttyd service is running"
+        
+        whiptail --title "Service Started" --msgbox "
+✅ Web Terminal Service Running!
+
+Service: ttyd-ssh.service
+Status: Active
+Port: 7681
+
+The web terminal is now accessible.
+
+Press OK to continue with tunnel setup..." 14 60
     else
         echo "❌ ttyd service failed to start!"
         echo "Checking logs:"
         journalctl -u ttyd-ssh.service -n 20 --no-pager
+        
+        whiptail --title "Error" --msgbox "
+❌ ttyd Service Failed to Start!
+
+Check the logs above for details.
+
+Press OK to exit..." 10 50
         exit 1
     fi
     
@@ -778,9 +815,31 @@ EOF
         # Check if tunnel has registered connections
         if journalctl -u cloudflared-ssh.service -n 50 --no-pager | grep -q "Registered tunnel connection"; then
             echo "✅ Tunnel connected to Cloudflare!"
+            
+            local domain=$(cat "$TUNNEL_DIR/ssh-domain.txt" 2>/dev/null)
+            whiptail --title "Tunnel Connected!" --msgbox "
+✅ Cloudflare Tunnel Successfully Connected!
+
+Service: cloudflared-ssh.service
+Status: Active and Connected
+Domain: $domain
+
+Your web terminal is now accessible from anywhere!
+
+Press OK to view connection instructions..." 16 60
         else
             echo "⚠️  Tunnel may not be fully connected yet. Checking logs..."
             journalctl -u cloudflared-ssh.service -n 20 --no-pager
+            
+            whiptail --title "Warning" --msgbox "
+⚠️  Tunnel Started but Connection Unclear
+
+The service is running but tunnel connections
+may still be establishing.
+
+Check the logs above for details.
+
+Press OK to continue..." 12 60
         fi
     else
         echo "❌ Cloudflare Tunnel service failed to start!"
@@ -790,6 +849,13 @@ EOF
         echo ""
         echo "Recent logs:"
         journalctl -u cloudflared-ssh.service -n 30 --no-pager
+        
+        whiptail --title "Error" --msgbox "
+❌ Cloudflare Tunnel Failed to Start!
+
+Check the service status and logs above.
+
+Press OK to exit..." 10 50
         exit 1
     fi
     
