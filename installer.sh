@@ -236,6 +236,17 @@ show_progress() {
 
 # Install AI Assistant
 install_ai_assistant() {
+    # Check if AI Assistant feature is enabled
+    if ! bash "$INSTALL_DIR/feature-manager.sh" is-enabled AI_ASSISTANT 2>/dev/null; then
+        whiptail --title "Feature Disabled" --msgbox "
+❌ AI Assistant feature is disabled!
+
+Enable it in feature selection to install.
+
+Press OK to continue..." 10 60
+        return
+    fi
+    
     log "Starting AI Assistant installation..."
     
     (
@@ -560,6 +571,45 @@ show_system_info() {
     whiptail --title "System Information" --msgbox "$info" 25 75
 }
 
+# Feature configuration menu
+configure_features() {
+    if whiptail --title "Feature Selection" --yesno "
+Would you like to customize which features to install?
+
+• YES - Choose specific features (recommended)
+        Select only what you need
+        
+• NO  - Install all features
+       Full installation with everything
+
+Customizing features can save disk space and resources!" 14 70; then
+        # Show feature manager
+        bash "$INSTALL_DIR/feature-manager.sh" menu
+    else
+        # Enable all features
+        bash "$INSTALL_DIR/feature-manager.sh" reset
+        
+        whiptail --title "All Features Enabled" --msgbox "
+✅ All features will be installed!
+
+This includes:
+• Discord Bot
+• Web Console
+• SSH Terminal
+• AI Assistant (Ollama + Open WebUI)
+• Admin Panel
+• FileBrowser
+• Pingvin Share
+• Nextcloud
+• Monitoring (Grafana)
+• Backup System
+• IP Monitor
+• Cloudflare Tunnel
+
+Press OK to continue..." 22 70
+    fi
+}
+
 # Port configuration menu
 configure_ports() {
     # Check if this is first-time setup
@@ -764,6 +814,9 @@ main() {
     
     # Port configuration
     configure_ports
+    
+    # Feature selection
+    configure_features
     
     # Main loop
     while true; do
