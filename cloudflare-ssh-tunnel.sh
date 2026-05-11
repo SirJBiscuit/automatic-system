@@ -631,7 +631,7 @@ echo "  • Full color support"
 echo ""
 BASHRC
     
-    # Create ttyd service with all features enabled (single line to avoid systemd issues)
+    # Create ttyd service with enhanced features (writable mode enabled)
     cat > /etc/systemd/system/ttyd-ssh.service <<'EOF'
 [Unit]
 Description=Web-based SSH Terminal (ttyd)
@@ -641,7 +641,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/root
-ExecStart=/usr/local/bin/ttyd -p 7681 -t fontSize=16 -t cursorBlink=true -t cursorStyle=block -t scrollback=10000 bash --rcfile /root/.ttyd_bashrc
+ExecStart=/usr/local/bin/ttyd -p 7681 -W bash --rcfile /root/.ttyd_bashrc
 Restart=on-failure
 RestartSec=5s
 
