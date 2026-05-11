@@ -248,6 +248,22 @@ create_ssh_tunnel() {
         local existing_tunnel=$(cat "$TUNNEL_DIR/ssh-tunnel-name.txt")
         local existing_domain=$(cat "$TUNNEL_DIR/ssh-domain.txt")
         local existing_port=$(cat "$TUNNEL_DIR/ssh-port.txt" 2>/dev/null || echo "22")
+        local created_by=$(cat "$TUNNEL_DIR/created-by.txt" 2>/dev/null || echo "unknown")
+        
+        # Safety check: only manage tunnels created by this script
+        if [ "$created_by" != "termux-ssh-setup" ] && [ "$created_by" != "unknown" ]; then
+            whiptail --title "Warning" --msgbox "
+⚠️  Found tunnel configuration not created by this script!
+
+Tunnel: $existing_tunnel
+Created by: $created_by
+
+For safety, this script will not modify it.
+Please use a different domain or manually manage this tunnel.
+
+Press OK to exit..." 14 70
+            exit 1
+        fi
         
         # Check if tunnel still exists in Cloudflare
         if cloudflared tunnel list 2>/dev/null | grep -q "$existing_tunnel"; then
@@ -280,19 +296,40 @@ Press OK to continue..." 14 70
                 return 0
             else
                 # User wants to delete and recreate
-                whiptail --title "Deleting Old Tunnel" --msgbox "
+                # Safety check: only delete if tunnel name matches our pattern
+                if [[ "$existing_tunnel" =~ ^ssh-.*-[0-9]+$ ]]; then
+                    whiptail --title "Deleting Old Tunnel" --msgbox "
 🗑️  Deleting old tunnel...
 
 This will remove:
 • Tunnel: $existing_tunnel
 • Domain: $existing_domain
 
-Press OK to continue..." 12 70
-                
-                # Delete old tunnel
-                cloudflared tunnel delete "$existing_tunnel" -f 2>/dev/null || true
-                rm -rf "$TUNNEL_DIR"
-                mkdir -p "$TUNNEL_DIR"
+This tunnel was created by this script.
+
+Press OK to continue..." 14 70
+                    
+                    # Delete old tunnel
+                    cloudflared tunnel delete "$existing_tunnel" -f 2>/dev/null || true
+                    rm -rf "$TUNNEL_DIR"
+                    mkdir -p "$TUNNEL_DIR"
+                else
+                    whiptail --title "Safety Check" --msgbox "
+⚠️  Cannot delete tunnel: $existing_tunnel
+
+This tunnel doesn't match the expected naming pattern
+(ssh-hostname-timestamp) and may not have been created
+by this script.
+
+For safety, we won't delete it automatically.
+
+Please:
+1. Manually delete it via Cloudflare dashboard
+2. Or use a different domain name
+
+Press OK to exit..." 18 70
+                    exit 1
+                fi
             fi
         else
             # Tunnel doesn't exist in Cloudflare but config files exist
@@ -438,9 +475,85 @@ This will create a CNAME record pointing to your tunnel.
 
 Press OK to continue..." 10 70
     
-    cloudflared tunnel route dns "$tunnel_name" "$domain"
+    # Try to create DNS route
+    echo "Creating DNS route for $domain..."
+    if ! cloudflared tunnel route dns "$tunnel_name" "$domain" 2>&1 | tee /tmp/dns-route.log; then
+        # Check if it failed due to existing record
+        if grep -q "already exists" /tmp/dns-route.log; then
+            whiptail --title "Existing DNS Record" --yesno "
+⚠️  A DNS record for $domain already exists!
+
+This is usually from a previous tunnel setup.
+
+Would you like to:
+• YES - Delete the old record and create new one
+• NO  - Keep existing record (tunnel may not work)
+
+Delete and recreate DNS record?" 16 70
+            
+            if [ $? -eq 0 ]; then
+                # User wants to delete old record
+                whiptail --title "Cleaning DNS" --msgbox "
+🧹 Removing old DNS record...
+
+This requires manual cleanup via Cloudflare API.
+
+Press OK to continue..." 10 70
+                
+                # Extract subdomain and domain
+                local subdomain="${domain%%.*}"
+                local base_domain="${domain#*.}"
+                
+                # Try to delete via cloudflared (may not work for all cases)
+                cloudflared tunnel route dns --overwrite-dns "$tunnel_name" "$domain" 2>/dev/null || {
+                    whiptail --title "Manual Cleanup Required" --msgbox "
+⚠️  Automatic DNS cleanup failed!
+
+Please manually delete the DNS record:
+
+1. Go to: https://dash.cloudflare.com
+2. Select your domain: $base_domain
+3. Go to DNS → Records
+4. Find and delete record: $subdomain
+5. Run this setup again
+
+Or you can use a different subdomain.
+
+Press OK to continue..." 18 70
+                    
+                    # Ask for new domain
+                    domain=$(whiptail --title "New Domain" --inputbox "
+Enter a different subdomain:
+
+Current (conflicting): $domain
+
+New subdomain:" 12 70 "ssh2.${base_domain}" 3>&1 1>&2 2>&3)
+                    
+                    if [ -z "$domain" ]; then
+                        exit 1
+                    fi
+                    
+                    # Try again with new domain
+                    cloudflared tunnel route dns "$tunnel_name" "$domain"
+                }
+            fi
+        else
+            # Different error
+            whiptail --title "Warning" --msgbox "
+⚠️  DNS configuration may have failed!
+
+Error: $(cat /tmp/dns-route.log)
+
+You may need to manually add a CNAME record:
+  Name: $domain
+  Target: $tunnel_id.cfargotunnel.com
+
+Press OK to continue..." 16 70
+        fi
+    fi
     
-    if [ $? -eq 0 ]; then
+    # Verify DNS was created
+    if cloudflared tunnel route dns "$tunnel_name" "$domain" 2>&1 | grep -q "already exists"; then
         whiptail --title "Success" --msgbox "
 ✅ DNS configured successfully!
 
@@ -448,15 +561,6 @@ Your SSH tunnel is ready at:
   $domain
 
 Press OK to continue..." 10 60
-    else
-        whiptail --title "Warning" --msgbox "
-⚠️  DNS configuration may have failed!
-
-You may need to manually add a CNAME record:
-  Name: $domain
-  Target: $tunnel_id.cfargotunnel.com
-
-Press OK to continue..." 12 70
     fi
     
     # Save domain and port for later use
@@ -464,6 +568,10 @@ Press OK to continue..." 12 70
     echo "$tunnel_name" > "$TUNNEL_DIR/ssh-tunnel-name.txt"
     echo "$tunnel_id" > "$TUNNEL_DIR/ssh-tunnel-id.txt"
     echo "$ssh_port" > "$TUNNEL_DIR/ssh-port.txt"
+    
+    # Mark this tunnel as created by our script
+    echo "termux-ssh-setup" > "$TUNNEL_DIR/created-by.txt"
+    date > "$TUNNEL_DIR/created-date.txt"
 }
 
 # Create systemd service
