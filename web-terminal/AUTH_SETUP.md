@@ -144,7 +144,7 @@ server {
 
     # Auth endpoints
     location /api/ {
-        proxy_pass http://127.0.0.1:8095;
+        proxy_pass http://127.0.0.1:8096;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -154,7 +154,7 @@ server {
 
     # Static files (login page, terminal)
     location / {
-        proxy_pass http://127.0.0.1:8095;
+        proxy_pass http://127.0.0.1:8096;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
     }

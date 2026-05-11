@@ -123,4 +123,5 @@ if __name__ == '__main__':
     print("=" * 60)
     
     # Run server
-    app.run(host='0.0.0.0', port=8095, debug=False)
+    port = int(os.getenv('TERMINAL_AUTH_PORT', 8096))
+    app.run(host='0.0.0.0', port=port, debug=False)
