@@ -12,9 +12,23 @@
 
 ### 1. Install Dependencies
 
+**Option A: System Packages (Recommended)**
+```bash
+sudo apt update
+sudo apt install python3-flask python3-flask-cors python3-jwt
+```
+
+**Option B: Virtual Environment**
 ```bash
 cd /var/www/enhanced-terminal
-pip3 install flask flask-cors pyjwt
+python3 -m venv venv
+source venv/bin/activate
+pip install flask flask-cors pyjwt
+```
+
+**Option C: Override System Protection (Not Recommended)**
+```bash
+pip3 install flask flask-cors pyjwt --break-system-packages
 ```
 
 ### 2. Set Admin Password
@@ -40,6 +54,7 @@ export TERMINAL_SECRET_KEY='<your_key_here>'
 
 Create `/etc/systemd/system/terminal-auth.service`:
 
+**If using system packages (Option A):**
 ```ini
 [Unit]
 Description=Enhanced SSH Terminal Authentication
@@ -53,6 +68,27 @@ Environment="TERMINAL_ADMIN_USER=admin"
 Environment="TERMINAL_ADMIN_PASS_HASH=<your_hash>"
 Environment="TERMINAL_SECRET_KEY=<your_key>"
 ExecStart=/usr/bin/python3 /var/www/enhanced-terminal/auth.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**If using virtual environment (Option B):**
+```ini
+[Unit]
+Description=Enhanced SSH Terminal Authentication
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/enhanced-terminal
+Environment="TERMINAL_ADMIN_USER=admin"
+Environment="TERMINAL_ADMIN_PASS_HASH=<your_hash>"
+Environment="TERMINAL_SECRET_KEY=<your_key>"
+ExecStart=/var/www/enhanced-terminal/venv/bin/python /var/www/enhanced-terminal/auth.py
 Restart=always
 RestartSec=3
 
