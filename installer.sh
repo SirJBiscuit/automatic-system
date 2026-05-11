@@ -562,6 +562,57 @@ show_system_info() {
 
 # Port configuration menu
 configure_ports() {
+    # Check if this is first-time setup
+    if whiptail --title "First Time Setup?" --yesno "
+Is this your first time setting up a Pterodactyl server?
+
+• YES - Use default ports (80, 443, 8080, etc.)
+         Best for beginners and new installations
+         
+• NO  - Configure ports (advanced options)
+        For experienced users or custom setups
+
+Recommended: Choose YES if you're new to Pterodactyl!" 16 70; then
+        # First-time setup - use defaults
+        whiptail --title "Using Default Ports" --msgbox "
+✅ Default ports will be used!
+
+This is the recommended configuration for first-time users.
+
+Ports that will be used:
+• Panel HTTP: 80
+• Panel HTTPS: 443
+• Wings API: 8080
+• Wings SFTP: 2022
+• Admin Panel: 5002
+• SSH Terminal: 5000
+• AI Services: 3000, 11434
+• File Management: 8081, 3001, 8082
+
+The installer will automatically check for conflicts
+and adjust if needed.
+
+Press OK to continue..." 22 70
+        
+        # Still scan and auto-fix if conflicts found
+        bash "$INSTALL_DIR/port-manager.sh" scan > /tmp/port-scan.log 2>&1
+        
+        if ! grep -q "No port conflicts" /tmp/port-scan.log; then
+            whiptail --title "Port Conflicts Detected" --msgbox "
+⚠️  Some default ports are in use!
+
+Don't worry - we'll automatically fix this.
+Alternative ports will be assigned.
+
+Press OK to continue..." 10 60
+            bash "$INSTALL_DIR/port-manager.sh" auto-fix
+            bash "$INSTALL_DIR/port-manager.sh" save
+        fi
+        
+        return
+    fi
+    
+    # Advanced users - show full menu
     local choice=$(whiptail --title "Port Configuration" --menu "
 How would you like to configure ports?
 
