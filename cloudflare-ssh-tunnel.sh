@@ -631,8 +631,8 @@ echo "  • Full color support"
 echo ""
 BASHRC
     
-    # Create ttyd service with all features enabled
-    cat > /etc/systemd/system/ttyd-ssh.service <<EOF
+    # Create ttyd service with all features enabled (single line to avoid systemd issues)
+    cat > /etc/systemd/system/ttyd-ssh.service <<'EOF'
 [Unit]
 Description=Web-based SSH Terminal (ttyd)
 After=network.target
@@ -640,18 +640,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/local/bin/ttyd \\
-    -p 7681 \\
-    -t fontSize=16 \\
-    -t fontFamily="'Fira Code', 'Cascadia Code', 'Consolas', monospace" \\
-    -t theme='{"background": "#1e1e1e", "foreground": "#d4d4d4"}' \\
-    -t cursorBlink=true \\
-    -t cursorStyle=block \\
-    -t scrollback=10000 \\
-    -t enableZmodem=true \\
-    -t enableTrzsz=true \\
-    -t enableSixel=true \\
-    -W bash --rcfile /root/.ttyd_bashrc
+WorkingDirectory=/root
+ExecStart=/usr/local/bin/ttyd -p 7681 -t fontSize=16 -t cursorBlink=true -t cursorStyle=block -t scrollback=10000 bash --rcfile /root/.ttyd_bashrc
 Restart=on-failure
 RestartSec=5s
 
