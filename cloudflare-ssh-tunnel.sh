@@ -456,14 +456,49 @@ Press OK to exit..." 8 50
     # Create config directory
     mkdir -p "$TUNNEL_DIR"
     
-    # Create tunnel configuration using TCP proxy (bastion mode)
+    # Install ttyd for web-based SSH terminal
+    echo "Installing ttyd (web-based SSH terminal)..."
+    if ! command -v ttyd &> /dev/null; then
+        # Install ttyd
+        if command -v apt &> /dev/null; then
+            apt install -y ttyd 2>/dev/null || {
+                # Build from source if not in repos
+                echo "Installing ttyd from GitHub..."
+                wget -q https://github.com/tsl0922/ttyd/releases/download/1.7.4/ttyd.x86_64 -O /usr/local/bin/ttyd
+                chmod +x /usr/local/bin/ttyd
+            }
+        fi
+    fi
+    
+    # Create ttyd service for web SSH
+    cat > /etc/systemd/system/ttyd-ssh.service <<EOF
+[Unit]
+Description=Web-based SSH Terminal (ttyd)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/ttyd -p 7681 -W bash -c 'ssh localhost -p $ssh_port'
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    
+    systemctl daemon-reload
+    systemctl enable ttyd-ssh.service
+    systemctl start ttyd-ssh.service
+    
+    # Create tunnel configuration using HTTP for web terminal
     cat > "$TUNNEL_CONFIG" <<EOF
 tunnel: $tunnel_id
 credentials-file: /root/.cloudflared/$tunnel_id.json
 
 ingress:
   - hostname: $domain
-    service: tcp://localhost:$ssh_port
+    service: http://localhost:7681
   - service: http_status:404
 EOF
     
@@ -667,26 +702,21 @@ show_connection_instructions() {
     fi
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  CONNECT FROM TERMUX (TCP Bastion Mode):"
+    echo "  CONNECT FROM ANYWHERE (Web-Based Terminal):"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "  STEP 1: Install packages"
-    echo "  ────────────────────────"
-    echo "  pkg install cloudflared openssh -y"
+    echo "  Open in your browser (phone, tablet, PC):"
+    echo "  ─────────────────────────────────────────"
+    echo "  https://$domain"
     echo ""
-    echo "  STEP 2: Start local tunnel proxy"
-    echo "  ─────────────────────────────────"
-    echo "  cloudflared access tcp --hostname $domain --url localhost:2222"
+    echo "  This opens a full SSH terminal in your browser!"
+    echo "  No apps needed - works on any device with a browser."
     echo ""
-    echo "  STEP 3: In a NEW Termux session, connect via SSH"
-    echo "  ─────────────────────────────────────────────────"
-    echo "  ssh root@localhost -p 2222"
-    echo ""
-    echo "  OR use one command (ProxyCommand):"
-    echo "  ──────────────────────────────────"
-    echo "  ssh -o ProxyCommand='cloudflared access tcp --hostname $domain' root@anything"
-    echo ""
-    echo "  Note: TCP bastion mode = direct TCP proxy through Cloudflare"
+    echo "  Features:"
+    echo "  • Full terminal access"
+    echo "  • Copy/paste support"
+    echo "  • Works on mobile"
+    echo "  • No SSH client needed"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  BENEFITS:"
@@ -711,32 +741,37 @@ show_connection_instructions() {
     
     # Save to file for later reference
     cat > "$TUNNEL_DIR/connection-info.txt" <<EOF
-SSH TUNNEL CONNECTION INFORMATION (TCP Bastion Mode)
+SSH TUNNEL CONNECTION INFORMATION (Web Terminal)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Domain: $domain
 Server SSH Port: $ssh_port (internal)
-Mode: TCP Bastion (direct TCP proxy)
+Mode: Web-based SSH Terminal (ttyd)
 
-CONNECT FROM TERMUX:
+CONNECT FROM ANY DEVICE:
 
-Step 1: Install packages
-  pkg install cloudflared openssh -y
+Open in browser: https://$domain
 
-Step 2: Start local tunnel proxy
-  cloudflared access tcp --hostname $domain --url localhost:2222
+Works on:
+  • Phone (any browser)
+  • Tablet
+  • PC/Mac
+  • Chromebook
+  • Anything with a web browser!
 
-Step 3: In NEW session, connect
-  ssh root@localhost -p 2222
+No apps or SSH client needed!
 
-One-line method:
-  ssh -o ProxyCommand='cloudflared access tcp --hostname $domain' root@anything
+MANAGE SERVICES:
 
-MANAGE SERVER TUNNEL:
+Web Terminal:
+  systemctl start ttyd-ssh
+  systemctl stop ttyd-ssh
+  systemctl status ttyd-ssh
+
+Cloudflare Tunnel:
   systemctl start cloudflared-ssh
   systemctl stop cloudflared-ssh
   systemctl status cloudflared-ssh
-  systemctl restart cloudflared-ssh
 
 Created: $(date)
 EOF
