@@ -456,14 +456,14 @@ Press OK to exit..." 8 50
     # Create config directory
     mkdir -p "$TUNNEL_DIR"
     
-    # Create tunnel configuration
+    # Create tunnel configuration using TCP proxy (bastion mode)
     cat > "$TUNNEL_CONFIG" <<EOF
 tunnel: $tunnel_id
 credentials-file: /root/.cloudflared/$tunnel_id.json
 
 ingress:
   - hostname: $domain
-    service: ssh://localhost:$ssh_port
+    service: tcp://localhost:$ssh_port
   - service: http_status:404
 EOF
     
@@ -667,17 +667,26 @@ show_connection_instructions() {
     fi
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  CONNECT FROM TERMUX:"
+    echo "  CONNECT FROM TERMUX (TCP Bastion Mode):"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "  1. Install OpenSSH in Termux:"
-    echo "     pkg install openssh"
+    echo "  STEP 1: Install packages"
+    echo "  ────────────────────────"
+    echo "  pkg install cloudflared openssh -y"
     echo ""
-    echo "  2. Connect directly (tunnel handles routing):"
-    echo "     ssh root@$domain"
+    echo "  STEP 2: Start local tunnel proxy"
+    echo "  ─────────────────────────────────"
+    echo "  cloudflared access tcp --hostname $domain --url localhost:2222"
     echo ""
-    echo "  Note: The tunnel is publicly accessible via DNS."
-    echo "        Make sure you have a strong SSH password!"
+    echo "  STEP 3: In a NEW Termux session, connect via SSH"
+    echo "  ─────────────────────────────────────────────────"
+    echo "  ssh root@localhost -p 2222"
+    echo ""
+    echo "  OR use one command (ProxyCommand):"
+    echo "  ──────────────────────────────────"
+    echo "  ssh -o ProxyCommand='cloudflared access tcp --hostname $domain' root@anything"
+    echo ""
+    echo "  Note: TCP bastion mode = direct TCP proxy through Cloudflare"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  BENEFITS:"
@@ -702,19 +711,28 @@ show_connection_instructions() {
     
     # Save to file for later reference
     cat > "$TUNNEL_DIR/connection-info.txt" <<EOF
-SSH TUNNEL CONNECTION INFORMATION
+SSH TUNNEL CONNECTION INFORMATION (TCP Bastion Mode)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Domain: $domain
 Server SSH Port: $ssh_port (internal)
+Mode: TCP Bastion (direct TCP proxy)
 
 CONNECT FROM TERMUX:
-  1. Install OpenSSH: pkg install openssh
-  2. Connect: ssh root@$domain
 
-Note: Tunnel is publicly accessible. Use strong SSH password!
+Step 1: Install packages
+  pkg install cloudflared openssh -y
 
-MANAGE TUNNEL:
+Step 2: Start local tunnel proxy
+  cloudflared access tcp --hostname $domain --url localhost:2222
+
+Step 3: In NEW session, connect
+  ssh root@localhost -p 2222
+
+One-line method:
+  ssh -o ProxyCommand='cloudflared access tcp --hostname $domain' root@anything
+
+MANAGE SERVER TUNNEL:
   systemctl start cloudflared-ssh
   systemctl stop cloudflared-ssh
   systemctl status cloudflared-ssh
