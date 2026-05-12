@@ -1,0 +1,1897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Enhanced SSH Terminal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1e1e1e;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            box-shadow: 
+                0 4px 12px rgba(102, 126, 234, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toolbar.no-shadows {
+            box-shadow: none;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .toolbar-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toolbar-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .toolbar-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .device-badge {
+            background: rgba(0, 0, 0, 0.4);
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Terminal Container */
+        .terminal-container {
+            height: calc(100vh - 60px);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.3),
+                0 1px 8px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .terminal-container.no-shadows {
+            box-shadow: none;
+        }
+
+        .terminal-container.floating {
+            position: fixed;
+            top: 100px;
+            left: 100px;
+            width: 800px;
+            height: 600px;
+            z-index: 9998;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.1);
+            resize: both;
+            overflow: auto;
+            animation: floatIn 0.3s ease;
+        }
+
+        @keyframes floatIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .terminal-container.floating.minimized {
+            height: 42px !important;
+            overflow: hidden;
+            animation: minimizeAnim 0.2s ease;
+        }
+
+        @keyframes minimizeAnim {
+            from {
+                height: 600px;
+            }
+            to {
+                height: 42px;
+            }
+        }
+
+        .terminal-container.floating .terminal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px 15px;
+            cursor: move;
+            border-radius: 10px 10px 0 0;
+            user-select: none;
+        }
+
+        .terminal-header-title {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .terminal-header-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .terminal-control-btn {
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .terminal-control-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .terminal-control-btn.close { 
+            background: rgba(239, 68, 68, 0.3);
+        }
+        .terminal-control-btn.close:hover { 
+            background: rgba(239, 68, 68, 0.5);
+        }
+        .terminal-control-btn.minimize { 
+            background: rgba(251, 191, 36, 0.3);
+        }
+        .terminal-control-btn.minimize:hover { 
+            background: rgba(251, 191, 36, 0.5);
+        }
+        .terminal-control-btn.maximize { 
+            background: rgba(34, 197, 94, 0.3);
+        }
+        .terminal-control-btn.maximize:hover { 
+            background: rgba(34, 197, 94, 0.5);
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            transform-origin: center center;
+            transition: transform 0.3s ease;
+        }
+
+        .terminal-container.floating iframe {
+            height: calc(100% - 42px);
+            border-radius: 0 0 10px 10px;
+        }
+
+        /* Overlay for capturing right-clicks on iframe */
+        .iframe-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 999;
+            pointer-events: auto;
+            transition: background 0.3s ease;
+        }
+
+        .iframe-overlay.active {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Hide overlay when not needed */
+        .iframe-overlay.hidden {
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        /* Click ripple effect */
+        @keyframes ripple {
+            0% {
+                transform: scale(0);
+                opacity: 0.6;
+            }
+            100% {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .ripple-effect {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(102, 126, 234, 0.5);
+            width: 20px;
+            height: 20px;
+            animation: ripple 0.6s ease-out;
+            pointer-events: none;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: #2d2d2d;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            padding: 8px 0;
+            min-width: 200px;
+            z-index: 10000;
+            display: none;
+            animation: menuSlideIn 0.2s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        @keyframes menuSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+        }
+
+        .context-menu-item {
+            padding: 10px 20px;
+            color: #e0e0e0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .context-menu-item:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .context-menu-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: #3d3d3d;
+            margin: 4px 0;
+        }
+
+        /* Settings Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: #2d2d2d;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            animation: modalFadeIn 0.3s ease;
+            position: relative;
+        }
+
+        /* Custom scrollbar for modals */
+        .modal-content::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: #1e1e1e;
+            border-radius: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        /* Floating terminal scrollbar */
+        .terminal-container.floating::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        .terminal-container.floating::-webkit-scrollbar-track {
+            background: #1e1e1e;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .terminal-container.floating::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            border: 2px solid #1e1e1e;
+        }
+
+        .terminal-container.floating::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .modal-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #EF4444;
+            color: #FCA5A5;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 18px;
+            border: none;
+        }
+
+        .modal-close-btn:hover {
+            background: #EF4444;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #b0b0b0;
+            font-size: 14px;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 10px;
+            background: #1e1e1e;
+            border: 1px solid #3d3d3d;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.active {
+            border: 2px solid white;
+            transform: scale(1.1);
+        }
+
+        .snippet-card {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .snippet-card:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .snippet-card code {
+            display: block;
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+
+        .close-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        *::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        *::-webkit-scrollbar-track {
+            background: #1e1e1e;
+            border-radius: 10px;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            border: 2px solid #1e1e1e;
+        }
+
+        *::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        /* Command palette scrollbar */
+        .command-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Snippets panel scrollbar */
+        .snippet-grid {
+            max-height: 60vh;
+            overflow-y: auto;
+            transform: translateY(-2px);
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .toolbar {
+                padding: 10px 15px;
+                flex-wrap: wrap;
+            }
+
+            .toolbar-left {
+                flex: 1;
+                min-width: 200px;
+            }
+
+            .toolbar-title {
+                font-size: 14px;
+            }
+
+            .toolbar-title span:last-child {
+                display: none;
+            }
+
+            .device-badge {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+
+            .toolbar-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .btn-text {
+                display: none;
+            }
+
+            .modal-content {
+                margin: 20px;
+                padding: 20px;
+                max-width: 90%;
+            }
+
+            .context-menu {
+                min-width: 180px;
+            }
+
+            .terminal-container {
+                height: calc(100vh - 50px);
+            }
+
+            /* Better touch targets for mobile */
+            .toolbar-btn {
+                min-width: 44px;
+                min-height: 44px;
+                padding: 10px 12px;
+            }
+
+            .context-menu-item {
+                padding: 15px 20px;
+                font-size: 16px;
+            }
+
+            .modal-close-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 20px;
+            }
+
+            .close-btn {
+                padding: 15px 30px;
+                font-size: 16px;
+                min-height: 48px;
+            }
+
+            /* Mobile scrollbar styling */
+            *::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+
+            /* Larger tap targets for snippets */
+            .snippet-card {
+                padding: 20px;
+                min-height: 80px;
+            }
+
+            /* Command palette mobile */
+            .command-list {
+                max-height: 50vh;
+            }
+
+            .terminal-container {
+                height: calc(100vh - 45px);
+            }
+        }
+
+        /* Tablet Optimizations */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .toolbar-title {
+                font-size: 16px;
+            }
+
+            .device-badge {
+                font-size: 12px;
+            }
+        }
+
+        /* Mobile landscape */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .toolbar {
+                padding: 6px 10px;
+            }
+
+            .terminal-container {
+                height: calc(100vh - 45px);
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="toolbar-title">
+                <span>🖥️</span>
+                <span>Enhanced SSH Terminal</span>
+            </div>
+            <div class="device-badge" id="device-indicator">
+                <i class="fas fa-desktop"></i> Desktop
+            </div>
+        </div>
+        <div class="toolbar-right">
+            <button class="toolbar-btn" onclick="toggleSnippets()" title="Quick Snippets (Ctrl+K)">
+                <i class="fas fa-bolt"></i><span class="btn-text">Snippets</span>
+            </button>
+            <button class="toolbar-btn" onclick="openCommandPalette()" title="Command Palette (Ctrl+Shift+P)">
+                <i class="fas fa-terminal"></i><span class="btn-text">Commands</span>
+            </button>
+            <button class="toolbar-btn" onclick="openSettings()" title="Settings">
+                <i class="fas fa-cog"></i><span class="btn-text">Settings</span>
+            </button>
+            <button class="toolbar-btn" onclick="toggleFloating()" id="floatBtn" title="Pop Out Terminal">
+                <i class="fas fa-window-restore"></i><span class="btn-text">Pop Out</span>
+            </button>
+            <button class="toolbar-btn" onclick="zoomIn()">
+                <span>🔍+</span>
+            </button>
+            <button class="toolbar-btn" onclick="zoomOut()">
+                <span>🔍-</span>
+            </button>
+            <button class="toolbar-btn" onclick="resetZoom()">
+                <span>↺</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Terminal Container -->
+    <div class="terminal-container">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Loading terminal...</div>
+        </div>
+        <div class="iframe-overlay" id="iframeOverlay"></div>
+        <iframe id="terminal-frame" src="/terminal/"></iframe>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" onclick="copyText()">
+            <span>📋</span>
+            <span>Copy</span>
+        </div>
+        <div class="context-menu-item" onclick="pasteText()">
+            <span>📄</span>
+            <span>Paste</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="selectAll()">
+            <span>🔲</span>
+            <span>Select All</span>
+        </div>
+        <div class="context-menu-item" onclick="clearSelection()">
+            <span>✖️</span>
+            <span>Clear Selection</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="clearTerminal()">
+            <span>🗑️</span>
+            <span>Clear Terminal</span>
+        </div>
+        <div class="context-menu-item" onclick="openSettings()">
+            <span>⚙️</span>
+            <span>Settings</span>
+        </div>
+    </div>
+
+    <!-- Command Palette (Ctrl+Shift+P) -->
+    <div class="modal" id="commandPalette" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <span>⌘</span>
+                    <span>Command Palette</span>
+                </div>
+                <button class="modal-close-btn" onclick="closeCommandPalette()" title="Close (Esc)">✕</button>
+            </div>
+            <input type="text" id="commandSearch" placeholder="Type a command..." 
+                   style="width: 100%; padding: 12px; background: #1e1e1e; border: 1px solid #3d3d3d; 
+                          border-radius: 6px; color: white; font-size: 14px; margin-bottom: 15px;"
+                   oninput="filterCommands(this.value)">
+            <div id="commandList" style="max-height: 400px; overflow-y: auto;">
+                <!-- Commands will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Autocomplete Suggestions -->
+    <div id="autocomplete" style="display: none; position: fixed; background: #2d2d2d; 
+         border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); padding: 8px; 
+         max-width: 400px; z-index: 9999; border: 1px solid rgba(255,255,255,0.1);">
+        <div id="autocompleteList"></div>
+    </div>
+
+    <!-- Quick Snippets Panel -->
+    <div class="modal" id="snippetsPanel" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <span>⚡</span>
+                    <span>Quick Command Snippets</span>
+                </div>
+                <button class="modal-close-btn" onclick="toggleSnippets()" title="Close">✕</button>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div class="snippet-card" onclick="copySnippet('systemctl status nginx')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">📊 Check Nginx Status</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">systemctl status nginx</code>
+                </div>
+                <div class="snippet-card" onclick="copySnippet('tail -f /var/log/nginx/error.log')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">📜 Watch Nginx Logs</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">tail -f /var/log/nginx/error.log</code>
+                </div>
+                <div class="snippet-card" onclick="copySnippet('docker ps -a')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">🐳 List All Containers</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">docker ps -a</code>
+                </div>
+                <div class="snippet-card" onclick="copySnippet('git status && git log --oneline -5')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">📝 Git Status & Recent Commits</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">git status && git log --oneline -5</code>
+                </div>
+                <div class="snippet-card" onclick="copySnippet('df -h')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">💾 Disk Usage</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">df -h</code>
+                </div>
+                <div class="snippet-card" onclick="copySnippet('htop')">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 5px;">⚡ System Monitor</div>
+                    <code style="font-size: 12px; color: #b0b0b0;">htop</code>
+                </div>
+            </div>
+            <button class="close-btn" onclick="toggleSnippets()" style="margin-top: 20px;">Close</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <span>⚙️</span>
+                    <span>Terminal Settings</span>
+                </div>
+                <button class="modal-close-btn" onclick="closeSettings()" title="Close">✕</button>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Font Size</label>
+                <input type="range" class="setting-input" min="10" max="24" value="16" id="fontSize" oninput="updateFontSize(this.value)">
+                <span id="fontSizeValue" style="color: #667eea;">16px</span>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Theme Color</label>
+                <div class="color-picker">
+                    <div class="color-option active" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);" onclick="setTheme('#667eea', '#764ba2')" title="Purple Gradient"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);" onclick="setTheme('#f093fb', '#f5576c')" title="Pink Sunset"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);" onclick="setTheme('#4facfe', '#00f2fe')" title="Ocean Blue"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);" onclick="setTheme('#43e97b', '#38f9d7')" title="Mint Green"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);" onclick="setTheme('#fa709a', '#fee140')" title="Warm Sunset"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #feca57 0%, #ff6b6b 100%);" onclick="setTheme('#feca57', '#ff6b6b')" title="Fire"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);" onclick="setTheme('#a8edea', '#fed6e3')" title="Pastel Dream"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);" onclick="setTheme('#ff9a9e', '#fecfef')" title="Cotton Candy"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);" onclick="setTheme('#ffecd2', '#fcb69f')" title="Peach"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);" onclick="setTheme('#a1c4fd', '#c2e9fb')" title="Sky Blue"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%);" onclick="setTheme('#d299c2', '#fef9d7')" title="Lavender"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);" onclick="setTheme('#89f7fe', '#66a6ff')" title="Ice Blue"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #fddb92 0%, #d1fdff 100%);" onclick="setTheme('#fddb92', '#d1fdff')" title="Lemon"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #9890e3 0%, #b1f4cf 100%);" onclick="setTheme('#9890e3', '#b1f4cf')" title="Aurora"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #ebc0fd 0%, #d9ded8 100%);" onclick="setTheme('#ebc0fd', '#d9ded8')" title="Mystic"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #96fbc4 0%, #f9f586 100%);" onclick="setTheme('#96fbc4', '#f9f586')" title="Spring"></div>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Zoom Level</label>
+                <input type="range" class="setting-input" min="50" max="150" value="100" id="zoomLevel" oninput="updateZoom(this.value)">
+                <span id="zoomValue" style="color: #667eea;">100%</span>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Cursor Style</label>
+                <select class="setting-input" id="cursorStyle" onchange="updateCursorStyle(this.value)">
+                    <option value="block">Block</option>
+                    <option value="underline">Underline</option>
+                    <option value="bar">Bar</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Enable Autocomplete</label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="enableAutocomplete" checked 
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="color: #b0b0b0;">Show command suggestions</span>
+                </label>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Enable Typing Sounds</label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="enableSounds" 
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="color: #b0b0b0;">Keyboard click sounds</span>
+                </label>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Cursor Blink</label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="cursorBlink" checked 
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="color: #b0b0b0;">Blinking cursor</span>
+                </label>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Font Family</label>
+                <select class="setting-input" id="fontFamily" onchange="updateFontFamily(this.value)">
+                    <option value="'Fira Code', monospace">Fira Code</option>
+                    <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+                    <option value="'Cascadia Code', monospace">Cascadia Code</option>
+                    <option value="'Source Code Pro', monospace">Source Code Pro</option>
+                    <option value="'Consolas', monospace">Consolas</option>
+                    <option value="'Monaco', monospace">Monaco</option>
+                    <option value="'Courier New', monospace">Courier New</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Line Height</label>
+                <input type="range" class="setting-input" min="1.0" max="2.0" step="0.1" value="1.5" id="lineHeight" oninput="updateLineHeight(this.value)">
+                <span id="lineHeightValue" style="color: #667eea;">1.5</span>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Enable Shadows</label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="enableShadows" checked 
+                           style="width: 20px; height: 20px; cursor: pointer;" onchange="toggleShadows(this.checked)">
+                    <span style="color: #b0b0b0;">IDE-style depth shadows</span>
+                </label>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Smooth Scrolling</label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="smoothScroll" checked 
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="color: #b0b0b0;">Smooth scroll behavior</span>
+                </label>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="close-btn" style="flex: 1; background: #10B981;" onclick="saveSettings()">
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+                <button class="close-btn" style="flex: 1;" onclick="closeSettings()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentZoom = 100;
+        let currentTheme = '#667eea';
+        let isFloating = false;
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        let audioInitialized = false;
+        
+        // Typing sound (soft click)
+        const typingSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGi78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy2os7ChJcsejsq1gVCEaf4fK+bCAFLILP89mJNgcYabvw5JxODA5QpeHwt2McBTuT2fTJeSkFKH7M8tqLOwoSXLHo7KtYFQhGn+HyvmwgBSyCz/PZiTYHGGm78OScTgwOUKXh8LdjHAU7k9n0yXkpBSh+zPLaizsKElyx6OyrWBUIRp/h8r5sIAUsgs/z2Yk2Bxhpu/DknE4MDlCl4fC3YxwFO5PZ9Ml5KQUofszy');
+        
+        // Initialize audio on first user interaction
+        function initAudio() {
+            if (!audioInitialized) {
+                typingSound.load();
+                audioInitialized = true;
+            }
+        }
+
+        // Common terminal commands for autocomplete
+        const commonCommands = [
+            { cmd: 'ls -la', desc: 'List all files with details' },
+            { cmd: 'cd ', desc: 'Change directory' },
+            { cmd: 'mkdir ', desc: 'Create directory' },
+            { cmd: 'rm -rf ', desc: 'Remove directory recursively' },
+            { cmd: 'systemctl status ', desc: 'Check service status' },
+            { cmd: 'systemctl restart ', desc: 'Restart service' },
+            { cmd: 'docker ps', desc: 'List running containers' },
+            { cmd: 'docker logs ', desc: 'View container logs' },
+            { cmd: 'git status', desc: 'Check git status' },
+            { cmd: 'git commit -m ""', desc: 'Commit changes' },
+            { cmd: 'git push origin main', desc: 'Push to main branch' },
+            { cmd: 'npm install', desc: 'Install npm packages' },
+            { cmd: 'npm start', desc: 'Start npm project' },
+            { cmd: 'sudo apt update', desc: 'Update package list' },
+            { cmd: 'sudo apt upgrade', desc: 'Upgrade packages' },
+            { cmd: 'tail -f ', desc: 'Follow log file' },
+            { cmd: 'grep -r "" .', desc: 'Search in files' },
+            { cmd: 'find . -name ""', desc: 'Find files by name' },
+            { cmd: 'chmod +x ', desc: 'Make file executable' },
+            { cmd: 'chown -R user:group ', desc: 'Change ownership' }
+        ];
+
+        // Command palette actions
+        const paletteCommands = [
+            { name: 'Open Settings', icon: '⚙️', action: () => openSettings() },
+            { name: 'Clear Terminal', icon: '🗑️', action: () => clearTerminal() },
+            { name: 'Zoom In', icon: '🔍+', action: () => zoomIn() },
+            { name: 'Zoom Out', icon: '🔍-', action: () => zoomOut() },
+            { name: 'Reset Zoom', icon: '↺', action: () => resetZoom() },
+            { name: 'Copy', icon: '📋', action: () => copyText() },
+            { name: 'Paste', icon: '📄', action: () => pasteText() },
+            { name: 'Select All', icon: '🔲', action: () => selectAll() }
+        ];
+
+        // Context Menu - Show on right-click anywhere on page
+        document.addEventListener('contextmenu', (e) => {
+            // Allow default context menu on input fields
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const menu = document.getElementById('contextMenu');
+            const overlay = document.getElementById('iframeOverlay');
+            
+            menu.style.display = 'block';
+            overlay.classList.add('active');
+            
+            // Position menu, but keep it on screen
+            let x = e.pageX;
+            let y = e.pageY;
+            
+            // Check if menu would go off screen
+            const menuRect = menu.getBoundingClientRect();
+            if (x + menuRect.width > window.innerWidth) {
+                x = window.innerWidth - menuRect.width - 10;
+            }
+            if (y + menuRect.height > window.innerHeight) {
+                y = window.innerHeight - menuRect.height - 10;
+            }
+            
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+        });
+
+        // Enable overlay right-click - keep it always active
+        const iframeOverlay = document.getElementById('iframeOverlay');
+        iframeOverlay.classList.remove('hidden');
+        
+        // Prevent default context menu on overlay
+        iframeOverlay.addEventListener('click', (e) => {
+            // Allow clicks to pass through when context menu is not open
+            const menu = document.getElementById('contextMenu');
+            if (menu.style.display !== 'block') {
+                e.stopPropagation();
+            }
+        });
+        
+        iframeOverlay.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const menu = document.getElementById('contextMenu');
+            const overlay = document.getElementById('iframeOverlay');
+            
+            menu.style.display = 'block';
+            overlay.classList.add('active');
+            overlay.classList.remove('hidden');
+            
+            // Add ripple effect at right-click location
+            createRipple(e);
+            
+            let x = e.pageX;
+            let y = e.pageY;
+            
+            const menuRect = menu.getBoundingClientRect();
+            if (x + menuRect.width > window.innerWidth) {
+                x = window.innerWidth - menuRect.width - 10;
+            }
+            if (y + menuRect.height > window.innerHeight) {
+                y = window.innerHeight - menuRect.height - 10;
+            }
+            
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+        });
+
+        // Close context menu on any click
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('contextMenu');
+            const overlay = document.getElementById('iframeOverlay');
+            if (!menu.contains(e.target)) {
+                menu.style.display = 'none';
+                overlay.classList.remove('active');
+                // Don't hide overlay, keep it active for next right-click
+            }
+        });
+
+        // Close context menu on scroll
+        document.addEventListener('scroll', () => {
+            document.getElementById('contextMenu').style.display = 'none';
+        });
+
+        // Settings Modal
+        function openSettings() {
+            document.getElementById('settingsModal').style.display = 'block';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function saveSettings() {
+            // Save settings to localStorage
+            const settings = {
+                zoom: currentZoom,
+                theme: currentTheme,
+                fontSize: document.getElementById('fontSize').value,
+                cursorStyle: document.getElementById('cursorStyle').value,
+                enableAutocomplete: document.getElementById('enableAutocomplete').checked,
+                enableSounds: document.getElementById('enableSounds').checked,
+                cursorBlink: document.getElementById('cursorBlink').checked,
+                fontFamily: document.getElementById('fontFamily').value,
+                lineHeight: document.getElementById('lineHeight').value,
+                enableShadows: document.getElementById('enableShadows').checked,
+                smoothScroll: document.getElementById('smoothScroll').checked
+            };
+            localStorage.setItem('terminalSettings', JSON.stringify(settings));
+            
+            // Show success notification
+            showNotification('✓ Settings saved successfully!', 'success');
+            
+            // Close settings after short delay
+            setTimeout(() => {
+                closeSettings();
+            }, 1000);
+        }
+
+        // Load saved settings on page load
+        function loadSettings() {
+            const saved = localStorage.getItem('terminalSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                if (settings.zoom) {
+                    currentZoom = settings.zoom;
+                    updateZoom(settings.zoom);
+                }
+                if (settings.theme) {
+                    currentTheme = settings.theme;
+                    setTheme(settings.theme);
+                }
+                if (settings.fontSize) {
+                    document.getElementById('fontSize').value = settings.fontSize;
+                    updateFontSize(settings.fontSize);
+                }
+                if (settings.cursorStyle) {
+                    document.getElementById('cursorStyle').value = settings.cursorStyle;
+                }
+                if (settings.enableAutocomplete !== undefined) {
+                    document.getElementById('enableAutocomplete').checked = settings.enableAutocomplete;
+                }
+                if (settings.enableSounds !== undefined) {
+                    document.getElementById('enableSounds').checked = settings.enableSounds;
+                }
+                if (settings.cursorBlink !== undefined) {
+                    document.getElementById('cursorBlink').checked = settings.cursorBlink;
+                }
+                if (settings.fontFamily) {
+                    document.getElementById('fontFamily').value = settings.fontFamily;
+                    updateFontFamily(settings.fontFamily);
+                }
+                if (settings.lineHeight) {
+                    document.getElementById('lineHeight').value = settings.lineHeight;
+                    updateLineHeight(settings.lineHeight);
+                }
+                if (settings.enableShadows !== undefined) {
+                    document.getElementById('enableShadows').checked = settings.enableShadows;
+                    toggleShadows(settings.enableShadows);
+                }
+                if (settings.smoothScroll !== undefined) {
+                    document.getElementById('smoothScroll').checked = settings.smoothScroll;
+                    document.documentElement.style.scrollBehavior = settings.smoothScroll ? 'smooth' : 'auto';
+                }
+            }
+        }
+
+        // Zoom Functions
+        function zoomIn() {
+            currentZoom = Math.min(150, currentZoom + 10);
+            updateZoom(currentZoom);
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(50, currentZoom - 10);
+            updateZoom(currentZoom);
+        }
+
+        function resetZoom() {
+            currentZoom = 100;
+            updateZoom(100);
+        }
+
+        function updateZoom(value) {
+            currentZoom = value;
+            const iframe = document.getElementById('terminal-frame');
+            const container = document.querySelector('.terminal-container');
+            const scale = value / 100;
+            
+            // Use CSS transform with transform-origin to keep content centered
+            iframe.style.transform = `scale(${scale})`;
+            iframe.style.transformOrigin = 'top left';
+            iframe.style.width = `${100 / scale}%`;
+            iframe.style.height = `${100 / scale}%`;
+            
+            // Enable scrolling if zoomed in
+            if (scale > 1) {
+                container.style.overflow = 'auto';
+            } else {
+                container.style.overflow = 'hidden';
+            }
+            
+            // Update UI
+            const zoomLevelInput = document.getElementById('zoomLevel');
+            const zoomValueSpan = document.getElementById('zoomValue');
+            if (zoomLevelInput) zoomLevelInput.value = value;
+            if (zoomValueSpan) zoomValueSpan.textContent = value + '%';
+        }
+
+        // Font Size
+        function updateFontSize(value) {
+            document.getElementById('fontSizeValue').textContent = value + 'px';
+            const iframe = document.getElementById('terminal-frame');
+            const currentSrc = iframe.src.split('?')[0];
+            iframe.src = `${currentSrc}?fontSize=${value}`;
+        }
+
+        // Theme
+        function setTheme(color1, color2) {
+            currentTheme = color1;
+            const toolbar = document.querySelector('.toolbar');
+            const header = document.querySelector('.terminal-header');
+            
+            // Apply gradient to toolbar
+            toolbar.style.background = `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`;
+            
+            // Apply to floating header if exists
+            if (header) {
+                header.style.background = `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`;
+            }
+            
+            // Update active state
+            document.querySelectorAll('.color-option').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function adjustColor(color, percent) {
+            const num = parseInt(color.replace("#",""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 +
+                (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255))
+                .toString(16).slice(1);
+        }
+
+        // Context Menu Actions
+        function copyText() {
+            document.execCommand('copy');
+        }
+
+        function pasteText() {
+            navigator.clipboard.readText().then(text => {
+                // Send to terminal
+                console.log('Paste:', text);
+            });
+        }
+
+        function selectAll() {
+            document.execCommand('selectAll');
+        }
+
+        function clearSelection() {
+            window.getSelection().removeAllRanges();
+        }
+
+        function clearTerminal() {
+            // Send Ctrl+L to terminal
+            const frame = document.getElementById('terminal-frame');
+            frame.contentWindow.postMessage({type: 'clear'}, '*');
+        }
+
+        // Device Detection
+        function detectDevice() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isMobile = /mobile|android|iphone|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+            const isTablet = /ipad|android(?!.*mobile)|tablet/i.test(userAgent);
+            
+            const deviceIndicator = document.getElementById('device-indicator');
+            
+            if (isMobile && !isTablet) {
+                deviceIndicator.innerHTML = '<i class="fas fa-mobile-alt"></i> Mobile';
+                deviceIndicator.style.background = 'rgba(16, 185, 129, 0.2)';
+                deviceIndicator.style.color = '#10B981';
+                document.body.classList.add('mobile-device');
+            } else if (isTablet) {
+                deviceIndicator.innerHTML = '<i class="fas fa-tablet-alt"></i> Tablet';
+                deviceIndicator.style.background = 'rgba(139, 92, 246, 0.2)';
+                deviceIndicator.style.color = '#8B5CF6';
+                document.body.classList.add('tablet-device');
+            } else {
+                deviceIndicator.innerHTML = '<i class="fas fa-desktop"></i> Desktop';
+                deviceIndicator.style.background = 'rgba(59, 130, 246, 0.2)';
+                deviceIndicator.style.color = '#3B82F6';
+                document.body.classList.add('desktop-device');
+            }
+        }
+
+        // Keyboard Shortcuts (VS Code style)
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+P or Cmd+Shift+P - Command Palette
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
+                e.preventDefault();
+                toggleCommandPalette();
+            }
+            
+            // Ctrl+, or Cmd+, - Settings
+            if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+                e.preventDefault();
+                openSettings();
+            }
+            
+            // Ctrl+= or Cmd+= - Zoom In
+            if ((e.ctrlKey || e.metaKey) && e.key === '=') {
+                e.preventDefault();
+                zoomIn();
+            }
+            
+            // Ctrl+- or Cmd+- - Zoom Out
+            if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+                e.preventDefault();
+                zoomOut();
+            }
+            
+            // Ctrl+0 or Cmd+0 - Reset Zoom
+            if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+                e.preventDefault();
+                resetZoom();
+            }
+            
+            // Escape - Close modals
+            if (e.key === 'Escape') {
+                closeCommandPalette();
+                closeSettings();
+            }
+        });
+
+        // Command Palette Functions
+        function toggleCommandPalette() {
+            const palette = document.getElementById('commandPalette');
+            if (palette.style.display === 'none') {
+                palette.style.display = 'block';
+                document.getElementById('commandSearch').focus();
+                populateCommands();
+            } else {
+                closeCommandPalette();
+            }
+        }
+
+        function closeCommandPalette() {
+            document.getElementById('commandPalette').style.display = 'none';
+            document.getElementById('commandSearch').value = '';
+        }
+
+        function populateCommands(filter = '') {
+            const list = document.getElementById('commandList');
+            const filtered = paletteCommands.filter(cmd => 
+                cmd.name.toLowerCase().includes(filter.toLowerCase())
+            );
+            
+            list.innerHTML = filtered.map(cmd => `
+                <div onclick="executeCommand('${cmd.name}')" 
+                     style="padding: 12px; cursor: pointer; border-radius: 6px; 
+                            display: flex; align-items: center; gap: 12px; 
+                            transition: all 0.2s ease; color: #e0e0e0;"
+                     onmouseover="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'"
+                     onmouseout="this.style.background='transparent'">
+                    <span style="font-size: 20px;">${cmd.icon}</span>
+                    <span>${cmd.name}</span>
+                </div>
+            `).join('');
+        }
+
+        function filterCommands(value) {
+            populateCommands(value);
+        }
+
+        function executeCommand(cmdName) {
+            const cmd = paletteCommands.find(c => c.name === cmdName);
+            if (cmd && cmd.action) {
+                cmd.action();
+                closeCommandPalette();
+            }
+        }
+
+        // Update cursor style
+        function updateCursorStyle(style) {
+            // This would need to be passed to ttyd
+            console.log('Cursor style:', style);
+        }
+
+        // Update font family
+        function updateFontFamily(font) {
+            document.body.style.fontFamily = font;
+        }
+
+        // Update line height
+        function updateLineHeight(value) {
+            document.getElementById('lineHeightValue').textContent = value;
+            document.body.style.lineHeight = value;
+        }
+
+        // Toggle shadows
+        function toggleShadows(enabled) {
+            const toolbar = document.querySelector('.toolbar');
+            const container = document.querySelector('.terminal-container');
+            
+            if (enabled) {
+                toolbar.classList.remove('no-shadows');
+                container.classList.remove('no-shadows');
+            } else {
+                toolbar.classList.add('no-shadows');
+                container.classList.add('no-shadows');
+            }
+        }
+
+        // Floating Terminal Functions
+        function toggleFloating() {
+            // Disable on mobile devices
+            if (window.innerWidth < 768) {
+                alert('Pop-out mode is not available on mobile devices. Use pinch to zoom instead!');
+                return;
+            }
+            
+            const container = document.querySelector('.terminal-container');
+            const toolbar = document.querySelector('.toolbar');
+            const floatBtn = document.getElementById('floatBtn');
+            
+            isFloating = !isFloating;
+            
+            if (isFloating) {
+                // Store current iframe
+                const iframe = container.querySelector('iframe');
+                const loading = container.querySelector('.loading');
+                
+                container.classList.add('floating');
+                container.innerHTML = `
+                    <div class="terminal-header" id="terminalHeader">
+                        <div class="terminal-header-title"><i class="fas fa-terminal"></i> SSH Terminal</div>
+                        <div class="terminal-header-controls">
+                            <button class="terminal-control-btn" onclick="zoomOut()" title="Zoom Out">
+                                <i class="fas fa-search-minus"></i>
+                            </button>
+                            <button class="terminal-control-btn" onclick="zoomIn()" title="Zoom In">
+                                <i class="fas fa-search-plus"></i>
+                            </button>
+                            <button class="terminal-control-btn" onclick="resetZoom()" title="Reset Zoom">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                            <button class="terminal-control-btn" onclick="openSettings()" title="Customize">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <button class="terminal-control-btn minimize" onclick="minimizeTerminal()" title="Minimize">
+                                <i class="fas fa-window-minimize"></i>
+                            </button>
+                            <button class="terminal-control-btn maximize" onclick="maximizeTerminal()" title="Maximize">
+                                <i class="fas fa-window-maximize"></i>
+                            </button>
+                            <button class="terminal-control-btn close" onclick="toggleFloating()" title="Dock Terminal">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="resize-handle right" id="resizeRight"></div>
+                    <div class="resize-handle bottom" id="resizeBottom"></div>
+                    <div class="resize-handle corner" id="resizeCorner"></div>
+                `;
+                
+                // Re-add iframe and loading
+                if (loading) container.appendChild(loading);
+                if (iframe) container.appendChild(iframe);
+                
+                floatBtn.innerHTML = '<span>📌</span><span class="btn-text">Dock</span>';
+                makeDraggable();
+                makeResizable();
+            } else {
+                // Store iframe before removing header
+                const iframe = container.querySelector('iframe');
+                const loading = container.querySelector('.loading');
+                
+                container.classList.remove('floating');
+                const header = container.querySelector('.terminal-header');
+                if (header) header.remove();
+                
+                // Reset to full size
+                container.style.width = '';
+                container.style.height = '';
+                container.style.left = '';
+                container.style.top = '';
+                container.style.position = '';
+                
+                // Reset zoom when docking
+                resetZoom();
+                
+                // Re-add iframe and loading
+                if (loading) container.appendChild(loading);
+                if (iframe) container.appendChild(iframe);
+                
+                floatBtn.innerHTML = '<span>🪟</span><span class="btn-text">Pop Out</span>';
+            }
+        }
+
+        function makeDraggable() {
+            const header = document.getElementById('terminalHeader');
+            const container = document.querySelector('.terminal-container');
+            
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.terminal-control-btn')) return;
+                isDragging = true;
+                dragOffset.x = e.clientX - container.offsetLeft;
+                dragOffset.y = e.clientY - container.offsetTop;
+                container.style.cursor = 'grabbing';
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    container.style.left = (e.clientX - dragOffset.x) + 'px';
+                    container.style.top = (e.clientY - dragOffset.y) + 'px';
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                if (header) header.style.cursor = 'move';
+            });
+        }
+
+        function makeResizable() {
+            const container = document.querySelector('.terminal-container');
+            const rightHandle = document.getElementById('resizeRight');
+            const bottomHandle = document.getElementById('resizeBottom');
+            const cornerHandle = document.getElementById('resizeCorner');
+            
+            let isResizing = false;
+            let resizeType = '';
+            let startX, startY, startWidth, startHeight;
+            
+            const startResize = (e, type) => {
+                isResizing = true;
+                resizeType = type;
+                startX = e.clientX;
+                startY = e.clientY;
+                startWidth = parseInt(container.style.width || container.offsetWidth);
+                startHeight = parseInt(container.style.height || container.offsetHeight);
+                e.preventDefault();
+            };
+            
+            if (rightHandle) {
+                rightHandle.addEventListener('mousedown', (e) => startResize(e, 'right'));
+            }
+            if (bottomHandle) {
+                bottomHandle.addEventListener('mousedown', (e) => startResize(e, 'bottom'));
+            }
+            if (cornerHandle) {
+                cornerHandle.addEventListener('mousedown', (e) => startResize(e, 'corner'));
+            }
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                
+                if (resizeType === 'right' || resizeType === 'corner') {
+                    const newWidth = startWidth + (e.clientX - startX);
+                    if (newWidth >= 400) {
+                        container.style.width = newWidth + 'px';
+                    }
+                }
+                
+                if (resizeType === 'bottom' || resizeType === 'corner') {
+                    const newHeight = startHeight + (e.clientY - startY);
+                    if (newHeight >= 300) {
+                        container.style.height = newHeight + 'px';
+                    }
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isResizing = false;
+                resizeType = '';
+            });
+        }
+
+        let isMinimized = false;
+        let savedSize = { width: '800px', height: '600px' };
+
+        function minimizeTerminal() {
+            const container = document.querySelector('.terminal-container');
+            
+            if (!isMinimized) {
+                // Save current size
+                savedSize.width = container.style.width || '800px';
+                savedSize.height = container.style.height || '600px';
+                
+                container.classList.add('minimized');
+                isMinimized = true;
+                
+                // Update button
+                const btn = event.target.closest('.terminal-control-btn');
+                btn.innerHTML = '<i class="fas fa-window-restore"></i> Restore';
+            } else {
+                // Restore
+                container.classList.remove('minimized');
+                container.style.height = savedSize.height;
+                isMinimized = false;
+                
+                const btn = event.target.closest('.terminal-control-btn');
+                btn.innerHTML = '<i class="fas fa-window-minimize"></i> Min';
+            }
+        }
+
+        let isMaximized = false;
+        let savedPosition = { left: '100px', top: '100px', width: '800px', height: '600px' };
+
+        function maximizeTerminal() {
+            const container = document.querySelector('.terminal-container');
+            
+            if (!isMaximized) {
+                // Save current position and size
+                savedPosition = {
+                    left: container.style.left || '100px',
+                    top: container.style.top || '100px',
+                    width: container.style.width || '800px',
+                    height: container.style.height || '600px'
+                };
+                
+                container.style.width = '95vw';
+                container.style.height = '90vh';
+                container.style.left = '2.5vw';
+                container.style.top = '5vh';
+                isMaximized = true;
+                
+                const btn = event.target.closest('.terminal-control-btn');
+                btn.innerHTML = '<i class="fas fa-window-restore"></i> Restore';
+            } else {
+                // Restore
+                container.style.width = savedPosition.width;
+                container.style.height = savedPosition.height;
+                container.style.left = savedPosition.left;
+                container.style.top = savedPosition.top;
+                isMaximized = false;
+                
+                const btn = event.target.closest('.terminal-control-btn');
+                btn.innerHTML = '<i class="fas fa-window-maximize"></i> Max';
+            }
+        }
+
+        // Snippets Panel
+        function toggleSnippets() {
+            const panel = document.getElementById('snippetsPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function copySnippet(command) {
+            navigator.clipboard.writeText(command).then(() => {
+                showNotification('✓ Copied to clipboard!', 'success');
+            });
+        }
+
+        // Unified notification system
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            
+            const colors = {
+                success: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                error: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                info: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)'
+            };
+            
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${colors[type] || colors.success};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                z-index: 10001;
+                animation: slideIn 0.3s ease;
+                font-weight: 500;
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        }
+
+        // Play typing sound
+        function playTypingSound() {
+            if (document.getElementById('enableSounds')?.checked) {
+                initAudio();
+                typingSound.currentTime = 0;
+                typingSound.volume = 0.1;
+                typingSound.play().catch(() => {});
+            }
+        }
+
+        // Listen for typing on overlay and page
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                playTypingSound();
+            }
+        });
+
+        // Enable typing sounds and ripple effect on overlay clicks
+        document.getElementById('iframeOverlay').addEventListener('click', (e) => {
+            playTypingSound();
+            createRipple(e);
+        });
+
+        // Create ripple animation
+        function createRipple(e) {
+            const overlay = document.getElementById('iframeOverlay');
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple-effect';
+            
+            const rect = overlay.getBoundingClientRect();
+            ripple.style.left = (e.clientX - rect.left - 10) + 'px';
+            ripple.style.top = (e.clientY - rect.top - 10) + 'px';
+            
+            overlay.appendChild(ripple);
+            
+            setTimeout(() => ripple.remove(), 600);
+        }
+
+        // Loading
+        window.addEventListener('load', () => {
+            detectDevice();
+            loadSettings();
+            initAudio(); // Initialize audio on load
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+        });
+
+        // Mobile touch support with gestures
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchStartTime = 0;
+        let lastTap = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchStartTime = Date.now();
+            
+            // Double tap detection
+            const currentTime = Date.now();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 300 && tapLength > 0) {
+                // Double tap - toggle floating
+                if (e.target.closest('.terminal-container')) {
+                    toggleFloating();
+                }
+            }
+            lastTap = currentTime;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const touchDuration = Date.now() - touchStartTime;
+            
+            const diffX = touchStartX - touchEndX;
+            const diffY = touchStartY - touchEndY;
+            
+            // Swipe right - open settings
+            if (Math.abs(diffX) > 100 && Math.abs(diffY) < 50 && diffX < 0) {
+                openSettings();
+            }
+            
+            // Swipe left - close modals
+            if (Math.abs(diffX) > 100 && Math.abs(diffY) < 50 && diffX > 0) {
+                closeSettings();
+                closeCommandPalette();
+            }
+            
+            // Swipe down - open command palette
+            if (Math.abs(diffY) > 100 && Math.abs(diffX) < 50 && diffY < 0) {
+                toggleCommandPalette();
+            }
+        });
+
+        // Pinch to adjust font size on mobile
+        let initialDistance = 0;
+        let initialFontSize = 100;
+
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                initialDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialFontSize = currentZoom;
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const distance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                
+                // Calculate zoom based on pinch distance
+                const scale = distance / initialDistance;
+                const newZoom = Math.min(200, Math.max(50, initialFontSize * scale));
+                
+                // Update zoom (which updates font size)
+                updateZoom(Math.round(newZoom));
+                
+                // Show visual feedback
+                showZoomIndicator(Math.round(newZoom));
+            }
+        }, { passive: false });
+
+        // Visual zoom indicator for mobile
+        function showZoomIndicator(zoom) {
+            let indicator = document.getElementById('zoomIndicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'zoomIndicator';
+                indicator.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0,0,0,0.8);
+                    color: white;
+                    padding: 20px 30px;
+                    border-radius: 12px;
+                    font-size: 24px;
+                    font-weight: bold;
+                    z-index: 10002;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(indicator);
+            }
+            
+            indicator.textContent = `${zoom}%`;
+            indicator.style.display = 'block';
+            
+            clearTimeout(indicator.timeout);
+            indicator.timeout = setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 1000);
+        }    
+    </script>
+</body>
+</html>
