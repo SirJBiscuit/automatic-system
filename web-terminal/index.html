@@ -1041,6 +1041,295 @@
         #fileInput {
             display: none;
         }
+
+        /* AI Chat Widget */
+        .ai-chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 400px;
+            height: 600px;
+            background: #2a2a2a;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            z-index: 3000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .ai-chat-widget.active {
+            display: flex;
+        }
+
+        .ai-chat-widget.minimized {
+            height: 60px;
+        }
+
+        .ai-chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .ai-chat-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .ai-chat-icon {
+            font-size: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .ai-chat-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ai-chat-control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .ai-chat-control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .ai-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #1e1e1e;
+        }
+
+        .ai-message {
+            margin-bottom: 16px;
+            animation: messageSlideIn 0.3s ease;
+        }
+
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .ai-message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .ai-message-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .ai-message-avatar.user {
+            background: #667eea;
+        }
+
+        .ai-message-avatar.ai {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .ai-message-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #aaa;
+        }
+
+        .ai-message-content {
+            background: #252525;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-left: 36px;
+            color: #ddd;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .ai-message.user .ai-message-content {
+            background: #667eea;
+            color: white;
+        }
+
+        .ai-message-command {
+            background: #1a1a1a;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-message-command-text {
+            color: #10b981;
+        }
+
+        .ai-message-command-btn {
+            background: #10b981;
+            border: none;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .ai-message-command-btn:hover {
+            background: #059669;
+        }
+
+        .ai-chat-input-area {
+            padding: 15px 20px;
+            background: #252525;
+            border-top: 1px solid #333;
+        }
+
+        .ai-chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .ai-chat-input {
+            flex: 1;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: white;
+            font-size: 14px;
+            resize: none;
+            max-height: 100px;
+        }
+
+        .ai-chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .ai-chat-send-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .ai-chat-send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .ai-chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* AI Chat Toggle Button */
+        .ai-chat-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            z-index: 2999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .ai-chat-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+        }
+
+        .ai-chat-toggle.hidden {
+            display: none;
+        }
+
+        .ai-typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 10px;
+        }
+
+        .ai-typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typingDot 1.4s infinite;
+        }
+
+        .ai-typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .ai-typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingDot {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
     </style>
 </head>
 <body>
@@ -1198,6 +1487,55 @@
 
     <!-- Hidden file input -->
     <input type="file" id="fileInput" multiple onchange="handleFileSelect(event)">
+
+    <!-- AI Chat Toggle Button -->
+    <button class="ai-chat-toggle" id="aiChatToggle" onclick="toggleAIChat()">
+        <i class="fas fa-robot"></i>
+    </button>
+
+    <!-- AI Chat Widget -->
+    <div class="ai-chat-widget" id="aiChatWidget">
+        <div class="ai-chat-header" onclick="toggleAIChatMinimize()">
+            <div class="ai-chat-title">
+                <div class="ai-chat-icon">🤖</div>
+                <span>AI Terminal Assistant</span>
+            </div>
+            <div class="ai-chat-controls">
+                <button class="ai-chat-control-btn" onclick="event.stopPropagation(); clearAIChat()" title="Clear Chat">
+                    <i class="fas fa-trash"></i>
+                </button>
+                <button class="ai-chat-control-btn" onclick="event.stopPropagation(); toggleAIChat()" title="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="ai-chat-messages" id="aiChatMessages">
+            <div class="ai-message">
+                <div class="ai-message-header">
+                    <div class="ai-message-avatar ai">🤖</div>
+                    <div class="ai-message-name">AI Assistant</div>
+                </div>
+                <div class="ai-message-content">
+                    Hi! I'm your AI terminal assistant powered by Qwen2.5 7B. I can help you with:
+                    <br><br>
+                    • Suggesting commands<br>
+                    • Troubleshooting issues<br>
+                    • Explaining terminal output<br>
+                    • Server management tips<br>
+                    <br>
+                    Ask me anything about your servers!
+                </div>
+            </div>
+        </div>
+        <div class="ai-chat-input-area">
+            <div class="ai-chat-input-wrapper">
+                <textarea class="ai-chat-input" id="aiChatInput" placeholder="Ask me anything..." rows="1" onkeydown="handleAIChatKeydown(event)"></textarea>
+                <button class="ai-chat-send-btn" id="aiChatSendBtn" onclick="sendAIMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Server Modal -->
     <div class="modal" id="serverModal">
@@ -2080,6 +2418,209 @@
             sampleCommands.forEach(cmd => {
                 setTimeout(() => addToHistory(cmd), Math.random() * 1000);
             });
+        }
+
+        // AI Chat Functions
+        const OPENWEBUI_URL = 'https://ui.cloudmc.online';
+        let aiMessages = [];
+        let isAITyping = false;
+
+        function toggleAIChat() {
+            const widget = document.getElementById('aiChatWidget');
+            const toggle = document.getElementById('aiChatToggle');
+            
+            widget.classList.toggle('active');
+            toggle.classList.toggle('hidden');
+            
+            if (widget.classList.contains('active')) {
+                document.getElementById('aiChatInput').focus();
+            }
+        }
+
+        function toggleAIChatMinimize() {
+            const widget = document.getElementById('aiChatWidget');
+            widget.classList.toggle('minimized');
+        }
+
+        function clearAIChat() {
+            if (confirm('Clear all chat messages?')) {
+                aiMessages = [];
+                const messagesContainer = document.getElementById('aiChatMessages');
+                messagesContainer.innerHTML = `
+                    <div class="ai-message">
+                        <div class="ai-message-header">
+                            <div class="ai-message-avatar ai">🤖</div>
+                            <div class="ai-message-name">AI Assistant</div>
+                        </div>
+                        <div class="ai-message-content">
+                            Chat cleared! How can I help you?
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function handleAIChatKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendAIMessage();
+            }
+        }
+
+        async function sendAIMessage() {
+            const input = document.getElementById('aiChatInput');
+            const message = input.value.trim();
+            
+            if (!message || isAITyping) return;
+
+            // Add user message
+            addAIMessage('user', message);
+            input.value = '';
+            
+            // Get context
+            const context = getAIContext();
+            
+            // Show typing indicator
+            showAITyping();
+            
+            // Send to AI (simulated for now, will integrate with Open WebUI API)
+            try {
+                const response = await callOpenWebUI(message, context);
+                hideAITyping();
+                addAIMessage('ai', response.message, response.command);
+            } catch (error) {
+                hideAITyping();
+                addAIMessage('ai', 'Sorry, I encountered an error. Please try again.');
+            }
+        }
+
+        function addAIMessage(type, content, command = null) {
+            const messagesContainer = document.getElementById('aiChatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'ai-message ' + type;
+            
+            let commandHTML = '';
+            if (command) {
+                commandHTML = `
+                    <div class="ai-message-command">
+                        <div class="ai-message-command-text">${command}</div>
+                        <button class="ai-message-command-btn" onclick="runAICommand('${command.replace(/'/g, "\\'")}')">
+                            Run
+                        </button>
+                    </div>
+                `;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="ai-message-header">
+                    <div class="ai-message-avatar ${type}">${type === 'user' ? '👤' : '🤖'}</div>
+                    <div class="ai-message-name">${type === 'user' ? 'You' : 'AI Assistant'}</div>
+                </div>
+                <div class="ai-message-content">
+                    ${content}
+                    ${commandHTML}
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            aiMessages.push({ type, content, command, timestamp: new Date().toISOString() });
+        }
+
+        function showAITyping() {
+            isAITyping = true;
+            const messagesContainer = document.getElementById('aiChatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'ai-message ai';
+            typingDiv.id = 'aiTypingIndicator';
+            typingDiv.innerHTML = `
+                <div class="ai-message-header">
+                    <div class="ai-message-avatar ai">🤖</div>
+                    <div class="ai-message-name">AI Assistant</div>
+                </div>
+                <div class="ai-message-content">
+                    <div class="ai-typing-indicator">
+                        <div class="ai-typing-dot"></div>
+                        <div class="ai-typing-dot"></div>
+                        <div class="ai-typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideAITyping() {
+            isAITyping = false;
+            const typingIndicator = document.getElementById('aiTypingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        function getAIContext() {
+            const activeTab = tabs.find(t => t.id === activeTabId);
+            const server = activeTab ? servers.find(s => s.id === activeTab.serverId) : null;
+            
+            return {
+                currentServer: server ? {
+                    name: server.name,
+                    host: server.host,
+                    environment: server.environment
+                } : null,
+                recentCommands: commandHistory.slice(0, 5).map(h => h.command),
+                favoriteCommands: favoriteCommands
+            };
+        }
+
+        async function callOpenWebUI(message, context) {
+            // This is a simulated response. In production, you would call:
+            // const response = await fetch(`${OPENWEBUI_URL}/api/chat`, {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({
+            //         message: message,
+            //         context: context,
+            //         model: 'qwen2.5:7b'
+            //     })
+            // });
+            
+            // Simulate AI response with command suggestions
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const responses = [
+                        {
+                            message: "To check disk space, use the df command with the -h flag for human-readable output.",
+                            command: "df -h"
+                        },
+                        {
+                            message: "To see running Docker containers, use docker ps. Add -a to see all containers including stopped ones.",
+                            command: "docker ps -a"
+                        },
+                        {
+                            message: "To check the status of nginx, use systemctl status. This will show if it's running and recent logs.",
+                            command: "systemctl status nginx"
+                        },
+                        {
+                            message: "To monitor system resources in real-time, htop is a great interactive tool.",
+                            command: "htop"
+                        },
+                        {
+                            message: "To view the last 50 lines of the system log and follow new entries, use tail with -f flag.",
+                            command: "tail -f /var/log/syslog"
+                        }
+                    ];
+                    
+                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                    resolve(randomResponse);
+                }, 1000 + Math.random() * 1000);
+            });
+        }
+
+        function runAICommand(command) {
+            showGhostCommand(command, 'AI Suggestion');
+            addToHistory(command);
         }
 
         // Initialize
