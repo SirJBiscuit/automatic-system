@@ -3004,6 +3004,7 @@
         let poppedOutWidgets = new Set();
         let draggedWidget = null;
         let dragOffset = { x: 0, y: 0 };
+        let dragHandlersAttached = new Set();
 
         function popoutWidget(widgetId) {
             const widget = document.getElementById(widgetId);
@@ -3012,23 +3013,38 @@
             if (poppedOutWidgets.has(widgetId)) {
                 // Dock it back
                 widget.classList.remove('widget-popout');
+                widget.style.left = '';
+                widget.style.top = '';
+                widget.style.width = '';
+                widget.style.height = '';
                 poppedOutWidgets.delete(widgetId);
             } else {
                 // Pop it out
                 widget.classList.add('widget-popout');
+                widget.style.left = '100px';
+                widget.style.top = '100px';
                 poppedOutWidgets.add(widgetId);
-                makeDraggable(widget);
+                
+                // Only attach drag handler once
+                if (!dragHandlersAttached.has(widgetId)) {
+                    makeDraggable(widget);
+                    dragHandlersAttached.add(widgetId);
+                }
             }
         }
 
         function makeDraggable(element) {
             const header = element.querySelector('.ai-chat-header, .file-transfer-header, .widget-header');
-            if (!header) return;
+            if (!header) {
+                console.warn('No draggable header found for element:', element);
+                return;
+            }
 
             header.style.cursor = 'move';
 
-            header.addEventListener('mousedown', (e) => {
-                if (e.target.closest('button')) return; // Don't drag if clicking buttons
+            const mouseDownHandler = (e) => {
+                // Don't drag if clicking buttons
+                if (e.target.closest('button')) return;
                 
                 draggedWidget = element;
                 const rect = element.getBoundingClientRect();
@@ -3037,7 +3053,11 @@
                 
                 document.addEventListener('mousemove', onDrag);
                 document.addEventListener('mouseup', onDragEnd);
-            });
+                
+                e.preventDefault();
+            };
+
+            header.addEventListener('mousedown', mouseDownHandler);
         }
 
         function onDrag(e) {
@@ -3058,6 +3078,7 @@
 
         // Terminal Draggable Functionality
         let terminalDraggable = false;
+        let terminalDragHandlerAttached = false;
 
         function toggleTerminalDraggable() {
             terminalDraggable = !terminalDraggable;
@@ -3068,7 +3089,12 @@
                 container.classList.add('draggable');
                 container.style.top = '100px';
                 container.style.left = '100px';
-                makeDraggableTerminal(container);
+                
+                // Only attach handler once
+                if (!terminalDragHandlerAttached) {
+                    makeDraggableTerminal(container);
+                    terminalDragHandlerAttached = true;
+                }
             } else {
                 container.classList.remove('draggable');
                 container.style.top = '';
@@ -3080,9 +3106,12 @@
 
         function makeDraggableTerminal(element) {
             const handle = document.getElementById('terminalDragHandle');
-            if (!handle) return;
+            if (!handle) {
+                console.warn('Terminal drag handle not found');
+                return;
+            }
 
-            handle.addEventListener('mousedown', (e) => {
+            const mouseDownHandler = (e) => {
                 if (e.target.closest('button')) return;
                 
                 draggedWidget = element;
@@ -3092,7 +3121,11 @@
                 
                 document.addEventListener('mousemove', onDrag);
                 document.addEventListener('mouseup', onDragEnd);
-            });
+                
+                e.preventDefault();
+            };
+
+            handle.addEventListener('mousedown', mouseDownHandler);
         }
 
         // Keyboard Shortcuts
