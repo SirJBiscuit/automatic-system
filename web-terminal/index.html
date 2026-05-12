@@ -1345,6 +1345,94 @@
                 transform: translateY(-10px);
             }
         }
+
+        /* Animated Tooltips */
+        [data-tooltip] {
+            position: relative;
+            cursor: pointer;
+        }
+
+        [data-tooltip]::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-5px);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 10000;
+        }
+
+        [data-tooltip]::after {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.9);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 10000;
+        }
+
+        [data-tooltip]:hover::before,
+        [data-tooltip]:hover::after {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        [data-tooltip]:hover::after {
+            transform: translateX(-50%) translateY(-5px);
+        }
+
+        /* Pop-out widget styles */
+        .widget-popout {
+            position: fixed !important;
+            top: 50px;
+            left: 50px;
+            right: auto;
+            bottom: auto;
+            width: 500px;
+            height: 600px;
+            z-index: 5000;
+            resize: both;
+            overflow: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            border-radius: 12px;
+        }
+
+        .widget-header {
+            cursor: move;
+            user-select: none;
+        }
+
+        .popout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .popout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -1357,33 +1445,33 @@
             </div>
         </div>
         <div class="toolbar-right">
-            <button class="toolbar-btn" onclick="toggleSnippets()" title="Quick Snippets (Ctrl+K)">
+            <button class="toolbar-btn" onclick="toggleSnippets()" data-tooltip="Quick Snippets (Ctrl+K)">
                 <i class="fas fa-bolt"></i>
                 <span>Snippets</span>
             </button>
-            <button class="toolbar-btn" onclick="openCommandPalette()" title="Command Palette (Ctrl+Shift+P)">
+            <button class="toolbar-btn" onclick="openCommandPalette()" data-tooltip="Command Palette (Ctrl+Shift+P)">
                 <i class="fas fa-terminal"></i>
                 <span>Commands</span>
             </button>
-            <button class="toolbar-btn" onclick="openSettings()" title="Settings">
+            <button class="toolbar-btn" onclick="openSettings()" data-tooltip="Settings">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </button>
-            <button class="toolbar-btn" onclick="openThemes()" title="Themes">
+            <button class="toolbar-btn" onclick="openThemes()" data-tooltip="Themes">
                 <i class="fas fa-palette"></i>
                 <span>Themes</span>
             </button>
-            <button class="toolbar-btn" onclick="toggleFloating()" id="floatBtn" title="Pop Out Terminal">
+            <button class="toolbar-btn" onclick="toggleFloating()" id="floatBtn" data-tooltip="Pop Out Terminal">
                 <i class="fas fa-window-restore"></i>
                 <span>Pop Out</span>
             </button>
-            <button class="toolbar-btn" onclick="zoomIn()" title="Zoom In">
+            <button class="toolbar-btn" onclick="zoomIn()" data-tooltip="Zoom In (+10%)">
                 <span>🔍+</span>
             </button>
-            <button class="toolbar-btn" onclick="zoomOut()" title="Zoom Out">
+            <button class="toolbar-btn" onclick="zoomOut()" data-tooltip="Zoom Out (-10%)">
                 <span>🔍-</span>
             </button>
-            <button class="toolbar-btn" onclick="resetZoom()" title="Reset Zoom">
+            <button class="toolbar-btn" onclick="resetZoom()" data-tooltip="Reset Zoom (100%)">
                 <span>↺</span>
             </button>
         </div>
@@ -1395,8 +1483,9 @@
         <div class="server-panel">
             <div class="server-panel-header">
                 <div class="server-panel-title">Servers</div>
-                <button class="add-server-btn" onclick="addServer()">
-                    <i class="fas fa-plus"></i> Add
+                <button class="add-server-btn" onclick="addServer()" data-tooltip="Add New Server">
+                    <i class="fas fa-plus"></i>
+                    <span>Add</span>
                 </button>
             </div>
             <div class="server-list" id="serverList">
@@ -1573,7 +1662,7 @@
     <input type="file" id="fileInput" multiple onchange="handleFileSelect(event)">
 
     <!-- AI Chat Toggle Button -->
-    <button class="ai-chat-toggle" id="aiChatToggle" onclick="toggleAIChat()">
+    <button class="ai-chat-toggle" id="aiChatToggle" onclick="toggleAIChat()" data-tooltip="AI Assistant (Qwen2.5 7B)">
         <i class="fas fa-robot"></i>
     </button>
 
@@ -1585,10 +1674,13 @@
                 <span>AI Terminal Assistant</span>
             </div>
             <div class="ai-chat-controls">
-                <button class="ai-chat-control-btn" onclick="event.stopPropagation(); clearAIChat()" title="Clear Chat">
+                <button class="popout-btn" onclick="event.stopPropagation(); popoutWidget('aiChatWidget')" data-tooltip="Pop Out">
+                    <i class="fas fa-external-link-alt"></i>
+                </button>
+                <button class="ai-chat-control-btn" onclick="event.stopPropagation(); clearAIChat()" data-tooltip="Clear Chat">
                     <i class="fas fa-trash"></i>
                 </button>
-                <button class="ai-chat-control-btn" onclick="event.stopPropagation(); toggleAIChat()" title="Close">
+                <button class="ai-chat-control-btn" onclick="event.stopPropagation(); toggleAIChat()" data-tooltip="Close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -1658,6 +1750,7 @@
                     <div class="form-group">
                         <label class="form-label">Environment</label>
                         <select class="form-select" id="serverEnvironment">
+                            <option value="host">🏠 Host</option>
                             <option value="production">🔴 Production</option>
                             <option value="staging">🟡 Staging</option>
                             <option value="development">🟢 Development</option>
@@ -2557,6 +2650,62 @@
         // Themes
         function openThemes() {
             alert('Theme selector with 16 color gradients coming soon!');
+        }
+
+        // Pop-out Widget Functionality
+        let poppedOutWidgets = new Set();
+        let draggedWidget = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        function popoutWidget(widgetId) {
+            const widget = document.getElementById(widgetId);
+            if (!widget) return;
+
+            if (poppedOutWidgets.has(widgetId)) {
+                // Dock it back
+                widget.classList.remove('widget-popout');
+                poppedOutWidgets.delete(widgetId);
+            } else {
+                // Pop it out
+                widget.classList.add('widget-popout');
+                poppedOutWidgets.add(widgetId);
+                makeDraggable(widget);
+            }
+        }
+
+        function makeDraggable(element) {
+            const header = element.querySelector('.ai-chat-header, .file-transfer-header, .widget-header');
+            if (!header) return;
+
+            header.style.cursor = 'move';
+
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.closest('button')) return; // Don't drag if clicking buttons
+                
+                draggedWidget = element;
+                const rect = element.getBoundingClientRect();
+                dragOffset.x = e.clientX - rect.left;
+                dragOffset.y = e.clientY - rect.top;
+                
+                document.addEventListener('mousemove', onDrag);
+                document.addEventListener('mouseup', onDragEnd);
+            });
+        }
+
+        function onDrag(e) {
+            if (!draggedWidget) return;
+            
+            const x = e.clientX - dragOffset.x;
+            const y = e.clientY - dragOffset.y;
+            
+            draggedWidget.style.left = Math.max(0, Math.min(x, window.innerWidth - draggedWidget.offsetWidth)) + 'px';
+            draggedWidget.style.top = Math.max(0, Math.min(y, window.innerHeight - draggedWidget.offsetHeight)) + 'px';
+        }
+
+        function onDragEnd() {
+            draggedWidget = null;
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('mouseup', onDragEnd);
         }
 
         // Keyboard Shortcuts
