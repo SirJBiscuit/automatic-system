@@ -29,7 +29,9 @@
             align-items: center;
             color: white;
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            position: relative;
             z-index: 1000;
+            overflow: visible;
         }
 
         .toolbar-left {
@@ -1392,6 +1394,17 @@
 
         [data-tooltip]:hover::after {
             transform: translateX(-50%) translateY(-5px);
+        }
+
+        /* Toolbar specific tooltips - ensure they're visible */
+        .toolbar [data-tooltip]::before,
+        .toolbar [data-tooltip]::after {
+            z-index: 10001;
+        }
+
+        .toolbar-btn {
+            position: relative;
+            overflow: visible;
         }
 
         /* Pop-out widget styles */
