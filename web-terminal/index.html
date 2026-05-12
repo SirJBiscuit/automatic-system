@@ -417,6 +417,64 @@
             flex: 1;
             position: relative;
             background: #000;
+            transition: all 0.3s ease;
+        }
+
+        .terminal-container.draggable {
+            position: fixed;
+            width: 800px;
+            height: 600px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            resize: both;
+            overflow: auto;
+            z-index: 4000;
+            border: 2px solid #667eea;
+        }
+
+        .terminal-drag-handle {
+            display: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 8px 16px;
+            cursor: move;
+            user-select: none;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 12px 12px 0 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .terminal-container.draggable .terminal-drag-handle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-drag-handle-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terminal-drag-handle-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .terminal-drag-handle-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .terminal-frame {
@@ -452,6 +510,27 @@
             transform: translate(-50%, -50%);
             text-align: center;
             color: #888;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #3d3d3d;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .host-card {
+            transition: all 0.3s ease;
+        }
+
+        .host-card:hover {
+            transform: translateX(4px);
         }
 
         .loading i {
@@ -1515,10 +1594,16 @@
         <div class="server-panel">
             <div class="server-panel-header">
                 <div class="server-panel-title">Servers</div>
-                <button class="add-server-btn" onclick="addServer()" data-tooltip="Add New Server">
-                    <i class="fas fa-plus"></i>
-                    <span>Add</span>
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="add-server-btn" onclick="addServer()" data-tooltip="Add New Server">
+                        <i class="fas fa-plus"></i>
+                        <span>Add</span>
+                    </button>
+                    <button class="add-server-btn" onclick="scanNetwork()" data-tooltip="Scan Network for Hosts" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        <i class="fas fa-network-wired"></i>
+                        <span>Scan</span>
+                    </button>
+                </div>
             </div>
             <div class="server-list" id="serverList">
                 <!-- Server items will be added here -->
@@ -1561,11 +1646,25 @@
 
             <!-- Terminal Container -->
             <div class="terminal-container" id="terminalContainer">
+                <div class="terminal-drag-handle" id="terminalDragHandle">
+                    <div class="terminal-drag-handle-title">
+                        <i class="fas fa-grip-vertical"></i>
+                        <span>Terminal Window</span>
+                    </div>
+                    <div>
+                        <button class="terminal-drag-handle-btn" onclick="toggleTerminalDraggable()" data-tooltip="Dock Terminal">
+                            <i class="fas fa-compress"></i>
+                        </button>
+                    </div>
+                </div>
                 <div class="iframe-overlay" id="iframeOverlay"></div>
                 <div class="empty-state">
                     <i class="fas fa-terminal"></i>
                     <h3>No Active Session</h3>
                     <p>Add a server and click to connect</p>
+                    <button class="btn btn-primary" onclick="toggleTerminalDraggable()" style="margin-top: 20px;" data-tooltip="Make terminal draggable">
+                        <i class="fas fa-arrows-alt"></i> Make Draggable
+                    </button>
                 </div>
             </div>
         </div>
@@ -1741,6 +1840,45 @@
                 <button class="ai-chat-send-btn" id="aiChatSendBtn" onclick="sendAIMessage()">
                     <i class="fas fa-paper-plane"></i>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Network Scan Modal -->
+    <div class="modal" id="networkScanModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <div class="modal-title">Network Host Discovery</div>
+                <button class="modal-close" onclick="closeNetworkScanModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="scanStatus" style="text-align: center; padding: 20px;">
+                    <i class="fas fa-network-wired" style="font-size: 48px; color: #667eea; margin-bottom: 16px;"></i>
+                    <h3>Scanning Local Network...</h3>
+                    <p style="color: #888;">Discovering hosts on your network</p>
+                    <div class="loading-spinner" style="margin: 20px auto;"></div>
+                </div>
+                <div id="hostList" style="display: none;">
+                    <div style="margin-bottom: 16px; padding: 12px; background: #2a2a2a; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong id="hostsFound">0 hosts found</strong>
+                                <p style="color: #888; font-size: 12px; margin-top: 4px;">Click a host to add it as a server</p>
+                            </div>
+                            <button class="btn btn-secondary" onclick="rescanNetwork()">
+                                <i class="fas fa-sync"></i> Rescan
+                            </button>
+                        </div>
+                    </div>
+                    <div id="hostListContainer" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Host items will be added here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeNetworkScanModal()">Close</button>
             </div>
         </div>
     </div>
@@ -2674,6 +2812,184 @@
             console.log('Zoom level:', zoomLevel + '%');
         }
 
+        // Network Scanning Functions
+        let discoveredHosts = [];
+
+        function scanNetwork() {
+            const modal = document.getElementById('networkScanModal');
+            modal.classList.add('active');
+            
+            // Show scanning status
+            document.getElementById('scanStatus').style.display = 'block';
+            document.getElementById('hostList').style.display = 'none';
+            
+            // Simulate network scan (in production, this would use WebRTC, WebSocket, or backend API)
+            setTimeout(() => {
+                performNetworkScan();
+            }, 2000);
+        }
+
+        function performNetworkScan() {
+            // Simulated network scan results
+            // In production, this would:
+            // 1. Use WebRTC to discover local network devices
+            // 2. Call a backend API that performs nmap/arp-scan
+            // 3. Use mDNS/Bonjour for service discovery
+            
+            discoveredHosts = [
+                {
+                    ip: '192.168.1.1',
+                    hostname: 'router.local',
+                    mac: '00:11:22:33:44:55',
+                    ports: [22, 80, 443],
+                    type: 'Router',
+                    online: true
+                },
+                {
+                    ip: '192.168.1.100',
+                    hostname: 'server.local',
+                    mac: 'AA:BB:CC:DD:EE:FF',
+                    ports: [22, 7681, 8080],
+                    type: 'Server',
+                    online: true
+                },
+                {
+                    ip: '192.168.1.50',
+                    hostname: 'nas.local',
+                    mac: '11:22:33:44:55:66',
+                    ports: [22, 445, 5000],
+                    type: 'NAS',
+                    online: true
+                },
+                {
+                    ip: window.location.hostname || 'localhost',
+                    hostname: 'current-host',
+                    mac: 'FF:EE:DD:CC:BB:AA',
+                    ports: [22, 7681],
+                    type: 'Current Host',
+                    online: true
+                }
+            ];
+            
+            displayDiscoveredHosts();
+        }
+
+        function displayDiscoveredHosts() {
+            document.getElementById('scanStatus').style.display = 'none';
+            document.getElementById('hostList').style.display = 'block';
+            document.getElementById('hostsFound').textContent = `${discoveredHosts.length} hosts found`;
+            
+            const container = document.getElementById('hostListContainer');
+            container.innerHTML = '';
+            
+            discoveredHosts.forEach((host, index) => {
+                const hasSSH = host.ports.includes(22);
+                const hasTerminal = host.ports.includes(7681);
+                const suggestedPort = hasTerminal ? 7681 : (hasSSH ? 22 : host.ports[0]);
+                
+                const hostCard = document.createElement('div');
+                hostCard.className = 'host-card';
+                hostCard.style.cssText = `
+                    background: #2a2a2a;
+                    border: 2px solid #3d3d3d;
+                    border-radius: 8px;
+                    padding: 16px;
+                    margin-bottom: 12px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                `;
+                
+                hostCard.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <div style="width: 12px; height: 12px; background: #43e97b; border-radius: 50%; box-shadow: 0 0 8px #43e97b;"></div>
+                                <strong style="font-size: 16px;">${host.hostname}</strong>
+                                <span style="background: #667eea; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${host.type}</span>
+                            </div>
+                            <div style="color: #888; font-size: 13px; margin-left: 24px;">
+                                <div><i class="fas fa-network-wired" style="width: 16px;"></i> ${host.ip}</div>
+                                <div style="margin-top: 4px;"><i class="fas fa-ethernet" style="width: 16px;"></i> ${host.mac}</div>
+                                <div style="margin-top: 4px;">
+                                    <i class="fas fa-plug" style="width: 16px;"></i> 
+                                    Ports: ${host.ports.join(', ')}
+                                    ${hasSSH ? '<span style="color: #43e97b; margin-left: 8px;">✓ SSH</span>' : ''}
+                                    ${hasTerminal ? '<span style="color: #667eea; margin-left: 8px;">✓ Terminal</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="event.stopPropagation(); quickAddHost(${index})" style="min-width: 100px;">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                `;
+                
+                hostCard.addEventListener('mouseenter', () => {
+                    hostCard.style.borderColor = '#667eea';
+                    hostCard.style.background = '#333';
+                });
+                
+                hostCard.addEventListener('mouseleave', () => {
+                    hostCard.style.borderColor = '#3d3d3d';
+                    hostCard.style.background = '#2a2a2a';
+                });
+                
+                hostCard.addEventListener('click', () => {
+                    quickAddHost(index);
+                });
+                
+                container.appendChild(hostCard);
+            });
+        }
+
+        function quickAddHost(index) {
+            const host = discoveredHosts[index];
+            const hasSSH = host.ports.includes(22);
+            const hasTerminal = host.ports.includes(7681);
+            const suggestedPort = hasTerminal ? 7681 : (hasSSH ? 22 : host.ports[0]);
+            
+            // Auto-fill server form
+            document.getElementById('serverName').value = host.hostname || host.ip;
+            document.getElementById('serverHost').value = host.ip;
+            document.getElementById('serverPort').value = suggestedPort;
+            document.getElementById('serverProtocol').value = 'https';
+            document.getElementById('serverEnvironment').value = 'host';
+            
+            // Select appropriate icon based on type
+            const iconMap = {
+                'Router': '🌐',
+                'Server': '🖥️',
+                'NAS': '💾',
+                'Current Host': '🏠'
+            };
+            const icon = iconMap[host.type] || '🟢';
+            document.getElementById('serverIcon').value = icon;
+            
+            // Update icon selector
+            document.querySelectorAll('.icon-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.textContent.trim() === icon) {
+                    opt.classList.add('selected');
+                }
+            });
+            
+            // Close scan modal and open server modal
+            closeNetworkScanModal();
+            addServer();
+        }
+
+        function rescanNetwork() {
+            document.getElementById('scanStatus').style.display = 'block';
+            document.getElementById('hostList').style.display = 'none';
+            setTimeout(() => {
+                performNetworkScan();
+            }, 1500);
+        }
+
+        function closeNetworkScanModal() {
+            document.getElementById('networkScanModal').classList.remove('active');
+        }
+
         // Settings
         function openSettings() {
             alert('Settings: Zoom=' + zoomLevel + '%, Floating=' + isFloating + '\n\nFull settings panel coming soon!');
@@ -2738,6 +3054,45 @@
             draggedWidget = null;
             document.removeEventListener('mousemove', onDrag);
             document.removeEventListener('mouseup', onDragEnd);
+        }
+
+        // Terminal Draggable Functionality
+        let terminalDraggable = false;
+
+        function toggleTerminalDraggable() {
+            terminalDraggable = !terminalDraggable;
+            const container = document.getElementById('terminalContainer');
+            const handle = document.getElementById('terminalDragHandle');
+            
+            if (terminalDraggable) {
+                container.classList.add('draggable');
+                container.style.top = '100px';
+                container.style.left = '100px';
+                makeDraggableTerminal(container);
+            } else {
+                container.classList.remove('draggable');
+                container.style.top = '';
+                container.style.left = '';
+                container.style.width = '';
+                container.style.height = '';
+            }
+        }
+
+        function makeDraggableTerminal(element) {
+            const handle = document.getElementById('terminalDragHandle');
+            if (!handle) return;
+
+            handle.addEventListener('mousedown', (e) => {
+                if (e.target.closest('button')) return;
+                
+                draggedWidget = element;
+                const rect = element.getBoundingClientRect();
+                dragOffset.x = e.clientX - rect.left;
+                dragOffset.y = e.clientY - rect.top;
+                
+                document.addEventListener('mousemove', onDrag);
+                document.addEventListener('mouseup', onDragEnd);
+            });
         }
 
         // Keyboard Shortcuts
