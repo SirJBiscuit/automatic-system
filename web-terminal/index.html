@@ -559,6 +559,84 @@
             background: rgba(255, 255, 255, 0.2);
             color: #fff;
         }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 4px;
+            min-width: 180px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 3000;
+            display: none;
+        }
+
+        .context-menu.active {
+            display: block;
+            animation: contextMenuIn 0.15s ease;
+        }
+
+        @keyframes contextMenuIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .context-menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #ddd;
+            transition: all 0.15s;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(102, 126, 234, 0.2);
+            color: #fff;
+        }
+
+        .context-menu-item i {
+            width: 16px;
+            text-align: center;
+            opacity: 0.7;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: #444;
+            margin: 4px 0;
+        }
+
+        .context-menu-item.danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Iframe Overlay for right-click */
+        .iframe-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .iframe-overlay.active {
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body>
@@ -614,12 +692,69 @@
 
             <!-- Terminal Container -->
             <div class="terminal-container" id="terminalContainer">
+                <div class="iframe-overlay" id="iframeOverlay"></div>
                 <div class="empty-state">
                     <i class="fas fa-terminal"></i>
                     <h3>No Active Session</h3>
                     <p>Add a server and click to connect</p>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Tab Context Menu -->
+    <div class="context-menu" id="tabContextMenu">
+        <div class="context-menu-item" onclick="renameTab()">
+            <i class="fas fa-edit"></i>
+            <span>Rename Tab</span>
+        </div>
+        <div class="context-menu-item" onclick="duplicateTab()">
+            <i class="fas fa-clone"></i>
+            <span>Duplicate Tab</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="closeOtherTabs()">
+            <i class="fas fa-times-circle"></i>
+            <span>Close Other Tabs</span>
+        </div>
+        <div class="context-menu-item" onclick="closeTabsToRight()">
+            <i class="fas fa-arrow-right"></i>
+            <span>Close Tabs to Right</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item danger" onclick="closeContextTab()">
+            <i class="fas fa-times"></i>
+            <span>Close Tab</span>
+        </div>
+    </div>
+
+    <!-- Terminal Context Menu -->
+    <div class="context-menu" id="terminalContextMenu">
+        <div class="context-menu-item" onclick="copyTerminal()">
+            <i class="fas fa-copy"></i>
+            <span>Copy</span>
+        </div>
+        <div class="context-menu-item" onclick="pasteTerminal()">
+            <i class="fas fa-paste"></i>
+            <span>Paste</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="clearTerminal()">
+            <i class="fas fa-eraser"></i>
+            <span>Clear Terminal</span>
+        </div>
+        <div class="context-menu-item" onclick="resetTerminal()">
+            <i class="fas fa-redo"></i>
+            <span>Reset Terminal</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="downloadFile()">
+            <i class="fas fa-download"></i>
+            <span>Download File...</span>
+        </div>
+        <div class="context-menu-item" onclick="uploadFile()">
+            <i class="fas fa-upload"></i>
+            <span>Upload File...</span>
         </div>
     </div>
 
@@ -707,6 +842,7 @@
         let tabs = [];
         let activeTabId = null;
         let editingServerId = null;
+        let contextTabId = null;
 
         // Load saved data
         function loadData() {
@@ -715,11 +851,21 @@
                 servers = JSON.parse(savedServers);
                 renderServerList();
             }
+
+            const savedTabs = localStorage.getItem('ssh_tabs');
+            if (savedTabs) {
+                tabs = JSON.parse(savedTabs);
+                activeTabId = localStorage.getItem('ssh_active_tab');
+                renderTabs();
+                renderTerminal();
+            }
         }
 
         // Save data
         function saveData() {
             localStorage.setItem('ssh_servers', JSON.stringify(servers));
+            localStorage.setItem('ssh_tabs', JSON.stringify(tabs));
+            localStorage.setItem('ssh_active_tab', activeTabId);
         }
 
         // Render server list
@@ -888,7 +1034,8 @@
                 const server = servers.find(s => s.id === tab.serverId);
                 return `
                     <button class="tab ${tab.id === activeTabId ? 'active' : ''}" 
-                            onclick="switchTab('${tab.id}')">
+                            onclick="switchTab('${tab.id}')"
+                            oncontextmenu="showTabContextMenu(event, '${tab.id}')">
                         <span>${server ? server.icon : '🖥️'}</span>
                         <span>${tab.serverName}</span>
                         <span class="tab-close" onclick="closeTab(event, '${tab.id}')">
@@ -908,6 +1055,7 @@
         // Switch tab
         function switchTab(tabId) {
             activeTabId = tabId;
+            saveData();
             renderTabs();
             renderTerminal();
         }
@@ -954,8 +1102,133 @@
             if (!activeTab) return;
 
             container.innerHTML = `
+                <div class="iframe-overlay" id="iframeOverlay"></div>
                 <iframe class="terminal-frame" src="${activeTab.url}"></iframe>
             `;
+
+            // Setup terminal right-click
+            setupTerminalContextMenu();
+        }
+
+        // Context Menu Functions
+        function showTabContextMenu(event, tabId) {
+            event.preventDefault();
+            contextTabId = tabId;
+            const menu = document.getElementById('tabContextMenu');
+            menu.style.left = event.clientX + 'px';
+            menu.style.top = event.clientY + 'px';
+            menu.classList.add('active');
+        }
+
+        function setupTerminalContextMenu() {
+            const overlay = document.getElementById('iframeOverlay');
+            if (!overlay) return;
+
+            overlay.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const menu = document.getElementById('terminalContextMenu');
+                menu.style.left = e.clientX + 'px';
+                menu.style.top = e.clientY + 'px';
+                menu.classList.add('active');
+                overlay.classList.add('active');
+            });
+        }
+
+        // Close context menus on click
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.context-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+            const overlay = document.getElementById('iframeOverlay');
+            if (overlay) overlay.classList.remove('active');
+        });
+
+        // Tab context menu actions
+        function renameTab() {
+            if (!contextTabId) return;
+            const tab = tabs.find(t => t.id === contextTabId);
+            if (!tab) return;
+
+            const newName = prompt('Enter new tab name:', tab.serverName);
+            if (newName && newName.trim()) {
+                tab.serverName = newName.trim();
+                saveData();
+                renderTabs();
+            }
+        }
+
+        function duplicateTab() {
+            if (!contextTabId) return;
+            const tab = tabs.find(t => t.id === contextTabId);
+            if (!tab) return;
+
+            const newTab = {
+                ...tab,
+                id: 'tab_' + Date.now(),
+                serverName: tab.serverName + ' (Copy)'
+            };
+
+            tabs.push(newTab);
+            activeTabId = newTab.id;
+            saveData();
+            renderTabs();
+            renderTerminal();
+        }
+
+        function closeOtherTabs() {
+            if (!contextTabId) return;
+            tabs = tabs.filter(t => t.id === contextTabId);
+            activeTabId = contextTabId;
+            saveData();
+            renderTabs();
+            renderTerminal();
+        }
+
+        function closeTabsToRight() {
+            if (!contextTabId) return;
+            const index = tabs.findIndex(t => t.id === contextTabId);
+            if (index === -1) return;
+
+            tabs = tabs.slice(0, index + 1);
+            if (!tabs.find(t => t.id === activeTabId)) {
+                activeTabId = tabs[tabs.length - 1]?.id || null;
+            }
+            saveData();
+            renderTabs();
+            renderTerminal();
+        }
+
+        function closeContextTab() {
+            if (!contextTabId) return;
+            const event = { stopPropagation: () => {} };
+            closeTab(event, contextTabId);
+        }
+
+        // Terminal context menu actions
+        function copyTerminal() {
+            alert('Copy functionality requires terminal integration');
+        }
+
+        function pasteTerminal() {
+            alert('Paste functionality requires terminal integration');
+        }
+
+        function clearTerminal() {
+            alert('Clear terminal functionality coming soon');
+        }
+
+        function resetTerminal() {
+            if (confirm('Reset the terminal? This will reload the connection.')) {
+                renderTerminal();
+            }
+        }
+
+        function downloadFile() {
+            alert('File download functionality coming in next step!');
+        }
+
+        function uploadFile() {
+            alert('File upload functionality coming in next step!');
         }
 
         // Settings
