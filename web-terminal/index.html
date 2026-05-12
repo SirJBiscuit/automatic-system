@@ -1396,10 +1396,29 @@
             transform: translateX(-50%) translateY(-5px);
         }
 
-        /* Toolbar specific tooltips - ensure they're visible */
-        .toolbar [data-tooltip]::before,
-        .toolbar [data-tooltip]::after {
+        /* Toolbar specific tooltips - position below instead of above */
+        .toolbar [data-tooltip]::before {
+            bottom: auto;
+            top: 100%;
+            transform: translateX(-50%) translateY(5px);
             z-index: 10001;
+        }
+
+        .toolbar [data-tooltip]::after {
+            bottom: auto;
+            top: 100%;
+            transform: translateX(-50%);
+            border-top-color: transparent;
+            border-bottom-color: rgba(0, 0, 0, 0.9);
+            z-index: 10001;
+        }
+
+        .toolbar [data-tooltip]:hover::before {
+            transform: translateX(-50%) translateY(10px);
+        }
+
+        .toolbar [data-tooltip]:hover::after {
+            transform: translateX(-50%) translateY(5px);
         }
 
         .toolbar-btn {
