@@ -71,11 +71,26 @@
             transform: translateY(-2px);
         }
 
-        /* Workspace Layout */
+        /* Workspace */
         .workspace {
             display: flex;
             height: calc(100vh - 60px);
             background: #1a1a1a;
+            transition: all 0.3s ease;
+        }
+
+        .workspace.floating {
+            position: fixed;
+            top: 80px;
+            left: 50px;
+            right: 50px;
+            bottom: 50px;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            resize: both;
+            overflow: auto;
         }
 
         /* Server Panel (Left Side) */
@@ -1342,13 +1357,34 @@
             </div>
         </div>
         <div class="toolbar-right">
-            <button class="toolbar-btn" onclick="openSettings()">
+            <button class="toolbar-btn" onclick="toggleSnippets()" title="Quick Snippets (Ctrl+K)">
+                <i class="fas fa-bolt"></i>
+                <span>Snippets</span>
+            </button>
+            <button class="toolbar-btn" onclick="openCommandPalette()" title="Command Palette (Ctrl+Shift+P)">
+                <i class="fas fa-terminal"></i>
+                <span>Commands</span>
+            </button>
+            <button class="toolbar-btn" onclick="openSettings()" title="Settings">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </button>
-            <button class="toolbar-btn" onclick="openThemes()">
+            <button class="toolbar-btn" onclick="openThemes()" title="Themes">
                 <i class="fas fa-palette"></i>
                 <span>Themes</span>
+            </button>
+            <button class="toolbar-btn" onclick="toggleFloating()" id="floatBtn" title="Pop Out Terminal">
+                <i class="fas fa-window-restore"></i>
+                <span>Pop Out</span>
+            </button>
+            <button class="toolbar-btn" onclick="zoomIn()" title="Zoom In">
+                <span>🔍+</span>
+            </button>
+            <button class="toolbar-btn" onclick="zoomOut()" title="Zoom Out">
+                <span>🔍-</span>
+            </button>
+            <button class="toolbar-btn" onclick="resetZoom()" title="Reset Zoom">
+                <span>↺</span>
             </button>
         </div>
     </div>
@@ -1437,6 +1473,54 @@
         <div class="context-menu-item danger" onclick="closeContextTab()">
             <i class="fas fa-times"></i>
             <span>Close Tab</span>
+        </div>
+    </div>
+
+    <!-- Global Context Menu (Works Everywhere) -->
+    <div class="context-menu" id="globalContextMenu">
+        <div class="context-menu-item" onclick="copyText()">
+            <i class="fas fa-copy"></i>
+            <span>Copy</span>
+        </div>
+        <div class="context-menu-item" onclick="pasteText()">
+            <i class="fas fa-paste"></i>
+            <span>Paste</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="selectAll()">
+            <i class="fas fa-check-square"></i>
+            <span>Select All</span>
+        </div>
+        <div class="context-menu-item" onclick="clearSelection()">
+            <i class="fas fa-times-circle"></i>
+            <span>Clear Selection</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="clearTerminal()">
+            <i class="fas fa-eraser"></i>
+            <span>Clear Terminal</span>
+        </div>
+        <div class="context-menu-item" onclick="resetTerminal()">
+            <i class="fas fa-redo"></i>
+            <span>Reset Terminal</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="uploadFile()">
+            <i class="fas fa-upload"></i>
+            <span>Upload File...</span>
+        </div>
+        <div class="context-menu-item" onclick="downloadFile()">
+            <i class="fas fa-download"></i>
+            <span>Download File...</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="openSettings()">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </div>
+        <div class="context-menu-item" onclick="openThemes()">
+            <i class="fas fa-palette"></i>
+            <span>Themes</span>
         </div>
     </div>
 
@@ -2200,6 +2284,39 @@
             });
         }
 
+        // Global context menu - works everywhere
+        document.addEventListener('contextmenu', (e) => {
+            // Allow default context menu on input fields and textareas
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const menu = document.getElementById('globalContextMenu');
+            const overlay = document.getElementById('iframeOverlay');
+            
+            // Position menu
+            menu.style.left = e.clientX + 'px';
+            menu.style.top = e.clientY + 'px';
+            menu.classList.add('active');
+            
+            // Activate overlay if it exists
+            if (overlay) overlay.classList.add('active');
+            
+            // Adjust if menu goes off screen
+            setTimeout(() => {
+                const rect = menu.getBoundingClientRect();
+                if (rect.right > window.innerWidth) {
+                    menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
+                }
+                if (rect.bottom > window.innerHeight) {
+                    menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+                }
+            }, 0);
+        });
+
         // Close context menus on click
         document.addEventListener('click', () => {
             document.querySelectorAll('.context-menu').forEach(menu => {
@@ -2207,6 +2324,13 @@
             });
             const overlay = document.getElementById('iframeOverlay');
             if (overlay) overlay.classList.remove('active');
+        });
+
+        // Close context menus on scroll
+        document.addEventListener('scroll', () => {
+            document.querySelectorAll('.context-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
         });
 
         // Tab context menu actions
@@ -2270,19 +2394,69 @@
             closeTab(event, contextTabId);
         }
 
+        // Global context menu actions
+        function copyText() {
+            try {
+                document.execCommand('copy');
+                console.log('Text copied to clipboard');
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+        }
+
+        function pasteText() {
+            try {
+                navigator.clipboard.readText().then(text => {
+                    console.log('Paste:', text);
+                    // In real implementation, would paste into terminal
+                }).catch(err => {
+                    console.error('Paste failed:', err);
+                    alert('Paste requires clipboard permissions');
+                });
+            } catch (err) {
+                console.error('Paste failed:', err);
+            }
+        }
+
+        function selectAll() {
+            try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(document.body);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                console.log('All text selected');
+            } catch (err) {
+                console.error('Select all failed:', err);
+            }
+        }
+
+        function clearSelection() {
+            try {
+                if (window.getSelection) {
+                    window.getSelection().removeAllRanges();
+                } else if (document.selection) {
+                    document.selection.empty();
+                }
+                console.log('Selection cleared');
+            } catch (err) {
+                console.error('Clear selection failed:', err);
+            }
+        }
+
         // Terminal context menu actions
         function copyTerminal() {
-            alert('Copy functionality requires terminal integration');
+            copyText();
         }
 
         function pasteTerminal() {
-            alert('Paste functionality requires terminal integration');
+            pasteText();
         }
 
         function clearTerminal() {
             if (confirm('Clear the terminal screen?')) {
                 // In real implementation, would send clear command to terminal
-                alert('Clear command would be sent to terminal');
+                console.log('Clear command would be sent to terminal');
             }
         }
 
@@ -2292,15 +2466,117 @@
             }
         }
 
+        // Quick Snippets
+        let snippetsOpen = false;
+        function toggleSnippets() {
+            snippetsOpen = !snippetsOpen;
+            const modal = document.getElementById('snippetsModal');
+            if (modal) {
+                modal.style.display = snippetsOpen ? 'flex' : 'none';
+            } else {
+                alert('Snippets feature coming soon!');
+            }
+        }
+
+        function copySnippet(command) {
+            navigator.clipboard.writeText(command).then(() => {
+                showGhostCommand(command, 'Snippet Copied');
+                addToHistory(command);
+                toggleSnippets();
+            });
+        }
+
+        // Command Palette
+        let paletteOpen = false;
+        function openCommandPalette() {
+            paletteOpen = !paletteOpen;
+            const modal = document.getElementById('commandPaletteModal');
+            if (modal) {
+                modal.style.display = paletteOpen ? 'flex' : 'none';
+                if (paletteOpen) {
+                    document.getElementById('commandSearch')?.focus();
+                }
+            } else {
+                alert('Command Palette feature coming soon!');
+            }
+        }
+
+        function closeCommandPalette() {
+            paletteOpen = false;
+            const modal = document.getElementById('commandPaletteModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        // Pop Out Terminal
+        let isFloating = false;
+        function toggleFloating() {
+            isFloating = !isFloating;
+            const workspace = document.querySelector('.workspace');
+            const floatBtn = document.getElementById('floatBtn');
+            
+            if (isFloating) {
+                workspace?.classList.add('floating');
+                if (floatBtn) floatBtn.innerHTML = '<i class="fas fa-compress"></i><span>Dock</span>';
+            } else {
+                workspace?.classList.remove('floating');
+                if (floatBtn) floatBtn.innerHTML = '<i class="fas fa-window-restore"></i><span>Pop Out</span>';
+            }
+        }
+
+        // Zoom Controls
+        let zoomLevel = 100;
+        function zoomIn() {
+            zoomLevel = Math.min(zoomLevel + 10, 200);
+            applyZoom();
+        }
+
+        function zoomOut() {
+            zoomLevel = Math.max(zoomLevel - 10, 50);
+            applyZoom();
+        }
+
+        function resetZoom() {
+            zoomLevel = 100;
+            applyZoom();
+        }
+
+        function applyZoom() {
+            const container = document.getElementById('terminalContainer');
+            if (container) {
+                container.style.transform = `scale(${zoomLevel / 100})`;
+                container.style.transformOrigin = 'top left';
+            }
+            console.log('Zoom level:', zoomLevel + '%');
+        }
+
         // Settings
         function openSettings() {
-            alert('Settings panel coming in next step!');
+            alert('Settings: Zoom=' + zoomLevel + '%, Floating=' + isFloating + '\n\nFull settings panel coming soon!');
         }
 
         // Themes
         function openThemes() {
-            alert('Theme selector coming in next step!');
+            alert('Theme selector with 16 color gradients coming soon!');
         }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+K - Snippets
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                toggleSnippets();
+            }
+            // Ctrl+Shift+P - Command Palette
+            if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+                e.preventDefault();
+                openCommandPalette();
+            }
+            // Escape - Close modals
+            if (e.key === 'Escape') {
+                closeCommandPalette();
+                if (snippetsOpen) toggleSnippets();
+            }
+        });
 
         // Command History Functions
         function toggleHistory() {
