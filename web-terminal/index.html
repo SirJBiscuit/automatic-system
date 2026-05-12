@@ -182,6 +182,153 @@
             color: #666;
         }
 
+        .server-stats {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+            font-size: 10px;
+        }
+
+        .server-stat {
+            background: #1a1a1a;
+            padding: 3px 6px;
+            border-radius: 3px;
+            color: #888;
+        }
+
+        /* Command History Panel */
+        .history-panel {
+            border-top: 1px solid #333;
+            background: #1e1e1e;
+        }
+
+        .history-header {
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .history-header:hover {
+            background: #252525;
+        }
+
+        .history-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-toggle {
+            color: #888;
+            transition: transform 0.2s;
+        }
+
+        .history-toggle.open {
+            transform: rotate(180deg);
+        }
+
+        .history-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .history-content.open {
+            max-height: 400px;
+        }
+
+        .history-search {
+            padding: 10px 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .history-search input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 12px;
+        }
+
+        .history-search input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .history-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 8px 15px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            color: #aaa;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            background: #252525;
+            color: #fff;
+        }
+
+        .history-item-command {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-item-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .history-item:hover .history-item-actions {
+            opacity: 1;
+        }
+
+        .history-action-btn {
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        .history-action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .history-action-btn.favorite {
+            color: #f59e0b;
+        }
+
+        .history-empty {
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+
         /* Terminal Area (Center) */
         .terminal-area {
             flex: 1;
@@ -935,6 +1082,25 @@
                     <p>Click "Add" to create your first server</p>
                 </div>
             </div>
+
+            <!-- Command History Panel -->
+            <div class="history-panel">
+                <div class="history-header" onclick="toggleHistory()">
+                    <div class="history-title">
+                        <i class="fas fa-history"></i>
+                        <span>Command History</span>
+                    </div>
+                    <i class="fas fa-chevron-down history-toggle" id="historyToggle"></i>
+                </div>
+                <div class="history-content" id="historyContent">
+                    <div class="history-search">
+                        <input type="text" placeholder="Search commands..." id="historySearch" oninput="filterHistory()">
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <div class="history-empty">No command history yet</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Terminal Area -->
@@ -1118,6 +1284,8 @@
         let activeTabId = null;
         let editingServerId = null;
         let contextTabId = null;
+        let commandHistory = [];
+        let favoriteCommands = [];
 
         // Load saved data
         function loadData() {
@@ -1134,6 +1302,17 @@
                 renderTabs();
                 renderTerminal();
             }
+
+            const savedHistory = localStorage.getItem('ssh_command_history');
+            if (savedHistory) {
+                commandHistory = JSON.parse(savedHistory);
+                renderHistory();
+            }
+
+            const savedFavorites = localStorage.getItem('ssh_favorites');
+            if (savedFavorites) {
+                favoriteCommands = JSON.parse(savedFavorites);
+            }
         }
 
         // Save data
@@ -1141,6 +1320,8 @@
             localStorage.setItem('ssh_servers', JSON.stringify(servers));
             localStorage.setItem('ssh_tabs', JSON.stringify(tabs));
             localStorage.setItem('ssh_active_tab', activeTabId);
+            localStorage.setItem('ssh_command_history', JSON.stringify(commandHistory));
+            localStorage.setItem('ssh_favorites', JSON.stringify(favoriteCommands));
         }
 
         // Render server list
@@ -1175,7 +1356,12 @@
                         </div>
                     </div>
                     <div class="server-host">${server.host}:${server.port}</div>
-                    <div class="server-uptime">Uptime: ${server.uptime || 'Unknown'}</div>
+                    <div class="server-uptime">⏱ ${server.uptime || '0d 0h 0m'}</div>
+                    <div class="server-stats">
+                        <div class="server-stat">💾 ${server.diskUsage || '0%'}</div>
+                        <div class="server-stat">🔥 ${server.cpuUsage || '0%'}</div>
+                        <div class="server-stat">📊 ${server.memUsage || '0%'}</div>
+                    </div>
                 </div>
             `).join('');
         }
@@ -1776,6 +1962,124 @@
         // Themes
         function openThemes() {
             alert('Theme selector coming in next step!');
+        }
+
+        // Command History Functions
+        function toggleHistory() {
+            const content = document.getElementById('historyContent');
+            const toggle = document.getElementById('historyToggle');
+            content.classList.toggle('open');
+            toggle.classList.toggle('open');
+        }
+
+        function addToHistory(command) {
+            const historyItem = {
+                id: 'hist_' + Date.now(),
+                command: command,
+                timestamp: new Date().toISOString(),
+                serverId: activeTabId ? tabs.find(t => t.id === activeTabId)?.serverId : null,
+                favorite: false
+            };
+
+            commandHistory.unshift(historyItem);
+            
+            // Keep only last 100 commands
+            if (commandHistory.length > 100) {
+                commandHistory = commandHistory.slice(0, 100);
+            }
+
+            saveData();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            const searchTerm = document.getElementById('historySearch')?.value.toLowerCase() || '';
+
+            let filtered = commandHistory;
+            if (searchTerm) {
+                filtered = commandHistory.filter(item => 
+                    item.command.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="history-empty">No commands found</div>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(item => `
+                <div class="history-item" onclick="runHistoryCommand('${item.id}')">
+                    <div class="history-item-command">${item.command}</div>
+                    <div class="history-item-actions">
+                        <button class="history-action-btn ${item.favorite ? 'favorite' : ''}" 
+                                onclick="event.stopPropagation(); toggleFavorite('${item.id}')" 
+                                title="${item.favorite ? 'Remove from favorites' : 'Add to favorites'}">
+                            <i class="fas fa-star"></i>
+                        </button>
+                        <button class="history-action-btn" 
+                                onclick="event.stopPropagation(); deleteHistoryItem('${item.id}')" 
+                                title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterHistory() {
+            renderHistory();
+        }
+
+        function runHistoryCommand(historyId) {
+            const item = commandHistory.find(h => h.id === historyId);
+            if (!item) return;
+
+            showGhostCommand(item.command, 'From History');
+        }
+
+        function toggleFavorite(historyId) {
+            const item = commandHistory.find(h => h.id === historyId);
+            if (!item) return;
+
+            item.favorite = !item.favorite;
+            
+            if (item.favorite) {
+                if (!favoriteCommands.includes(item.command)) {
+                    favoriteCommands.push(item.command);
+                }
+            } else {
+                favoriteCommands = favoriteCommands.filter(c => c !== item.command);
+            }
+
+            saveData();
+            renderHistory();
+        }
+
+        function deleteHistoryItem(historyId) {
+            commandHistory = commandHistory.filter(h => h.id !== historyId);
+            saveData();
+            renderHistory();
+        }
+
+        // Demo function to add sample history
+        function demoHistory() {
+            const sampleCommands = [
+                'ls -la',
+                'cd /var/www',
+                'docker ps -a',
+                'systemctl status nginx',
+                'tail -f /var/log/syslog',
+                'df -h',
+                'htop',
+                'git status',
+                'npm install',
+                'sudo apt update'
+            ];
+
+            sampleCommands.forEach(cmd => {
+                setTimeout(() => addToHistory(cmd), Math.random() * 1000);
+            });
         }
 
         // Initialize
