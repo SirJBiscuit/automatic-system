@@ -422,14 +422,60 @@
 
         .terminal-container.draggable {
             position: fixed;
-            width: 800px;
-            height: 600px;
+            width: 900px;
+            height: 650px;
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
             resize: both;
-            overflow: auto;
+            overflow: hidden;
             z-index: 4000;
             border: 2px solid #667eea;
+            display: flex;
+            flex-direction: column;
+            min-width: 400px;
+            min-height: 300px;
+        }
+
+        .terminal-container.draggable .demo-terminal,
+        .terminal-container.draggable .terminal-frame {
+            flex: 1;
+            height: auto;
+        }
+
+        /* Snap zones */
+        .snap-zone {
+            position: fixed;
+            background: rgba(102, 126, 234, 0.3);
+            border: 2px dashed #667eea;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 3999;
+        }
+
+        .snap-zone.active {
+            opacity: 1;
+        }
+
+        .snap-left {
+            left: 0;
+            top: 60px;
+            width: 50%;
+            height: calc(100vh - 60px);
+        }
+
+        .snap-right {
+            right: 0;
+            top: 60px;
+            width: 50%;
+            height: calc(100vh - 60px);
+        }
+
+        .snap-full {
+            left: 0;
+            top: 60px;
+            width: 100%;
+            height: calc(100vh - 60px);
         }
 
         .terminal-drag-handle {
@@ -445,6 +491,7 @@
             position: sticky;
             top: 0;
             z-index: 10;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         }
 
         .terminal-container.draggable .terminal-drag-handle {
@@ -457,24 +504,128 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex: 1;
+        }
+
+        .terminal-drag-handle-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
         }
 
         .terminal-drag-handle-btn {
             background: rgba(255, 255, 255, 0.2);
             border: none;
             color: white;
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             border-radius: 4px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
+            font-size: 12px;
         }
 
         .terminal-drag-handle-btn:hover {
             background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .terminal-drag-handle-btn.minimize {
+            background: rgba(255, 193, 7, 0.3);
+        }
+
+        .terminal-drag-handle-btn.minimize:hover {
+            background: rgba(255, 193, 7, 0.5);
+        }
+
+        .terminal-drag-handle-btn.maximize {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .terminal-drag-handle-btn.maximize:hover {
+            background: rgba(76, 175, 80, 0.5);
+        }
+
+        .terminal-drag-handle-btn.close {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        .terminal-drag-handle-btn.close:hover {
+            background: rgba(244, 67, 54, 0.5);
+        }
+
+        /* Resize handles */
+        .resize-handle {
+            position: absolute;
+            background: transparent;
+            z-index: 11;
+        }
+
+        .resize-handle.n {
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            cursor: ns-resize;
+        }
+
+        .resize-handle.s {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            cursor: ns-resize;
+        }
+
+        .resize-handle.e {
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            cursor: ew-resize;
+        }
+
+        .resize-handle.w {
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            cursor: ew-resize;
+        }
+
+        .resize-handle.ne {
+            top: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            cursor: nesw-resize;
+        }
+
+        .resize-handle.nw {
+            top: 0;
+            left: 0;
+            width: 10px;
+            height: 10px;
+            cursor: nwse-resize;
+        }
+
+        .resize-handle.se {
+            bottom: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            cursor: nwse-resize;
+        }
+
+        .resize-handle.sw {
+            bottom: 0;
+            left: 0;
+            width: 10px;
+            height: 10px;
+            cursor: nesw-resize;
         }
 
         .terminal-frame {
@@ -1722,14 +1873,35 @@
                 <div class="terminal-drag-handle" id="terminalDragHandle">
                     <div class="terminal-drag-handle-title">
                         <i class="fas fa-grip-vertical"></i>
-                        <span>Terminal Window</span>
+                        <span id="terminalWindowTitle">Terminal Window</span>
                     </div>
-                    <div>
-                        <button class="terminal-drag-handle-btn" onclick="toggleTerminalDraggable()" data-tooltip="Dock Terminal">
+                    <div class="terminal-drag-handle-controls">
+                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); minimizeTerminal()" data-tooltip="Minimize" title="Minimize">
+                            <i class="fas fa-window-minimize"></i>
+                        </button>
+                        <button class="terminal-drag-handle-btn maximize" onclick="event.stopPropagation(); maximizeTerminal()" data-tooltip="Maximize" title="Maximize">
+                            <i class="fas fa-window-maximize"></i>
+                        </button>
+                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); snapTerminalLeft()" data-tooltip="Snap Left" title="Snap Left">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); snapTerminalRight()" data-tooltip="Snap Right" title="Snap Right">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <button class="terminal-drag-handle-btn close" onclick="event.stopPropagation(); toggleTerminalDraggable()" data-tooltip="Dock Terminal" title="Dock">
                             <i class="fas fa-compress"></i>
                         </button>
                     </div>
                 </div>
+                <!-- Resize Handles -->
+                <div class="resize-handle n" data-direction="n"></div>
+                <div class="resize-handle s" data-direction="s"></div>
+                <div class="resize-handle e" data-direction="e"></div>
+                <div class="resize-handle w" data-direction="w"></div>
+                <div class="resize-handle ne" data-direction="ne"></div>
+                <div class="resize-handle nw" data-direction="nw"></div>
+                <div class="resize-handle se" data-direction="se"></div>
+                <div class="resize-handle sw" data-direction="sw"></div>
                 <div class="iframe-overlay" id="iframeOverlay"></div>
                 <div class="empty-state">
                     <i class="fas fa-terminal"></i>
@@ -3418,6 +3590,143 @@ Swap:       2048000           0     2048000`
             };
 
             handle.addEventListener('mousedown', mouseDownHandler);
+            
+            // Add resize functionality
+            setupResizeHandles(element);
+        }
+
+        // Terminal window controls
+        function minimizeTerminal() {
+            const container = document.getElementById('terminalContainer');
+            if (container.style.height === '40px') {
+                container.style.height = '650px';
+            } else {
+                container.style.height = '40px';
+            }
+        }
+
+        let terminalMaximized = false;
+        let terminalPreMaximizeState = {};
+
+        function maximizeTerminal() {
+            const container = document.getElementById('terminalContainer');
+            
+            if (terminalMaximized) {
+                // Restore
+                container.style.top = terminalPreMaximizeState.top;
+                container.style.left = terminalPreMaximizeState.left;
+                container.style.width = terminalPreMaximizeState.width;
+                container.style.height = terminalPreMaximizeState.height;
+                terminalMaximized = false;
+            } else {
+                // Save current state
+                terminalPreMaximizeState = {
+                    top: container.style.top,
+                    left: container.style.left,
+                    width: container.style.width,
+                    height: container.style.height
+                };
+                // Maximize
+                container.style.top = '60px';
+                container.style.left = '0';
+                container.style.width = '100%';
+                container.style.height = 'calc(100vh - 60px)';
+                terminalMaximized = true;
+            }
+        }
+
+        function snapTerminalLeft() {
+            const container = document.getElementById('terminalContainer');
+            container.style.top = '60px';
+            container.style.left = '0';
+            container.style.width = '50%';
+            container.style.height = 'calc(100vh - 60px)';
+            terminalMaximized = false;
+        }
+
+        function snapTerminalRight() {
+            const container = document.getElementById('terminalContainer');
+            container.style.top = '60px';
+            container.style.left = '50%';
+            container.style.width = '50%';
+            container.style.height = 'calc(100vh - 60px)';
+            terminalMaximized = false;
+        }
+
+        // Resize functionality
+        let resizing = false;
+        let resizeDirection = null;
+        let resizeStartX = 0;
+        let resizeStartY = 0;
+        let resizeStartWidth = 0;
+        let resizeStartHeight = 0;
+        let resizeStartTop = 0;
+        let resizeStartLeft = 0;
+
+        function setupResizeHandles(element) {
+            const handles = element.querySelectorAll('.resize-handle');
+            
+            handles.forEach(handle => {
+                handle.addEventListener('mousedown', (e) => {
+                    resizing = true;
+                    resizeDirection = handle.dataset.direction;
+                    resizeStartX = e.clientX;
+                    resizeStartY = e.clientY;
+                    
+                    const rect = element.getBoundingClientRect();
+                    resizeStartWidth = rect.width;
+                    resizeStartHeight = rect.height;
+                    resizeStartTop = rect.top;
+                    resizeStartLeft = rect.left;
+                    
+                    document.addEventListener('mousemove', handleResize);
+                    document.addEventListener('mouseup', stopResize);
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+        }
+
+        function handleResize(e) {
+            if (!resizing) return;
+            
+            const container = document.getElementById('terminalContainer');
+            const deltaX = e.clientX - resizeStartX;
+            const deltaY = e.clientY - resizeStartY;
+            
+            let newWidth = resizeStartWidth;
+            let newHeight = resizeStartHeight;
+            let newTop = resizeStartTop;
+            let newLeft = resizeStartLeft;
+            
+            // Handle different resize directions
+            if (resizeDirection.includes('e')) {
+                newWidth = Math.max(400, resizeStartWidth + deltaX);
+            }
+            if (resizeDirection.includes('w')) {
+                newWidth = Math.max(400, resizeStartWidth - deltaX);
+                newLeft = resizeStartLeft + deltaX;
+            }
+            if (resizeDirection.includes('s')) {
+                newHeight = Math.max(300, resizeStartHeight + deltaY);
+            }
+            if (resizeDirection.includes('n')) {
+                newHeight = Math.max(300, resizeStartHeight - deltaY);
+                newTop = resizeStartTop + deltaY;
+            }
+            
+            container.style.width = newWidth + 'px';
+            container.style.height = newHeight + 'px';
+            container.style.top = newTop + 'px';
+            container.style.left = newLeft + 'px';
+        }
+
+        function stopResize() {
+            resizing = false;
+            resizeDirection = null;
+            document.removeEventListener('mousemove', handleResize);
+            document.removeEventListener('mouseup', stopResize);
         }
 
         // Keyboard Shortcuts
