@@ -646,6 +646,34 @@
             padding: 16px;
             overflow-y: auto;
             line-height: 1.5;
+            scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+            transition: scrollbar-color 0.3s;
+        }
+
+        .demo-terminal:hover {
+            scrollbar-color: #667eea #1a1a1a;
+        }
+
+        .demo-terminal::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .demo-terminal::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .demo-terminal::-webkit-scrollbar-thumb {
+            background: transparent;
+            border-radius: 4px;
+        }
+
+        .demo-terminal:hover::-webkit-scrollbar-thumb {
+            background: #667eea;
+        }
+
+        .demo-terminal:hover::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
         }
 
         .demo-terminal-output {
@@ -751,6 +779,128 @@
 
         .host-card:hover {
             transform: translateX(4px);
+        }
+
+        /* File Tree Viewer */
+        .file-tree-panel {
+            position: fixed;
+            right: -350px;
+            top: 60px;
+            width: 350px;
+            height: calc(100vh - 60px);
+            background: #1e1e1e;
+            border-left: 2px solid #667eea;
+            box-shadow: -4px 0 12px rgba(0, 0, 0, 0.5);
+            transition: right 0.3s ease;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .file-tree-panel.active {
+            right: 0;
+        }
+
+        .file-tree-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 16px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-tree-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .file-tree-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .file-tree-content::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .file-tree-content::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .file-tree-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ccc;
+            transition: all 0.2s;
+        }
+
+        .file-tree-item:hover {
+            background: #2a2a2a;
+            color: white;
+        }
+
+        .file-tree-item.folder {
+            font-weight: 600;
+        }
+
+        .file-tree-item.file:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .file-tree-item i {
+            width: 20px;
+        }
+
+        /* Automated Tasks Panel */
+        .tasks-panel {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+
+        .task-item {
+            background: #1e1e1e;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .task-item.running {
+            border-left-color: #43e97b;
+        }
+
+        .task-item.error {
+            border-left-color: #f44336;
+        }
+
+        /* Performance Monitor */
+        .perf-monitor {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #43e97b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            z-index: 5000;
+            display: none;
+            border: 1px solid #667eea;
+        }
+
+        .perf-monitor.active {
+            display: block;
         }
 
         .loading i {
@@ -1437,8 +1587,27 @@
         .ai-chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
-            background: #1e1e1e;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .ai-chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .ai-chat-messages::-webkit-scrollbar-track {
+            background: #2a2a2a;
+        }
+
+        .ai-chat-messages::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .ai-chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
         }
 
         .ai-message {
@@ -1701,6 +1870,8 @@
             top: 100%;
             transform: translateX(-50%) translateY(5px);
             z-index: 10001;
+            max-width: 200px;
+            text-align: center;
         }
 
         .toolbar [data-tooltip]::after {
@@ -1718,6 +1889,21 @@
 
         .toolbar [data-tooltip]:hover::after {
             transform: translateX(-50%) translateY(5px);
+        }
+
+        /* Widget tooltips - stay inside widget */
+        .ai-chat-widget [data-tooltip]::before,
+        .file-transfer-panel [data-tooltip]::before,
+        .terminal-drag-handle [data-tooltip]::before {
+            max-width: 150px;
+            white-space: normal;
+            text-align: center;
+        }
+
+        /* Prevent tooltip overflow */
+        .widget-popout [data-tooltip]::before,
+        .widget-popout [data-tooltip]::after {
+            position: fixed;
         }
 
         .toolbar-btn {
@@ -1776,6 +1962,18 @@
             </div>
         </div>
         <div class="toolbar-right">
+            <button class="toolbar-btn" onclick="toggleFileTree()" data-tooltip="File Tree Browser">
+                <i class="fas fa-folder-tree"></i>
+                <span>Files</span>
+            </button>
+            <button class="toolbar-btn" onclick="toggleTasksPanel()" data-tooltip="Automated Tasks">
+                <i class="fas fa-tasks"></i>
+                <span>Tasks</span>
+            </button>
+            <button class="toolbar-btn" onclick="togglePerfMonitor()" data-tooltip="Performance Monitor">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Perf</span>
+            </button>
             <button class="toolbar-btn" onclick="startDemoTerminal()" data-tooltip="Launch Demo Terminal">
                 <i class="fas fa-play-circle"></i>
                 <span>Demo</span>
@@ -2041,6 +2239,31 @@
 
     <!-- Hidden file input -->
     <input type="file" id="fileInput" multiple onchange="handleFileSelect(event)">
+
+    <!-- File Tree Panel -->
+    <div class="file-tree-panel" id="fileTreePanel">
+        <div class="file-tree-header">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-folder-tree"></i>
+                <span>File Browser</span>
+            </div>
+            <button class="terminal-drag-handle-btn close" onclick="toggleFileTree()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="file-tree-content" id="fileTreeContent">
+            <!-- File tree will be populated here -->
+        </div>
+    </div>
+
+    <!-- Performance Monitor -->
+    <div class="perf-monitor" id="perfMonitor">
+        <div><strong>Performance Monitor</strong></div>
+        <div id="perfCPU">CPU: 0%</div>
+        <div id="perfMem">Memory: 0 MB</div>
+        <div id="perfCmds">Commands: 0</div>
+        <div id="perfLatency">Latency: 0ms</div>
+    </div>
 
     <!-- AI Chat Toggle Button -->
     <button class="ai-chat-toggle" id="aiChatToggle" onclick="toggleAIChat()" data-tooltip="AI Assistant (Qwen2.5 7B)">
@@ -3300,6 +3523,7 @@
         }
 
         function executeDemoCommand(command) {
+            const startTime = performance.now();
             const output = document.getElementById('demoOutput');
             
             // Show command
@@ -3315,6 +3539,10 @@
             resultDiv.className = `command-output ${result.type}`;
             resultDiv.textContent = result.output;
             output.appendChild(resultDiv);
+            
+            // Log command execution
+            const duration = performance.now() - startTime;
+            logCommand(command, result.output, duration);
             
             // Scroll to bottom
             const terminal = document.getElementById('demoTerminal');
@@ -3450,6 +3678,222 @@ Swap:       2048000           0     2048000`
         // Themes
         function openThemes() {
             alert('Theme selector with 16 color gradients coming soon!');
+        }
+
+        // File Tree Functionality
+        let fileTreeOpen = false;
+        const fileTreeStructure = {
+            '/': {
+                'home': {
+                    'demo': {
+                        'Documents': {},
+                        'Downloads': {},
+                        '.bashrc': null,
+                        '.profile': null
+                    }
+                },
+                'etc': {
+                    'nginx': {
+                        'nginx.conf': null,
+                        'sites-available': {}
+                    },
+                    'ssh': {
+                        'sshd_config': null
+                    }
+                },
+                'var': {
+                    'log': {
+                        'syslog': null,
+                        'auth.log': null
+                    },
+                    'www': {
+                        'html': {
+                            'index.html': null
+                        }
+                    }
+                },
+                'opt': {},
+                'tmp': {}
+            }
+        };
+
+        function toggleFileTree() {
+            fileTreeOpen = !fileTreeOpen;
+            const panel = document.getElementById('fileTreePanel');
+            
+            if (fileTreeOpen) {
+                panel.classList.add('active');
+                renderFileTree();
+            } else {
+                panel.classList.remove('active');
+            }
+        }
+
+        function renderFileTree(path = '/', structure = fileTreeStructure['/'], container = null) {
+            if (!container) {
+                container = document.getElementById('fileTreeContent');
+                container.innerHTML = '';
+            }
+
+            Object.keys(structure).sort().forEach(name => {
+                const item = document.createElement('div');
+                const isFolder = structure[name] !== null && typeof structure[name] === 'object';
+                
+                item.className = `file-tree-item ${isFolder ? 'folder' : 'file'}`;
+                item.innerHTML = `
+                    <i class="fas fa-${isFolder ? 'folder' : 'file'}"></i>
+                    <span>${name}</span>
+                `;
+                
+                if (isFolder) {
+                    item.onclick = () => {
+                        const subContainer = document.createElement('div');
+                        subContainer.style.marginLeft = '20px';
+                        item.after(subContainer);
+                        renderFileTree(path + name + '/', structure[name], subContainer);
+                    };
+                } else {
+                    item.onclick = () => {
+                        openFileInTerminal(path + name);
+                    };
+                }
+                
+                container.appendChild(item);
+            });
+        }
+
+        function openFileInTerminal(filePath) {
+            if (demoTerminalActive) {
+                executeDemoCommand(`cat ${filePath}`);
+                document.getElementById('demoInput').focus();
+            } else {
+                alert(`Would open file: ${filePath}\\n(Start demo terminal first)`);
+            }
+        }
+
+        // Automated Tasks Panel
+        let tasksOpen = false;
+        const automatedTasks = [
+            { name: 'Daily Backup', schedule: '0 2 * * *', status: 'scheduled', lastRun: '2026-05-11 02:00' },
+            { name: 'Log Rotation', schedule: '0 0 * * 0', status: 'scheduled', lastRun: '2026-05-05 00:00' },
+            { name: 'Security Scan', schedule: '0 3 * * 1', status: 'running', lastRun: '2026-05-12 03:00' },
+            { name: 'Disk Cleanup', schedule: '0 4 * * *', status: 'scheduled', lastRun: '2026-05-11 04:00' }
+        ];
+
+        function toggleTasksPanel() {
+            tasksOpen = !tasksOpen;
+            
+            if (tasksOpen) {
+                showTasksModal();
+            }
+        }
+
+        function showTasksModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <div class="modal-title">Automated Tasks</div>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="tasks-panel">
+                            ${automatedTasks.map(task => `
+                                <div class="task-item ${task.status}">
+                                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                                        <div>
+                                            <strong>${task.name}</strong>
+                                            <div style="color: #888; font-size: 12px; margin-top: 4px;">
+                                                Schedule: ${task.schedule}
+                                            </div>
+                                            <div style="color: #888; font-size: 12px;">
+                                                Last run: ${task.lastRun}
+                                            </div>
+                                        </div>
+                                        <span style="background: ${task.status === 'running' ? '#43e97b' : '#667eea'}; padding: 4px 12px; border-radius: 12px; font-size: 11px;">
+                                            ${task.status.toUpperCase()}
+                                        </span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="btn btn-primary" style="margin-top: 16px;" onclick="alert('Create new automated task')">
+                            <i class="fas fa-plus"></i> Create New Task
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Performance Monitor
+        let perfMonitorActive = false;
+        let perfStats = {
+            cpu: 0,
+            memory: 0,
+            commands: 0,
+            latency: 0
+        };
+
+        function togglePerfMonitor() {
+            perfMonitorActive = !perfMonitorActive;
+            const monitor = document.getElementById('perfMonitor');
+            
+            if (perfMonitorActive) {
+                monitor.classList.add('active');
+                startPerfMonitoring();
+            } else {
+                monitor.classList.remove('active');
+                stopPerfMonitoring();
+            }
+        }
+
+        let perfInterval;
+        function startPerfMonitoring() {
+            updatePerfStats();
+            perfInterval = setInterval(updatePerfStats, 1000);
+        }
+
+        function stopPerfMonitoring() {
+            if (perfInterval) {
+                clearInterval(perfInterval);
+            }
+        }
+
+        function updatePerfStats() {
+            // Simulate performance metrics
+            perfStats.cpu = Math.random() * 100;
+            perfStats.memory = Math.random() * 2048;
+            perfStats.latency = Math.random() * 50;
+            
+            document.getElementById('perfCPU').textContent = `CPU: ${perfStats.cpu.toFixed(1)}%`;
+            document.getElementById('perfMem').textContent = `Memory: ${perfStats.memory.toFixed(0)} MB`;
+            document.getElementById('perfCmds').textContent = `Commands: ${perfStats.commands}`;
+            document.getElementById('perfLatency').textContent = `Latency: ${perfStats.latency.toFixed(0)}ms`;
+        }
+
+        // Command Logging System
+        const commandLog = [];
+        function logCommand(command, output, duration) {
+            const logEntry = {
+                timestamp: new Date().toISOString(),
+                command: command,
+                output: output.substring(0, 200),
+                duration: duration,
+                success: !output.includes('error')
+            };
+            commandLog.push(logEntry);
+            perfStats.commands++;
+            
+            // Keep only last 100 commands
+            if (commandLog.length > 100) {
+                commandLog.shift();
+            }
+            
+            console.log('[CMD LOG]', logEntry);
         }
 
         // Pop-out Widget Functionality
