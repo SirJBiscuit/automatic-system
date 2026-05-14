@@ -562,6 +562,11 @@
             position: absolute;
             background: transparent;
             z-index: 11;
+            display: none;
+        }
+        
+        .terminal-container.draggable .resize-handle {
+            display: block;
         }
 
         .resize-handle.n {
@@ -3980,35 +3985,60 @@ Swap:       2048000           0     2048000`
             terminalDraggable = !terminalDraggable;
             const container = document.getElementById('terminalContainer');
             const floatBtn = document.getElementById('floatBtn');
+            const handle = document.getElementById('terminalDragHandle');
+            const resizeHandles = container.querySelectorAll('.resize-handle');
             
             if (terminalDraggable) {
+                // Pop out the terminal
                 container.classList.add('draggable');
                 container.style.top = '100px';
                 container.style.left = '100px';
+                container.style.width = '900px';
+                container.style.height = '650px';
                 
-                // Update button
+                // Show drag handle and resize handles
+                if (handle) {
+                    handle.style.display = 'flex';
+                }
+                resizeHandles.forEach(h => h.style.display = 'block');
+                
+                // Update toolbar button
                 if (floatBtn) {
                     floatBtn.innerHTML = '<i class="fas fa-compress"></i><span>Dock</span>';
                     floatBtn.setAttribute('data-tooltip', 'Dock Terminal Window');
                 }
                 
-                // Only attach handler once
+                // Only attach handlers once
                 if (!terminalDragHandlerAttached) {
                     makeDraggableTerminal(container);
                     terminalDragHandlerAttached = true;
                 }
+                
+                console.log('Terminal popped out');
             } else {
+                // Dock the terminal
                 container.classList.remove('draggable');
                 container.style.top = '';
                 container.style.left = '';
                 container.style.width = '';
                 container.style.height = '';
                 
-                // Update button
+                // Hide drag handle and resize handles
+                if (handle) {
+                    handle.style.display = 'none';
+                }
+                resizeHandles.forEach(h => h.style.display = 'none');
+                
+                // Reset maximize state
+                terminalMaximized = false;
+                
+                // Update toolbar button
                 if (floatBtn) {
                     floatBtn.innerHTML = '<i class="fas fa-window-restore"></i><span>Pop Out</span>';
                     floatBtn.setAttribute('data-tooltip', 'Pop Out Terminal Window');
                 }
+                
+                console.log('Terminal docked');
             }
         }
 
