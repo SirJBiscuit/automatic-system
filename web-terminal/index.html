@@ -2000,7 +2000,7 @@
                 <span>Themes</span>
             </button>
             <button class="toolbar-btn" onclick="toggleTerminalDraggable()" id="floatBtn" data-tooltip="Pop Out Terminal Window">
-                <i class="fas fa-window-restore"></i>
+                <i class="fas fa-external-alt"></i>
                 <span>Pop Out</span>
             </button>
             <button class="toolbar-btn" onclick="zoomIn()" data-tooltip="Zoom In (+10%)">
@@ -2080,10 +2080,10 @@
                     </div>
                     <div class="terminal-drag-handle-controls">
                         <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); minimizeTerminal()" data-tooltip="Minimize" title="Minimize">
-                            <i class="fas fa-window-minimize"></i>
+                            <i class="fas fa-minus"></i>
                         </button>
                         <button class="terminal-drag-handle-btn maximize" onclick="event.stopPropagation(); maximizeTerminal()" data-tooltip="Maximize" title="Maximize">
-                            <i class="fas fa-window-maximize"></i>
+                            <i class="fas fa-square"></i>
                         </button>
                         <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); snapTerminalLeft()" data-tooltip="Snap Left" title="Snap Left">
                             <i class="fas fa-arrow-left"></i>
@@ -2091,8 +2091,11 @@
                         <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); snapTerminalRight()" data-tooltip="Snap Right" title="Snap Right">
                             <i class="fas fa-arrow-right"></i>
                         </button>
-                        <button class="terminal-drag-handle-btn close" onclick="event.stopPropagation(); toggleTerminalDraggable()" data-tooltip="Dock Terminal" title="Dock">
-                            <i class="fas fa-compress"></i>
+                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); toggleTerminalDraggable()" data-tooltip="Dock Terminal" title="Dock">
+                            <i class="fas fa-compress-alt"></i>
+                        </button>
+                        <button class="terminal-drag-handle-btn close" onclick="event.stopPropagation(); closeTerminalWindow()" data-tooltip="Close" title="Close">
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
                 </div>
@@ -3796,6 +3799,7 @@ Swap:       2048000           0     2048000`
         function showTasksModal() {
             const modal = document.createElement('div');
             modal.className = 'modal active';
+            modal.id = 'tasksModal';
             modal.innerHTML = `
                 <div class="modal-content" style="max-width: 700px;">
                     <div class="modal-header">
@@ -3805,33 +3809,116 @@ Swap:       2048000           0     2048000`
                         </button>
                     </div>
                     <div class="modal-body">
-                        <div class="tasks-panel">
-                            ${automatedTasks.map(task => `
-                                <div class="task-item ${task.status}">
-                                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                                        <div>
-                                            <strong>${task.name}</strong>
-                                            <div style="color: #888; font-size: 12px; margin-top: 4px;">
-                                                Schedule: ${task.schedule}
-                                            </div>
-                                            <div style="color: #888; font-size: 12px;">
-                                                Last run: ${task.lastRun}
-                                            </div>
-                                        </div>
-                                        <span style="background: ${task.status === 'running' ? '#43e97b' : '#667eea'}; padding: 4px 12px; border-radius: 12px; font-size: 11px;">
-                                            ${task.status.toUpperCase()}
-                                        </span>
-                                    </div>
-                                </div>
-                            `).join('')}
+                        <div class="tasks-panel" id="tasksContainer">
+                            ${renderTasksList()}
                         </div>
-                        <button class="btn btn-primary" style="margin-top: 16px;" onclick="alert('Create new automated task')">
+                        <button class="btn btn-primary" style="margin-top: 16px;" onclick="showAddTaskForm()">
                             <i class="fas fa-plus"></i> Create New Task
                         </button>
                     </div>
                 </div>
             `;
             document.body.appendChild(modal);
+        }
+
+        function renderTasksList() {
+            return automatedTasks.map((task, index) => `
+                <div class="task-item ${task.status}">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <strong>${task.name}</strong>
+                            <div style="color: #888; font-size: 12px; margin-top: 4px;">
+                                Schedule: ${task.schedule}
+                            </div>
+                            <div style="color: #888; font-size: 12px;">
+                                Last run: ${task.lastRun}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="background: ${task.status === 'running' ? '#43e97b' : '#667eea'}; padding: 4px 12px; border-radius: 12px; font-size: 11px;">
+                                ${task.status.toUpperCase()}
+                            </span>
+                            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="removeTask(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showAddTaskForm() {
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <div class="modal-title">Create New Task</div>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Task Name</label>
+                            <input type="text" id="newTaskName" class="form-control" placeholder="e.g., Database Backup">
+                        </div>
+                        <div class="form-group">
+                            <label>Cron Schedule</label>
+                            <input type="text" id="newTaskSchedule" class="form-control" placeholder="e.g., 0 2 * * *" value="0 0 * * *">
+                            <small style="color: #888;">Format: minute hour day month weekday</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Command</label>
+                            <input type="text" id="newTaskCommand" class="form-control" placeholder="e.g., /scripts/backup.sh">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                        <button class="btn btn-primary" onclick="addNewTask()">
+                            <i class="fas fa-plus"></i> Add Task
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function addNewTask() {
+            const name = document.getElementById('newTaskName').value;
+            const schedule = document.getElementById('newTaskSchedule').value;
+            const command = document.getElementById('newTaskCommand').value;
+            
+            if (!name || !schedule) {
+                alert('Please fill in task name and schedule');
+                return;
+            }
+            
+            automatedTasks.push({
+                name: name,
+                schedule: schedule,
+                command: command,
+                status: 'scheduled',
+                lastRun: 'Never'
+            });
+            
+            // Close add form
+            document.querySelectorAll('.modal').forEach(m => m.remove());
+            
+            // Reopen tasks modal
+            showTasksModal();
+        }
+
+        function removeTask(index) {
+            if (confirm(`Remove task "${automatedTasks[index].name}"?`)) {
+                automatedTasks.splice(index, 1);
+                
+                // Update the tasks container
+                const container = document.getElementById('tasksContainer');
+                if (container) {
+                    container.innerHTML = renderTasksList();
+                }
+            }
         }
 
         // Performance Monitor
@@ -3987,6 +4074,7 @@ Swap:       2048000           0     2048000`
             const floatBtn = document.getElementById('floatBtn');
             const handle = document.getElementById('terminalDragHandle');
             const resizeHandles = container.querySelectorAll('.resize-handle');
+            const titleSpan = document.getElementById('terminalWindowTitle');
             
             if (terminalDraggable) {
                 // Pop out the terminal
@@ -3996,6 +4084,18 @@ Swap:       2048000           0     2048000`
                 container.style.width = '900px';
                 container.style.height = '650px';
                 
+                // Update title with active server
+                if (titleSpan && activeTabId && tabs[activeTabId]) {
+                    const server = servers.find(s => s.id === tabs[activeTabId].serverId);
+                    if (server) {
+                        titleSpan.textContent = `${server.icon} ${server.name} - Terminal`;
+                    } else {
+                        titleSpan.textContent = 'Terminal Window';
+                    }
+                } else {
+                    if (titleSpan) titleSpan.textContent = 'Terminal Window';
+                }
+                
                 // Show drag handle and resize handles
                 if (handle) {
                     handle.style.display = 'flex';
@@ -4004,7 +4104,7 @@ Swap:       2048000           0     2048000`
                 
                 // Update toolbar button
                 if (floatBtn) {
-                    floatBtn.innerHTML = '<i class="fas fa-compress"></i><span>Dock</span>';
+                    floatBtn.innerHTML = '<i class="fas fa-compress-alt"></i><span>Dock</span>';
                     floatBtn.setAttribute('data-tooltip', 'Dock Terminal Window');
                 }
                 
@@ -4034,11 +4134,17 @@ Swap:       2048000           0     2048000`
                 
                 // Update toolbar button
                 if (floatBtn) {
-                    floatBtn.innerHTML = '<i class="fas fa-window-restore"></i><span>Pop Out</span>';
+                    floatBtn.innerHTML = '<i class="fas fa-external-alt"></i><span>Pop Out</span>';
                     floatBtn.setAttribute('data-tooltip', 'Pop Out Terminal Window');
                 }
                 
                 console.log('Terminal docked');
+            }
+        }
+
+        function closeTerminalWindow() {
+            if (confirm('Close terminal window?')) {
+                toggleTerminalDraggable();
             }
         }
 
