@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#667eea">
     <title>Enhanced SSH Terminal - Multi-Server</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -14,10 +18,23 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #1a1a1a;
-            color: #ffffff;
+            background: #1e1e1e;
             overflow: hidden;
             height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: pan-y;
+        }
+
+        /* Allow text selection in terminal and inputs */
+        .demo-terminal,
+        .terminal-frame,
+        input,
+        textarea {
+            -webkit-user-select: text;
+            user-select: text;
         }
 
         /* Toolbar */
@@ -28,10 +45,17 @@
             justify-content: space-between;
             align-items: center;
             color: white;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
             z-index: 1000;
+            position: relative;
             overflow: visible;
+        }
+
+        @media (max-width: 768px) {
+            .toolbar {
+                padding: 8px 12px;
+                flex-wrap: wrap;
+            }
         }
 
         .toolbar-left {
@@ -55,17 +79,33 @@
         }
 
         .toolbar-btn {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             border: none;
+            color: white;
             padding: 8px 16px;
             border-radius: 6px;
-            color: white;
             cursor: pointer;
             font-size: 14px;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             gap: 6px;
+            min-height: 44px;
+            min-width: 44px;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .toolbar-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+                min-height: 40px;
+                min-width: 40px;
+            }
+            
+            .toolbar-btn span {
+                display: none;
+            }
         }
 
         .toolbar-btn:hover {
@@ -906,6 +946,129 @@
 
         .perf-monitor.active {
             display: block;
+        }
+
+        /* Mobile Menu */
+        .mobile-menu-toggle {
+            display: none;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: flex;
+            }
+            
+            .toolbar-right {
+                position: fixed;
+                top: 60px;
+                right: -100%;
+                width: 80%;
+                max-width: 300px;
+                height: calc(100vh - 60px);
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                flex-direction: column;
+                padding: 20px;
+                gap: 12px;
+                transition: right 0.3s ease;
+                z-index: 999;
+                overflow-y: auto;
+                box-shadow: -4px 0 12px rgba(0, 0, 0, 0.5);
+            }
+            
+            .toolbar-right.active {
+                right: 0;
+            }
+            
+            .toolbar-right .toolbar-btn {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            
+            .toolbar-right .toolbar-btn span {
+                display: inline;
+            }
+        }
+
+        /* Mobile overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+        }
+
+        .mobile-overlay.active {
+            display: block;
+        }
+
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .server-panel {
+                width: 100%;
+                max-width: 250px;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 997;
+            }
+            
+            .server-panel.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .workspace {
+                flex-direction: column;
+            }
+            
+            .ai-chat-widget {
+                width: 100%;
+                max-width: 100%;
+                height: 50vh;
+                bottom: 0;
+                right: 0;
+            }
+            
+            .file-tree-panel {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .terminal-container.draggable {
+                width: 95vw !important;
+                height: 80vh !important;
+                top: 10px !important;
+                left: 2.5vw !important;
+            }
+        }
+
+        /* Touch-friendly buttons */
+        @media (hover: none) and (pointer: coarse) {
+            .btn,
+            .toolbar-btn,
+            .server-item,
+            .tab,
+            .file-tree-item {
+                min-height: 44px;
+                padding: 12px;
+            }
+            
+            .terminal-drag-handle-btn {
+                min-width: 44px;
+                min-height: 44px;
+            }
         }
 
         .loading i {
@@ -1967,6 +2130,9 @@
             </div>
         </div>
         <div class="toolbar-right">
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Menu">
+                <i class="fas fa-bars"></i>
+            </button>
             <button class="toolbar-btn" onclick="toggleFileTree()" data-tooltip="File Tree Browser">
                 <i class="fas fa-folder-tree"></i>
                 <span>Files</span>
@@ -2272,6 +2438,9 @@
         <div id="perfCmds">Commands: 0</div>
         <div id="perfLatency">Latency: 0ms</div>
     </div>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileMenu()"></div>
 
     <!-- AI Chat Toggle Button -->
     <button class="ai-chat-toggle" id="aiChatToggle" onclick="toggleAIChat()" data-tooltip="AI Assistant (Qwen2.5 7B)">
@@ -4307,6 +4476,167 @@ Swap:       2048000           0     2048000`
             resizeDirection = null;
             document.removeEventListener('mousemove', handleResize);
             document.removeEventListener('mouseup', stopResize);
+        }
+
+        // Mobile Menu Functions
+        let mobileMenuOpen = false;
+
+        function toggleMobileMenu() {
+            mobileMenuOpen = !mobileMenuOpen;
+            const menu = document.querySelector('.toolbar-right');
+            const overlay = document.getElementById('mobileOverlay');
+            
+            if (mobileMenuOpen) {
+                menu.classList.add('active');
+                overlay.classList.add('active');
+            } else {
+                menu.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        }
+
+        function closeMobileMenu() {
+            mobileMenuOpen = false;
+            document.querySelector('.toolbar-right').classList.remove('active');
+            document.getElementById('mobileOverlay').classList.remove('active');
+        }
+
+        // Touch Gesture Support
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+            const threshold = 50;
+
+            // Horizontal swipe
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > threshold) {
+                if (diffX > 0) {
+                    // Swipe right - open server panel on mobile
+                    if (window.innerWidth <= 768) {
+                        const serverPanel = document.querySelector('.server-panel');
+                        if (serverPanel) {
+                            serverPanel.classList.add('mobile-open');
+                        }
+                    }
+                } else {
+                    // Swipe left - close panels
+                    if (window.innerWidth <= 768) {
+                        const serverPanel = document.querySelector('.server-panel');
+                        if (serverPanel) {
+                            serverPanel.classList.remove('mobile-open');
+                        }
+                        closeMobileMenu();
+                    }
+                }
+            }
+        }
+
+        // Touch support for draggable elements
+        function addTouchSupport(element, handle) {
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+
+            handle.addEventListener('touchstart', (e) => {
+                if (e.target.closest('button')) return;
+                
+                isDragging = true;
+                const touch = e.touches[0];
+                const rect = element.getBoundingClientRect();
+                
+                initialX = touch.clientX - rect.left;
+                initialY = touch.clientY - rect.top;
+                
+                e.preventDefault();
+            }, { passive: false });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                
+                const touch = e.touches[0];
+                currentX = touch.clientX - initialX;
+                currentY = touch.clientY - initialY;
+                
+                element.style.left = Math.max(0, Math.min(currentX, window.innerWidth - element.offsetWidth)) + 'px';
+                element.style.top = Math.max(0, Math.min(currentY, window.innerHeight - element.offsetHeight)) + 'px';
+                
+                e.preventDefault();
+            }, { passive: false });
+
+            document.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+        }
+
+        // Apply touch support to terminal when draggable
+        function makeDraggableTerminal(element) {
+            const handle = document.getElementById('terminalDragHandle');
+            if (!handle) {
+                console.warn('Terminal drag handle not found');
+                return;
+            }
+
+            const mouseDownHandler = (e) => {
+                if (e.target.closest('button')) return;
+                
+                draggedWidget = element;
+                const rect = element.getBoundingClientRect();
+                dragOffset.x = e.clientX - rect.left;
+                dragOffset.y = e.clientY - rect.top;
+                
+                document.addEventListener('mousemove', onDrag);
+                document.addEventListener('mouseup', onDragEnd);
+                
+                e.preventDefault();
+            };
+
+            handle.addEventListener('mousedown', mouseDownHandler);
+            
+            // Add touch support
+            addTouchSupport(element, handle);
+            
+            // Add resize functionality
+            setupResizeHandles(element);
+        }
+
+        // Detect mobile device
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                   (window.innerWidth <= 768);
+        }
+
+        // Mobile-specific initialization
+        if (isMobileDevice()) {
+            console.log('Mobile device detected');
+            
+            // Adjust UI for mobile
+            document.body.classList.add('mobile-device');
+            
+            // Close mobile menu when clicking toolbar buttons
+            document.querySelectorAll('.toolbar-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        closeMobileMenu();
+                    }
+                });
+            });
         }
 
         // Keyboard Shortcuts
