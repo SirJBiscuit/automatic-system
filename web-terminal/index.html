@@ -1071,6 +1071,122 @@
             }
         }
 
+        /* On-Screen Keyboard */
+        .onscreen-keyboard {
+            position: fixed;
+            bottom: -400px;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            border-top: 2px solid #667eea;
+            padding: 16px;
+            z-index: 5001;
+            transition: bottom 0.3s ease;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .onscreen-keyboard.active {
+            bottom: 0;
+        }
+
+        .keyboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            color: white;
+        }
+
+        .keyboard-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+            justify-content: center;
+        }
+
+        .keyboard-key {
+            background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+            border: 1px solid #4a4a4a;
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 50px;
+            text-align: center;
+            transition: all 0.2s;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .keyboard-key:active {
+            transform: scale(0.95);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .keyboard-key.special {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-weight: 600;
+        }
+
+        .keyboard-key.wide {
+            min-width: 100px;
+        }
+
+        .keyboard-key.active {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            border-color: #43e97b;
+        }
+
+        /* Settings Panel */
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section h3 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #2a2a2a;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .theme-card {
+            padding: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .theme-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .theme-card.active {
+            border-color: white;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
         .loading i {
             font-size: 48px;
             margin-bottom: 16px;
@@ -2170,13 +2286,20 @@
                 <span>Pop Out</span>
             </button>
             <button class="toolbar-btn" onclick="zoomIn()" data-tooltip="Zoom In (+10%)">
-                <span>🔍+</span>
+                <i class="fas fa-search-plus"></i>
+                <span>Zoom+</span>
             </button>
             <button class="toolbar-btn" onclick="zoomOut()" data-tooltip="Zoom Out (-10%)">
-                <span>🔍-</span>
+                <i class="fas fa-search-minus"></i>
+                <span>Zoom-</span>
             </button>
             <button class="toolbar-btn" onclick="resetZoom()" data-tooltip="Reset Zoom (100%)">
-                <span>↺</span>
+                <i class="fas fa-undo"></i>
+                <span>Reset</span>
+            </button>
+            <button class="toolbar-btn" onclick="toggleOnScreenKeyboard()" data-tooltip="On-Screen Keyboard">
+                <i class="fas fa-keyboard"></i>
+                <span>Keyboard</span>
             </button>
         </div>
     </div>
@@ -2441,6 +2564,76 @@
 
     <!-- Mobile Overlay -->
     <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileMenu()"></div>
+
+    <!-- On-Screen Keyboard -->
+    <div class="onscreen-keyboard" id="onscreenKeyboard">
+        <div class="keyboard-header">
+            <strong>On-Screen Keyboard</strong>
+            <button class="terminal-drag-handle-btn close" onclick="toggleOnScreenKeyboard()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="keyboard-row">
+            <div class="keyboard-key special" onclick="toggleKeyModifier('Escape')">Esc</div>
+            <div class="keyboard-key" onclick="sendKey('1')">1</div>
+            <div class="keyboard-key" onclick="sendKey('2')">2</div>
+            <div class="keyboard-key" onclick="sendKey('3')">3</div>
+            <div class="keyboard-key" onclick="sendKey('4')">4</div>
+            <div class="keyboard-key" onclick="sendKey('5')">5</div>
+            <div class="keyboard-key" onclick="sendKey('6')">6</div>
+            <div class="keyboard-key" onclick="sendKey('7')">7</div>
+            <div class="keyboard-key" onclick="sendKey('8')">8</div>
+            <div class="keyboard-key" onclick="sendKey('9')">9</div>
+            <div class="keyboard-key" onclick="sendKey('0')">0</div>
+        </div>
+        <div class="keyboard-row">
+            <div class="keyboard-key special" onclick="toggleKeyModifier('Tab')">Tab</div>
+            <div class="keyboard-key" onclick="sendKey('q')">Q</div>
+            <div class="keyboard-key" onclick="sendKey('w')">W</div>
+            <div class="keyboard-key" onclick="sendKey('e')">E</div>
+            <div class="keyboard-key" onclick="sendKey('r')">R</div>
+            <div class="keyboard-key" onclick="sendKey('t')">T</div>
+            <div class="keyboard-key" onclick="sendKey('y')">Y</div>
+            <div class="keyboard-key" onclick="sendKey('u')">U</div>
+            <div class="keyboard-key" onclick="sendKey('i')">I</div>
+            <div class="keyboard-key" onclick="sendKey('o')">O</div>
+            <div class="keyboard-key" onclick="sendKey('p')">P</div>
+        </div>
+        <div class="keyboard-row">
+            <div class="keyboard-key special" id="ctrlKey" onclick="toggleKeyModifier('Control')">Ctrl</div>
+            <div class="keyboard-key" onclick="sendKey('a')">A</div>
+            <div class="keyboard-key" onclick="sendKey('s')">S</div>
+            <div class="keyboard-key" onclick="sendKey('d')">D</div>
+            <div class="keyboard-key" onclick="sendKey('f')">F</div>
+            <div class="keyboard-key" onclick="sendKey('g')">G</div>
+            <div class="keyboard-key" onclick="sendKey('h')">H</div>
+            <div class="keyboard-key" onclick="sendKey('j')">J</div>
+            <div class="keyboard-key" onclick="sendKey('k')">K</div>
+            <div class="keyboard-key" onclick="sendKey('l')">L</div>
+            <div class="keyboard-key special wide" onclick="sendKey('Enter')">Enter</div>
+        </div>
+        <div class="keyboard-row">
+            <div class="keyboard-key special" id="shiftKey" onclick="toggleKeyModifier('Shift')">Shift</div>
+            <div class="keyboard-key" onclick="sendKey('z')">Z</div>
+            <div class="keyboard-key" onclick="sendKey('x')">X</div>
+            <div class="keyboard-key" onclick="sendKey('c')">C</div>
+            <div class="keyboard-key" onclick="sendKey('v')">V</div>
+            <div class="keyboard-key" onclick="sendKey('b')">B</div>
+            <div class="keyboard-key" onclick="sendKey('n')">N</div>
+            <div class="keyboard-key" onclick="sendKey('m')">M</div>
+            <div class="keyboard-key" onclick="sendKey('Backspace')">⌫</div>
+        </div>
+        <div class="keyboard-row">
+            <div class="keyboard-key special" id="altKey" onclick="toggleKeyModifier('Alt')">Alt</div>
+            <div class="keyboard-key" onclick="sendKey('-')">-</div>
+            <div class="keyboard-key" onclick="sendKey('_')">_</div>
+            <div class="keyboard-key wide" onclick="sendKey(' ')">Space</div>
+            <div class="keyboard-key" onclick="sendKey('/')"> /</div>
+            <div class="keyboard-key" onclick="sendKey('.')">.</div>
+            <div class="keyboard-key" onclick="sendKey('ArrowUp')">↑</div>
+            <div class="keyboard-key" onclick="sendKey('ArrowDown')">↓</div>
+        </div>
+    </div>
 
     <!-- AI Chat Toggle Button -->
     <button class="ai-chat-toggle" id="aiChatToggle" onclick="toggleAIChat()" data-tooltip="AI Assistant (Qwen2.5 7B)">
@@ -3847,14 +4040,183 @@ Swap:       2048000           0     2048000`
             }
         }
 
+        // Theme System
+        const themes = [
+            { name: 'Purple Dream', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', default: true },
+            { name: 'Ocean Blue', gradient: 'linear-gradient(135deg, #2E3192 0%, #1BFFFF 100%)' },
+            { name: 'Sunset Orange', gradient: 'linear-gradient(135deg, #FF512F 0%, #F09819 100%)' },
+            { name: 'Forest Green', gradient: 'linear-gradient(135deg, #134E5E 0%, #71B280 100%)' },
+            { name: 'Rose Pink', gradient: 'linear-gradient(135deg, #EC008C 0%, #FC6767 100%)' },
+            { name: 'Midnight Blue', gradient: 'linear-gradient(135deg, #000428 0%, #004e92 100%)' },
+            { name: 'Emerald', gradient: 'linear-gradient(135deg, #348F50 0%, #56B4D3 100%)' },
+            { name: 'Fire Red', gradient: 'linear-gradient(135deg, #C33764 0%, #1D2671 100%)' },
+            { name: 'Aqua Marine', gradient: 'linear-gradient(135deg, #1A2980 0%, #26D0CE 100%)' },
+            { name: 'Candy', gradient: 'linear-gradient(135deg, #D3959B 0%, #BFE6BA 100%)' },
+            { name: 'Royal Purple', gradient: 'linear-gradient(135deg, #360033 0%, #0b8793 100%)' },
+            { name: 'Peach', gradient: 'linear-gradient(135deg, #FFECD2 0%, #FCB69F 100%)' },
+            { name: 'Neon', gradient: 'linear-gradient(135deg, #00F260 0%, #0575E6 100%)' },
+            { name: 'Dark Night', gradient: 'linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%)' },
+            { name: 'Cherry Blossom', gradient: 'linear-gradient(135deg, #FBD3E9 0%, #BB377D 100%)' },
+            { name: 'Northern Lights', gradient: 'linear-gradient(135deg, #00C9FF 0%, #92FE9D 100%)' }
+        ];
+
+        let currentTheme = themes[0];
+        let currentFont = 'Consolas';
+        let terminalOpacity = 100;
+
         // Settings
         function openSettings() {
-            alert('Settings: Zoom=' + zoomLevel + '%, Floating=' + isFloating + '\n\nFull settings panel coming soon!');
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <div class="modal-title">Settings</div>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="settings-section">
+                            <h3>Display</h3>
+                            <div class="setting-item">
+                                <span>Zoom Level</span>
+                                <span>${zoomLevel}%</span>
+                            </div>
+                            <div class="setting-item">
+                                <span>Terminal Font</span>
+                                <select id="fontSelector" class="form-control" style="width: 200px;" onchange="changeFont(this.value)">
+                                    <option value="Consolas" ${currentFont === 'Consolas' ? 'selected' : ''}>Consolas</option>
+                                    <option value="Monaco" ${currentFont === 'Monaco' ? 'selected' : ''}>Monaco</option>
+                                    <option value="Courier New" ${currentFont === 'Courier New' ? 'selected' : ''}>Courier New</option>
+                                    <option value="Fira Code" ${currentFont === 'Fira Code' ? 'selected' : ''}>Fira Code</option>
+                                    <option value="JetBrains Mono" ${currentFont === 'JetBrains Mono' ? 'selected' : ''}>JetBrains Mono</option>
+                                    <option value="Source Code Pro" ${currentFont === 'Source Code Pro' ? 'selected' : ''}>Source Code Pro</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <span>Terminal Opacity</span>
+                                <input type="range" min="50" max="100" value="${terminalOpacity}" 
+                                       oninput="changeOpacity(this.value)" style="width: 200px;">
+                                <span id="opacityValue">${terminalOpacity}%</span>
+                            </div>
+                        </div>
+                        <div class="settings-section">
+                            <h3>Interface</h3>
+                            <div class="setting-item">
+                                <span>Current Theme</span>
+                                <span>${currentTheme.name}</span>
+                            </div>
+                            <div class="setting-item">
+                                <span>Floating Mode</span>
+                                <span>${isFloating ? 'Enabled' : 'Disabled'}</span>
+                            </div>
+                        </div>
+                        <div class="settings-section">
+                            <h3>Quick Actions</h3>
+                            <button class="btn btn-primary" onclick="openThemes(); this.closest('.modal').remove();">
+                                <i class="fas fa-palette"></i> Change Theme
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetAllSettings()">
+                                <i class="fas fa-undo"></i> Reset to Defaults
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function changeFont(font) {
+            currentFont = font;
+            const terminals = document.querySelectorAll('.demo-terminal, .terminal-frame');
+            terminals.forEach(term => {
+                term.style.fontFamily = `'${font}', 'Consolas', 'Monaco', 'Courier New', monospace`;
+            });
+        }
+
+        function changeOpacity(value) {
+            terminalOpacity = value;
+            document.getElementById('opacityValue').textContent = value + '%';
+            const terminals = document.querySelectorAll('.demo-terminal, .terminal-frame');
+            terminals.forEach(term => {
+                term.style.opacity = value / 100;
+            });
+        }
+
+        function resetAllSettings() {
+            if (confirm('Reset all settings to defaults?')) {
+                zoomLevel = 100;
+                currentFont = 'Consolas';
+                terminalOpacity = 100;
+                currentTheme = themes[0];
+                applyTheme(currentTheme);
+                changeFont(currentFont);
+                changeOpacity(terminalOpacity);
+                resetZoom();
+                alert('Settings reset to defaults!');
+            }
         }
 
         // Themes
         function openThemes() {
-            alert('Theme selector with 16 color gradients coming soon!');
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <div class="modal-title">Choose Theme</div>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="theme-grid">
+                            ${themes.map((theme, index) => `
+                                <div class="theme-card ${theme.name === currentTheme.name ? 'active' : ''}" 
+                                     style="background: ${theme.gradient};"
+                                     onclick="selectTheme(${index})">
+                                    ${theme.name}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function selectTheme(index) {
+            currentTheme = themes[index];
+            applyTheme(currentTheme);
+            
+            // Update active state
+            document.querySelectorAll('.theme-card').forEach((card, i) => {
+                if (i === index) {
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+        }
+
+        function applyTheme(theme) {
+            // Apply to toolbar
+            const toolbar = document.querySelector('.toolbar');
+            if (toolbar) {
+                toolbar.style.background = theme.gradient;
+            }
+            
+            // Apply to terminal drag handle
+            const dragHandle = document.getElementById('terminalDragHandle');
+            if (dragHandle) {
+                dragHandle.style.background = theme.gradient;
+            }
+            
+            // Apply to all gradient elements
+            document.querySelectorAll('.ai-chat-header, .file-tree-header, .toolbar-right').forEach(el => {
+                el.style.background = theme.gradient;
+            });
         }
 
         // File Tree Functionality
@@ -4588,6 +4950,92 @@ Swap:       2048000           0     2048000`
             resizeDirection = null;
             document.removeEventListener('mousemove', handleResize);
             document.removeEventListener('mouseup', stopResize);
+        }
+
+        // On-Screen Keyboard
+        let keyboardOpen = false;
+        let activeModifiers = {
+            Control: false,
+            Alt: false,
+            Shift: false
+        };
+
+        function toggleOnScreenKeyboard() {
+            keyboardOpen = !keyboardOpen;
+            const keyboard = document.getElementById('onscreenKeyboard');
+            
+            if (keyboardOpen) {
+                keyboard.classList.add('active');
+            } else {
+                keyboard.classList.remove('active');
+                // Reset modifiers
+                activeModifiers = { Control: false, Alt: false, Shift: false };
+                updateModifierKeys();
+            }
+        }
+
+        function toggleKeyModifier(modifier) {
+            if (modifier === 'Escape' || modifier === 'Tab') {
+                sendKey(modifier);
+                return;
+            }
+            
+            activeModifiers[modifier] = !activeModifiers[modifier];
+            updateModifierKeys();
+        }
+
+        function updateModifierKeys() {
+            const ctrlKey = document.getElementById('ctrlKey');
+            const altKey = document.getElementById('altKey');
+            const shiftKey = document.getElementById('shiftKey');
+            
+            if (ctrlKey) ctrlKey.classList.toggle('active', activeModifiers.Control);
+            if (altKey) altKey.classList.toggle('active', activeModifiers.Alt);
+            if (shiftKey) shiftKey.classList.toggle('active', activeModifiers.Shift);
+        }
+
+        function sendKey(key) {
+            const input = document.getElementById('demoInput');
+            if (!input) return;
+            
+            // Create keyboard event
+            const event = new KeyboardEvent('keydown', {
+                key: key,
+                code: key,
+                ctrlKey: activeModifiers.Control,
+                altKey: activeModifiers.Alt,
+                shiftKey: activeModifiers.Shift,
+                bubbles: true
+            });
+            
+            // Handle special keys
+            if (key === 'Enter') {
+                handleDemoCommand({ key: 'Enter', preventDefault: () => {}, target: input });
+            } else if (key === 'Backspace') {
+                input.value = input.value.slice(0, -1);
+            } else if (key === 'ArrowUp' || key === 'ArrowDown') {
+                handleDemoCommand({ key: key, preventDefault: () => {}, target: input });
+            } else if (key === 'Escape') {
+                input.value = '';
+            } else if (key === 'Tab') {
+                // Tab completion logic here
+                input.value += '    ';
+            } else if (key.length === 1) {
+                // Regular character
+                let char = key;
+                if (activeModifiers.Shift) {
+                    char = char.toUpperCase();
+                }
+                input.value += char;
+            }
+            
+            // Reset modifiers after key press (except for sticky modifiers)
+            if (!activeModifiers.Control && !activeModifiers.Alt) {
+                activeModifiers.Shift = false;
+                updateModifierKeys();
+            }
+            
+            input.focus();
         }
 
         // Mobile Menu Functions
