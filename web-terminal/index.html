@@ -4016,11 +4016,99 @@ Swap:       2048000           0     2048000`
             `).join('');
         }
 
+        // Preset task templates
+        const taskPresets = [
+            {
+                name: 'Database Backup',
+                schedule: '0 2 * * *',
+                command: 'mysqldump -u root -p database > /backups/db_$(date +%Y%m%d).sql',
+                description: 'Daily database backup at 2 AM'
+            },
+            {
+                name: 'System Update',
+                schedule: '0 3 * * 0',
+                command: 'apt-get update && apt-get upgrade -y',
+                description: 'Weekly system updates on Sunday at 3 AM'
+            },
+            {
+                name: 'Log Rotation',
+                schedule: '0 0 * * 0',
+                command: 'logrotate /etc/logrotate.conf',
+                description: 'Weekly log rotation on Sunday at midnight'
+            },
+            {
+                name: 'Disk Cleanup',
+                schedule: '0 4 * * *',
+                command: 'find /tmp -type f -atime +7 -delete',
+                description: 'Daily cleanup of old temp files at 4 AM'
+            },
+            {
+                name: 'Security Scan',
+                schedule: '0 3 * * 1',
+                command: 'clamscan -r /home --infected --remove',
+                description: 'Weekly virus scan on Monday at 3 AM'
+            },
+            {
+                name: 'Certificate Renewal',
+                schedule: '0 0 1 * *',
+                command: 'certbot renew --quiet',
+                description: 'Monthly SSL certificate renewal'
+            },
+            {
+                name: 'Docker Cleanup',
+                schedule: '0 1 * * *',
+                command: 'docker system prune -af --volumes',
+                description: 'Daily Docker cleanup at 1 AM'
+            },
+            {
+                name: 'Git Pull Updates',
+                schedule: '*/30 * * * *',
+                command: 'cd /var/www/app && git pull origin main',
+                description: 'Pull git updates every 30 minutes'
+            },
+            {
+                name: 'Restart Service',
+                schedule: '0 5 * * *',
+                command: 'systemctl restart nginx',
+                description: 'Daily service restart at 5 AM'
+            },
+            {
+                name: 'Monitor Disk Space',
+                schedule: '0 */6 * * *',
+                command: 'df -h | mail -s "Disk Space Report" admin@example.com',
+                description: 'Disk space report every 6 hours'
+            },
+            {
+                name: 'Backup to S3',
+                schedule: '0 1 * * *',
+                command: 'aws s3 sync /data s3://my-bucket/backups/',
+                description: 'Daily S3 backup at 1 AM'
+            },
+            {
+                name: 'Clear Cache',
+                schedule: '0 0 * * *',
+                command: 'php artisan cache:clear && php artisan view:clear',
+                description: 'Daily Laravel cache clear at midnight'
+            },
+            {
+                name: 'Reboot Server',
+                schedule: '0 4 * * 0',
+                command: 'shutdown -r now',
+                description: 'Weekly server reboot on Sunday at 4 AM'
+            },
+            {
+                name: 'Custom Task',
+                schedule: '0 0 * * *',
+                command: '',
+                description: 'Create your own custom task'
+            }
+        ];
+
         function showAddTaskForm() {
             const modal = document.createElement('div');
             modal.className = 'modal active';
             modal.innerHTML = `
-                <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-content" style="max-width: 600px;">
                     <div class="modal-header">
                         <div class="modal-title">Create New Task</div>
                         <button class="modal-close" onclick="this.closest('.modal').remove()">
@@ -4029,17 +4117,32 @@ Swap:       2048000           0     2048000`
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
+                            <label>Select Preset Task</label>
+                            <select id="taskPreset" class="form-control" onchange="loadTaskPreset(this.value)" style="margin-bottom: 16px;">
+                                <option value="">-- Choose a preset or create custom --</option>
+                                ${taskPresets.map((preset, index) => `
+                                    <option value="${index}">${preset.name} - ${preset.description}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label>Task Name</label>
                             <input type="text" id="newTaskName" class="form-control" placeholder="e.g., Database Backup">
                         </div>
                         <div class="form-group">
                             <label>Cron Schedule</label>
                             <input type="text" id="newTaskSchedule" class="form-control" placeholder="e.g., 0 2 * * *" value="0 0 * * *">
-                            <small style="color: #888;">Format: minute hour day month weekday</small>
+                            <small style="color: #888; display: block; margin-top: 4px;">
+                                Format: minute hour day month weekday<br>
+                                Examples: 0 2 * * * (daily 2AM), */30 * * * * (every 30min), 0 0 * * 0 (weekly Sunday)
+                            </small>
                         </div>
                         <div class="form-group">
                             <label>Command</label>
-                            <input type="text" id="newTaskCommand" class="form-control" placeholder="e.g., /scripts/backup.sh">
+                            <textarea id="newTaskCommand" class="form-control" rows="3" placeholder="e.g., /scripts/backup.sh" style="font-family: monospace; font-size: 13px;"></textarea>
+                            <small style="color: #888; display: block; margin-top: 4px;">
+                                Full command to execute (bash script, system command, etc.)
+                            </small>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -4051,6 +4154,15 @@ Swap:       2048000           0     2048000`
                 </div>
             `;
             document.body.appendChild(modal);
+        }
+
+        function loadTaskPreset(index) {
+            if (index === '') return;
+            
+            const preset = taskPresets[index];
+            document.getElementById('newTaskName').value = preset.name;
+            document.getElementById('newTaskSchedule').value = preset.schedule;
+            document.getElementById('newTaskCommand').value = preset.command;
         }
 
         function addNewTask() {
