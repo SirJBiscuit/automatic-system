@@ -265,17 +265,14 @@
         }
 
         .server-item {
-            background: #2a2a2a;
-            border-radius: 8px;
             padding: 12px;
             margin-bottom: 8px;
+            background: #2a2a2a;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
             border: 2px solid transparent;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
+            position: relative;
         }
 
         .server-item-info {
@@ -639,7 +636,7 @@
             display: none;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 8px 16px;
-            cursor: move;
+            cursor: grab;
             user-select: none;
             color: white;
             font-size: 12px;
@@ -652,6 +649,10 @@
             position: relative;
             z-index: 10;
             min-height: 40px;
+        }
+
+        .terminal-drag-handle:active {
+            cursor: grabbing;
         }
 
         .terminal-container.draggable .terminal-drag-handle {
@@ -2766,7 +2767,7 @@
                 <div class="toolbar-dropdown-menu">
                     <div class="dropdown-header">Window</div>
                     <div class="dropdown-item" onclick="toggleTerminalDraggable()">
-                        <i class="fas fa-external-alt"></i>
+                        <i class="fas fa-external-alt" id="popOutIcon"></i>
                         <span id="popOutText">Pop Out Terminal</span>
                     </div>
                     <div class="dropdown-divider"></div>
@@ -3100,6 +3101,22 @@
         <div class="snippets-content" id="snippetsContent"></div>
     </div>
 
+    <!-- Server Context Menu -->
+    <div class="server-context-menu" id="serverContextMenu">
+        <div class="context-menu-item" onclick="contextPopOutServer()">
+            <i class="fas fa-external-alt"></i>
+            <span>Pop Out Terminal</span>
+        </div>
+        <div class="context-menu-item" onclick="contextEditServer()">
+            <i class="fas fa-edit"></i>
+            <span>Edit Server</span>
+        </div>
+        <div class="context-menu-item" onclick="contextDeleteServer()">
+            <i class="fas fa-trash"></i>
+            <span>Delete Server</span>
+        </div>
+    </div>
+
     <!-- On-Screen Keyboard -->
     <div class="onscreen-keyboard" id="onscreenKeyboard">
         <div class="keyboard-header">
@@ -3408,7 +3425,9 @@
             }
 
             serverList.innerHTML = servers.map(server => `
-                <div class="server-item" onclick="connectToServer('${server.id}')">
+                <div class="server-item" 
+                     onclick="connectToServer('${server.id}')"
+                     oncontextmenu="showServerContextMenu(event, '${server.id}')">
                     <div class="server-item-info">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                             <span style="font-size: 20px;">${server.icon}</span>
@@ -3458,6 +3477,50 @@
                 }
             }, 200);
         }
+
+        // Context menu for servers
+        let contextMenuServerId = null;
+
+        function showServerContextMenu(event, serverId) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            contextMenuServerId = serverId;
+            const menu = document.getElementById('serverContextMenu');
+            menu.classList.add('active');
+            menu.style.left = event.pageX + 'px';
+            menu.style.top = event.pageY + 'px';
+        }
+
+        function hideServerContextMenu() {
+            const menu = document.getElementById('serverContextMenu');
+            menu.classList.remove('active');
+            contextMenuServerId = null;
+        }
+
+        function contextPopOutServer() {
+            if (contextMenuServerId) {
+                popOutServer(contextMenuServerId);
+            }
+            hideServerContextMenu();
+        }
+
+        function contextEditServer() {
+            if (contextMenuServerId) {
+                editServer(contextMenuServerId);
+            }
+            hideServerContextMenu();
+        }
+
+        function contextDeleteServer() {
+            if (contextMenuServerId) {
+                deleteServer(contextMenuServerId);
+            }
+            hideServerContextMenu();
+        }
+
+        // Close context menu when clicking outside
+        document.addEventListener('click', hideServerContextMenu);
 
         function editServer(serverId) {
             const server = servers.find(s => s.id === serverId);
@@ -5633,10 +5696,14 @@ Swap:       2048000           0     2048000`
                     floatBtn.setAttribute('data-tooltip', 'Dock Terminal Window');
                 }
                 
-                // Update dropdown text
+                // Update dropdown text and icon
                 const popOutText = document.getElementById('popOutText');
+                const popOutIcon = document.getElementById('popOutIcon');
                 if (popOutText) {
                     popOutText.textContent = 'Dock Terminal';
+                }
+                if (popOutIcon) {
+                    popOutIcon.className = 'fas fa-compress-alt';
                 }
                 
                 // Only attach handlers once
@@ -5666,10 +5733,14 @@ Swap:       2048000           0     2048000`
                     floatBtn.setAttribute('data-tooltip', 'Pop Out Terminal Window');
                 }
                 
-                // Update dropdown text
+                // Update dropdown text and icon
                 const popOutText = document.getElementById('popOutText');
+                const popOutIcon = document.getElementById('popOutIcon');
                 if (popOutText) {
                     popOutText.textContent = 'Pop Out Terminal';
+                }
+                if (popOutIcon) {
+                    popOutIcon.className = 'fas fa-external-alt';
                 }
                 
                 console.log('Terminal docked');
