@@ -574,11 +574,11 @@
         }
 
         .terminal-container.draggable {
-            position: fixed;
+            position: absolute;
             width: 900px;
             height: 650px;
-            top: 100px;
-            left: 100px;
+            top: 20px;
+            left: 20px;
             z-index: 1000;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             border-radius: 8px;
@@ -1613,6 +1613,18 @@
             background: #ffffff;
             color: #333;
             border-color: #e0e0e0;
+        }
+
+        body.light-mode .setting-item strong {
+            color: #333;
+        }
+
+        body.light-mode .setting-item > div {
+            color: #555;
+        }
+
+        body.light-mode .setting-item > div > div {
+            color: #777;
         }
 
         body.light-mode .modal-content {
@@ -5716,8 +5728,21 @@ Swap:       2048000           0     2048000`
             const x = e.clientX - dragOffset.x;
             const y = e.clientY - dragOffset.y;
             
-            draggedWidget.style.left = Math.max(0, Math.min(x, window.innerWidth - draggedWidget.offsetWidth)) + 'px';
-            draggedWidget.style.top = Math.max(0, Math.min(y, window.innerHeight - draggedWidget.offsetHeight)) + 'px';
+            // Get workspace bounds for terminal container
+            if (draggedWidget.id === 'terminalContainer') {
+                const workspace = document.getElementById('workspace');
+                const workspaceRect = workspace.getBoundingClientRect();
+                
+                const maxX = workspaceRect.width - draggedWidget.offsetWidth;
+                const maxY = workspaceRect.height - draggedWidget.offsetHeight;
+                
+                draggedWidget.style.left = Math.max(0, Math.min(x, maxX)) + 'px';
+                draggedWidget.style.top = Math.max(0, Math.min(y, maxY)) + 'px';
+            } else {
+                // Other widgets use window bounds
+                draggedWidget.style.left = Math.max(0, Math.min(x, window.innerWidth - draggedWidget.offsetWidth)) + 'px';
+                draggedWidget.style.top = Math.max(0, Math.min(y, window.innerHeight - draggedWidget.offsetHeight)) + 'px';
+            }
         }
 
         function onDragEnd() {
@@ -5741,10 +5766,21 @@ Swap:       2048000           0     2048000`
             if (terminalDraggable) {
                 // Pop out the terminal
                 container.classList.add('draggable');
-                container.style.top = '100px';
-                container.style.left = '100px';
-                container.style.width = '900px';
-                container.style.height = '650px';
+                
+                // Get workspace dimensions to center the terminal
+                const workspace = document.getElementById('workspace');
+                const workspaceRect = workspace.getBoundingClientRect();
+                const termWidth = 900;
+                const termHeight = 650;
+                
+                // Center in workspace, but ensure it fits
+                const left = Math.max(20, (workspaceRect.width - termWidth) / 2);
+                const top = Math.max(20, (workspaceRect.height - termHeight) / 2);
+                
+                container.style.top = top + 'px';
+                container.style.left = left + 'px';
+                container.style.width = termWidth + 'px';
+                container.style.height = termHeight + 'px';
                 
                 // Update title with active server
                 if (titleSpan && activeTabId && tabs[activeTabId]) {
@@ -5873,6 +5909,8 @@ Swap:       2048000           0     2048000`
 
         function maximizeTerminal() {
             const container = document.getElementById('terminalContainer');
+            const workspace = document.getElementById('workspace');
+            const workspaceRect = workspace.getBoundingClientRect();
             
             if (terminalMaximized) {
                 // Restore
@@ -5889,30 +5927,36 @@ Swap:       2048000           0     2048000`
                     width: container.style.width,
                     height: container.style.height
                 };
-                // Maximize
-                container.style.top = '60px';
+                // Maximize within workspace
+                container.style.top = '0';
                 container.style.left = '0';
-                container.style.width = '100%';
-                container.style.height = 'calc(100vh - 60px)';
+                container.style.width = workspaceRect.width + 'px';
+                container.style.height = workspaceRect.height + 'px';
                 terminalMaximized = true;
             }
         }
 
         function snapTerminalLeft() {
             const container = document.getElementById('terminalContainer');
-            container.style.top = '60px';
+            const workspace = document.getElementById('workspace');
+            const workspaceRect = workspace.getBoundingClientRect();
+            
+            container.style.top = '0';
             container.style.left = '0';
-            container.style.width = '50%';
-            container.style.height = 'calc(100vh - 60px)';
+            container.style.width = (workspaceRect.width / 2) + 'px';
+            container.style.height = workspaceRect.height + 'px';
             terminalMaximized = false;
         }
 
         function snapTerminalRight() {
             const container = document.getElementById('terminalContainer');
-            container.style.top = '60px';
-            container.style.left = '50%';
-            container.style.width = '50%';
-            container.style.height = 'calc(100vh - 60px)';
+            const workspace = document.getElementById('workspace');
+            const workspaceRect = workspace.getBoundingClientRect();
+            
+            container.style.top = '0';
+            container.style.left = (workspaceRect.width / 2) + 'px';
+            container.style.width = (workspaceRect.width / 2) + 'px';
+            container.style.height = workspaceRect.height + 'px';
             terminalMaximized = false;
         }
 
