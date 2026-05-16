@@ -194,14 +194,15 @@
             letter-spacing: 1px;
         }
 
-        /* Workspace */
+        /* Main Container - Boundary System */
         .workspace {
-            display: flex;
+            display: grid;
+            grid-template-columns: 250px 1fr;
             height: calc(100vh - 60px);
             background: #1a1a1a;
             transition: all 0.3s ease;
-            margin-left: 250px;
-            width: calc(100% - 250px);
+            position: relative;
+            overflow: hidden;
         }
 
         .workspace.floating {
@@ -218,14 +219,16 @@
             overflow: auto;
         }
 
-        /* Server Panel (Left Side) */
+        /* Server Panel (Left) - Grid Column 1 */
         .server-panel {
-            width: 280px;
-            background: #252525;
+            grid-column: 1;
+            background: #1e1e1e;
             border-right: 1px solid #333;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: relative;
+            z-index: 100;
         }
 
         .server-panel-header {
@@ -506,12 +509,14 @@
             font-size: 12px;
         }
 
-        /* Terminal Area (Center) */
+        /* Terminal Area (Center) - Grid Column 2 */
         .terminal-area {
-            flex: 1;
+            grid-column: 2;
             display: flex;
             flex-direction: column;
             background: #1e1e1e;
+            position: relative;
+            overflow: hidden;
         }
 
         /* Tab Bar */
@@ -5759,16 +5764,20 @@ Swap:       2048000           0     2048000`
             const x = e.clientX - dragOffset.x;
             const y = e.clientY - dragOffset.y;
             
-            // Get workspace bounds for terminal container
+            // Get terminal-area bounds for terminal container (stays in grid column 2)
             if (draggedWidget.id === 'terminalContainer') {
-                const workspace = document.getElementById('workspace');
-                const workspaceRect = workspace.getBoundingClientRect();
+                const terminalArea = document.querySelector('.terminal-area');
+                const terminalAreaRect = terminalArea.getBoundingClientRect();
                 
-                const maxX = workspaceRect.width - draggedWidget.offsetWidth;
-                const maxY = workspaceRect.height - draggedWidget.offsetHeight;
+                // Calculate position relative to terminal-area
+                const relativeX = e.clientX - terminalAreaRect.left - dragOffset.x;
+                const relativeY = e.clientY - terminalAreaRect.top - dragOffset.y;
                 
-                draggedWidget.style.left = Math.max(0, Math.min(x, maxX)) + 'px';
-                draggedWidget.style.top = Math.max(0, Math.min(y, maxY)) + 'px';
+                const maxX = terminalAreaRect.width - draggedWidget.offsetWidth;
+                const maxY = terminalAreaRect.height - draggedWidget.offsetHeight;
+                
+                draggedWidget.style.left = Math.max(0, Math.min(relativeX, maxX)) + 'px';
+                draggedWidget.style.top = Math.max(0, Math.min(relativeY, maxY)) + 'px';
             } else {
                 // Other widgets use window bounds
                 draggedWidget.style.left = Math.max(0, Math.min(x, window.innerWidth - draggedWidget.offsetWidth)) + 'px';
@@ -5800,15 +5809,15 @@ Swap:       2048000           0     2048000`
                 console.log('Added draggable class to container');
                 console.log('Container classes:', container.className);
                 
-                // Get workspace dimensions to center the terminal
-                const workspace = document.getElementById('workspace');
-                const workspaceRect = workspace.getBoundingClientRect();
-                const termWidth = 900;
-                const termHeight = 650;
+                // Get terminal-area dimensions to center the terminal (stays in grid column 2)
+                const terminalArea = document.querySelector('.terminal-area');
+                const terminalAreaRect = terminalArea.getBoundingClientRect();
+                const termWidth = Math.min(900, terminalAreaRect.width - 40);
+                const termHeight = Math.min(650, terminalAreaRect.height - 40);
                 
-                // Center in workspace, but ensure it fits
-                const left = Math.max(20, (workspaceRect.width - termWidth) / 2);
-                const top = Math.max(20, (workspaceRect.height - termHeight) / 2);
+                // Center in terminal-area
+                const left = Math.max(20, (terminalAreaRect.width - termWidth) / 2);
+                const top = Math.max(20, (terminalAreaRect.height - termHeight) / 2);
                 
                 container.style.top = top + 'px';
                 container.style.left = left + 'px';
@@ -5944,8 +5953,8 @@ Swap:       2048000           0     2048000`
 
         function maximizeTerminal() {
             const container = document.getElementById('terminalContainer');
-            const workspace = document.getElementById('workspace');
-            const workspaceRect = workspace.getBoundingClientRect();
+            const terminalArea = document.querySelector('.terminal-area');
+            const terminalAreaRect = terminalArea.getBoundingClientRect();
             
             if (terminalMaximized) {
                 // Restore
@@ -5962,36 +5971,36 @@ Swap:       2048000           0     2048000`
                     width: container.style.width,
                     height: container.style.height
                 };
-                // Maximize within workspace
+                // Maximize within terminal-area (grid column 2)
                 container.style.top = '0';
                 container.style.left = '0';
-                container.style.width = workspaceRect.width + 'px';
-                container.style.height = workspaceRect.height + 'px';
+                container.style.width = terminalAreaRect.width + 'px';
+                container.style.height = terminalAreaRect.height + 'px';
                 terminalMaximized = true;
             }
         }
 
         function snapTerminalLeft() {
             const container = document.getElementById('terminalContainer');
-            const workspace = document.getElementById('workspace');
-            const workspaceRect = workspace.getBoundingClientRect();
+            const terminalArea = document.querySelector('.terminal-area');
+            const terminalAreaRect = terminalArea.getBoundingClientRect();
             
             container.style.top = '0';
             container.style.left = '0';
-            container.style.width = (workspaceRect.width / 2) + 'px';
-            container.style.height = workspaceRect.height + 'px';
+            container.style.width = (terminalAreaRect.width / 2) + 'px';
+            container.style.height = terminalAreaRect.height + 'px';
             terminalMaximized = false;
         }
 
         function snapTerminalRight() {
             const container = document.getElementById('terminalContainer');
-            const workspace = document.getElementById('workspace');
-            const workspaceRect = workspace.getBoundingClientRect();
+            const terminalArea = document.querySelector('.terminal-area');
+            const terminalAreaRect = terminalArea.getBoundingClientRect();
             
             container.style.top = '0';
-            container.style.left = (workspaceRect.width / 2) + 'px';
-            container.style.width = (workspaceRect.width / 2) + 'px';
-            container.style.height = workspaceRect.height + 'px';
+            container.style.left = (terminalAreaRect.width / 2) + 'px';
+            container.style.width = (terminalAreaRect.width / 2) + 'px';
+            container.style.height = terminalAreaRect.height + 'px';
             terminalMaximized = false;
         }
 
