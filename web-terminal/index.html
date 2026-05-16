@@ -106,11 +106,92 @@
             .toolbar-btn span {
                 display: none;
             }
+            
+            .toolbar-dropdown-menu {
+                right: auto;
+                left: 0;
+            }
+        }
+
+        /* Desktop: Hide individual buttons, show dropdowns */
+        @media (min-width: 769px) {
+            .toolbar-btn.mobile-only {
+                display: none;
+            }
         }
 
         .toolbar-btn:hover {
             background: rgba(255,255,255,0.3);
             transform: translateY(-2px);
+        }
+
+        /* Dropdown Menu System */
+        .toolbar-dropdown {
+            position: relative;
+        }
+
+        .toolbar-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 2px solid rgba(102, 126, 234, 0.5);
+            border-radius: 8px;
+            min-width: 200px;
+            margin-top: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 10002;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .toolbar-dropdown:hover .toolbar-dropdown-menu,
+        .toolbar-dropdown-menu.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(102, 126, 234, 0.3);
+            padding-left: 20px;
+        }
+
+        .dropdown-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 4px 0;
+        }
+
+        .dropdown-header {
+            padding: 8px 16px;
+            color: #667eea;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         /* Workspace */
@@ -2246,61 +2327,106 @@
             </div>
         </div>
         <div class="toolbar-right">
+            <!-- Mobile Menu Toggle -->
             <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Menu">
                 <i class="fas fa-bars"></i>
             </button>
-            <button class="toolbar-btn" onclick="toggleFileTree()" data-tooltip="File Tree Browser">
-                <i class="fas fa-folder-tree"></i>
-                <span>Files</span>
-            </button>
-            <button class="toolbar-btn" onclick="toggleTasksPanel()" data-tooltip="Automated Tasks">
-                <i class="fas fa-tasks"></i>
-                <span>Tasks</span>
-            </button>
-            <button class="toolbar-btn" onclick="togglePerfMonitor()" data-tooltip="Performance Monitor">
-                <i class="fas fa-tachometer-alt"></i>
-                <span>Perf</span>
-            </button>
-            <button class="toolbar-btn" onclick="startDemoTerminal()" data-tooltip="Launch Demo Terminal">
-                <i class="fas fa-play-circle"></i>
-                <span>Demo</span>
-            </button>
-            <button class="toolbar-btn" onclick="toggleSnippets()" data-tooltip="Quick Snippets (Ctrl+K)">
-                <i class="fas fa-bolt"></i>
-                <span>Snippets</span>
-            </button>
-            <button class="toolbar-btn" onclick="openCommandPalette()" data-tooltip="Command Palette (Ctrl+Shift+P)">
-                <i class="fas fa-terminal"></i>
-                <span>Commands</span>
-            </button>
-            <button class="toolbar-btn" onclick="openSettings()" data-tooltip="Settings">
-                <i class="fas fa-cog"></i>
-                <span>Settings</span>
-            </button>
-            <button class="toolbar-btn" onclick="openThemes()" data-tooltip="Themes">
-                <i class="fas fa-palette"></i>
-                <span>Themes</span>
-            </button>
-            <button class="toolbar-btn" onclick="toggleTerminalDraggable()" id="floatBtn" data-tooltip="Pop Out Terminal Window">
-                <i class="fas fa-external-alt"></i>
-                <span>Pop Out</span>
-            </button>
-            <button class="toolbar-btn" onclick="zoomIn()" data-tooltip="Zoom In (+10%)">
-                <i class="fas fa-search-plus"></i>
-                <span>Zoom+</span>
-            </button>
-            <button class="toolbar-btn" onclick="zoomOut()" data-tooltip="Zoom Out (-10%)">
-                <i class="fas fa-search-minus"></i>
-                <span>Zoom-</span>
-            </button>
-            <button class="toolbar-btn" onclick="resetZoom()" data-tooltip="Reset Zoom (100%)">
-                <i class="fas fa-undo"></i>
-                <span>Reset</span>
-            </button>
-            <button class="toolbar-btn" onclick="toggleOnScreenKeyboard()" data-tooltip="On-Screen Keyboard">
-                <i class="fas fa-keyboard"></i>
-                <span>Keyboard</span>
-            </button>
+            
+            <!-- Desktop: Organized Dropdowns -->
+            <div class="toolbar-dropdown">
+                <button class="toolbar-btn" data-tooltip="Tools">
+                    <i class="fas fa-toolbox"></i>
+                    <span>Tools</span>
+                    <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i>
+                </button>
+                <div class="toolbar-dropdown-menu">
+                    <div class="dropdown-header">File Management</div>
+                    <div class="dropdown-item" onclick="toggleFileTree()">
+                        <i class="fas fa-folder-tree"></i>
+                        <span>File Browser</span>
+                    </div>
+                    <div class="dropdown-item" onclick="toggleSnippets()">
+                        <i class="fas fa-bolt"></i>
+                        <span>Snippets</span>
+                        <small style="margin-left: auto; opacity: 0.6;">Ctrl+K</small>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-header">Automation</div>
+                    <div class="dropdown-item" onclick="toggleTasksPanel()">
+                        <i class="fas fa-tasks"></i>
+                        <span>Scheduled Tasks</span>
+                    </div>
+                    <div class="dropdown-item" onclick="openCommandPalette()">
+                        <i class="fas fa-terminal"></i>
+                        <span>Command Palette</span>
+                        <small style="margin-left: auto; opacity: 0.6;">Ctrl+Shift+P</small>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-header">Utilities</div>
+                    <div class="dropdown-item" onclick="togglePerfMonitor()">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Performance Monitor</span>
+                    </div>
+                    <div class="dropdown-item" onclick="startDemoTerminal()">
+                        <i class="fas fa-play-circle"></i>
+                        <span>Demo Terminal</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="toolbar-dropdown">
+                <button class="toolbar-btn" data-tooltip="View">
+                    <i class="fas fa-eye"></i>
+                    <span>View</span>
+                    <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i>
+                </button>
+                <div class="toolbar-dropdown-menu">
+                    <div class="dropdown-header">Window</div>
+                    <div class="dropdown-item" onclick="toggleTerminalDraggable()">
+                        <i class="fas fa-external-alt"></i>
+                        <span id="popOutText">Pop Out Terminal</span>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-header">Zoom</div>
+                    <div class="dropdown-item" onclick="zoomIn()">
+                        <i class="fas fa-search-plus"></i>
+                        <span>Zoom In</span>
+                        <small style="margin-left: auto; opacity: 0.6;">+10%</small>
+                    </div>
+                    <div class="dropdown-item" onclick="zoomOut()">
+                        <i class="fas fa-search-minus"></i>
+                        <span>Zoom Out</span>
+                        <small style="margin-left: auto; opacity: 0.6;">-10%</small>
+                    </div>
+                    <div class="dropdown-item" onclick="resetZoom()">
+                        <i class="fas fa-undo"></i>
+                        <span>Reset Zoom</span>
+                        <small style="margin-left: auto; opacity: 0.6;">100%</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="toolbar-dropdown">
+                <button class="toolbar-btn" data-tooltip="Settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                    <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i>
+                </button>
+                <div class="toolbar-dropdown-menu">
+                    <div class="dropdown-item" onclick="openSettings()">
+                        <i class="fas fa-sliders-h"></i>
+                        <span>Preferences</span>
+                    </div>
+                    <div class="dropdown-item" onclick="openThemes()">
+                        <i class="fas fa-palette"></i>
+                        <span>Themes</span>
+                    </div>
+                    <div class="dropdown-item" onclick="toggleOnScreenKeyboard()">
+                        <i class="fas fa-keyboard"></i>
+                        <span>On-Screen Keyboard</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -4751,6 +4877,12 @@ Swap:       2048000           0     2048000`
                     floatBtn.setAttribute('data-tooltip', 'Dock Terminal Window');
                 }
                 
+                // Update dropdown text
+                const popOutText = document.getElementById('popOutText');
+                if (popOutText) {
+                    popOutText.textContent = 'Dock Terminal';
+                }
+                
                 // Only attach handlers once
                 if (!terminalDragHandlerAttached) {
                     makeDraggableTerminal(container);
@@ -4777,8 +4909,14 @@ Swap:       2048000           0     2048000`
                 
                 // Update toolbar button
                 if (floatBtn) {
-                    floatBtn.innerHTML = '<i class="fas fa-external-alt"></i><span>Pop Out</span>';
+                    floatBtn.innerHTML = '<i class=\"fas fa-external-alt\"></i><span>Pop Out</span>';
                     floatBtn.setAttribute('data-tooltip', 'Pop Out Terminal Window');
+                }
+                
+                // Update dropdown text
+                const popOutText = document.getElementById('popOutText');
+                if (popOutText) {
+                    popOutText.textContent = 'Pop Out Terminal';
                 }
                 
                 console.log('Terminal docked');
