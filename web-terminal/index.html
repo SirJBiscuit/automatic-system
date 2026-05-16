@@ -3156,6 +3156,38 @@
         </div>
     </div>
 
+    <!-- Workspace Context Menu -->
+    <div class="server-context-menu" id="workspaceContextMenu">
+        <div class="context-menu-header" style="padding: 8px 12px; color: #667eea; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <i class="fas fa-plus-circle"></i> Create New
+        </div>
+        <div class="context-menu-item" onclick="createNewTerminal()">
+            <i class="fas fa-terminal"></i>
+            <span>Terminal Window</span>
+        </div>
+        <div class="context-menu-item" onclick="createNewWidget()">
+            <i class="fas fa-th"></i>
+            <span>Widget</span>
+        </div>
+        <div class="context-menu-item" onclick="createNewScript()">
+            <i class="fas fa-file-code"></i>
+            <span>Script Editor</span>
+        </div>
+        <div class="context-menu-item" onclick="createNewShortcut()">
+            <i class="fas fa-bolt"></i>
+            <span>Quick Shortcut</span>
+        </div>
+        <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 4px 0;"></div>
+        <div class="context-menu-item" onclick="createNewNote()">
+            <i class="fas fa-sticky-note"></i>
+            <span>Sticky Note</span>
+        </div>
+        <div class="context-menu-item" onclick="createNewMonitor()">
+            <i class="fas fa-chart-line"></i>
+            <span>Performance Monitor</span>
+        </div>
+    </div>
+
     <!-- On-Screen Keyboard -->
     <div class="onscreen-keyboard" id="onscreenKeyboard">
         <div class="keyboard-header">
@@ -3612,8 +3644,69 @@
             hideServerContextMenu();
         }
 
-        // Close context menu when clicking outside
-        document.addEventListener('click', hideServerContextMenu);
+        // Close all context menus when clicking outside
+        document.addEventListener('click', (e) => {
+            // Close server context menu
+            hideServerContextMenu();
+            
+            // Close workspace context menu
+            const workspaceMenu = document.getElementById('workspaceContextMenu');
+            if (workspaceMenu) {
+                workspaceMenu.classList.remove('active');
+            }
+            
+            // Close global context menu
+            const globalMenu = document.getElementById('globalContextMenu');
+            if (globalMenu) {
+                globalMenu.classList.remove('active');
+            }
+            
+            // Close terminal context menu
+            const terminalMenu = document.getElementById('terminalContextMenu');
+            if (terminalMenu) {
+                terminalMenu.classList.remove('active');
+            }
+            
+            // Close iframe overlay
+            const overlay = document.getElementById('iframeOverlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+
+        // Workspace creation functions
+        function createNewTerminal() {
+            if (servers.length === 0) {
+                showNotification('Please add a server first', 'warning');
+                addServer();
+                return;
+            }
+            newTab(); // Reuse existing new tab function
+        }
+
+        function createNewWidget() {
+            showNotification('Widget creator coming soon!', 'info');
+            // TODO: Implement widget creator
+        }
+
+        function createNewScript() {
+            showNotification('Script editor coming soon!', 'info');
+            // TODO: Implement script editor
+        }
+
+        function createNewShortcut() {
+            showNotification('Shortcut creator coming soon!', 'info');
+            // TODO: Implement shortcut creator
+        }
+
+        function createNewNote() {
+            showNotification('Sticky note creator coming soon!', 'info');
+            // TODO: Implement sticky note widget
+        }
+
+        function createNewMonitor() {
+            togglePerfMonitor(); // Use existing performance monitor
+        }
 
         function editServer(serverId) {
             const server = servers.find(s => s.id === serverId);
@@ -4126,16 +4219,47 @@
             });
         }
 
-        // Global context menu - works everywhere
+        // Global context menu - works everywhere except specific elements
         document.addEventListener('contextmenu', (e) => {
             // Allow default context menu on input fields and textareas
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
                 return;
             }
 
+            // Check if clicking on server item or its children - let server context menu handle it
+            if (e.target.closest('.server-item')) {
+                return; // Don't show global menu, server menu will handle it
+            }
+
+            // Check if clicking on tab - let tab context menu handle it
+            if (e.target.closest('.tab')) {
+                return; // Don't show global menu, tab menu will handle it
+            }
+
             e.preventDefault();
             e.stopPropagation();
             
+            // Check if clicking on terminal-area (workspace) - show workspace menu
+            if (e.target.closest('.terminal-area')) {
+                const menu = document.getElementById('workspaceContextMenu');
+                menu.style.left = e.clientX + 'px';
+                menu.style.top = e.clientY + 'px';
+                menu.classList.add('active');
+                
+                // Adjust if menu goes off screen
+                setTimeout(() => {
+                    const rect = menu.getBoundingClientRect();
+                    if (rect.right > window.innerWidth) {
+                        menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
+                    }
+                    if (rect.bottom > window.innerHeight) {
+                        menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+                    }
+                }, 0);
+                return;
+            }
+            
+            // Otherwise show global menu
             const menu = document.getElementById('globalContextMenu');
             const overlay = document.getElementById('iframeOverlay');
             
