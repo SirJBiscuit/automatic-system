@@ -4887,8 +4887,11 @@ Swap:       2048000           0     2048000`
                                     </div>
                                     <span id="opacityValue" style="color: #667eea; font-weight: 600;">${terminalOpacity}%</span>
                                 </div>
+                                <div id="opacityPreview" style="margin-bottom: 12px; padding: 12px; background: rgba(0, 0, 0, ${terminalOpacity/100}); border: 2px solid #667eea; border-radius: 6px; text-align: center; color: white; font-family: monospace;">
+                                    <i class="fas fa-terminal"></i> Preview: ${terminalOpacity}% opacity
+                                </div>
                                 <input type="range" class="custom-slider" min="50" max="100" value="${terminalOpacity}" 
-                                       oninput="changeOpacity(this.value)">
+                                       oninput="changeOpacity(this.value); document.getElementById('opacityValue').textContent = this.value + '%'; document.getElementById('opacityPreview').style.background = 'rgba(0, 0, 0, ' + this.value/100 + ')'; document.getElementById('opacityPreview').innerHTML = '<i class=\\'fas fa-terminal\\'></i> Preview: ' + this.value + '% opacity';">
                             </div>
                         </div>
                         <div class="settings-section">
