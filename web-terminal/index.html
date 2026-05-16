@@ -6444,6 +6444,20 @@ Swap:       2048000           0     2048000`
                 }
             });
         }
+
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+P - Command Palette
+            if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+                e.preventDefault();
+                openCommandPalette();
+            }
+            // Ctrl+K - Snippets
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                toggleSnippets();
+            }
+        });
     </script>
 </body>
 </html>
