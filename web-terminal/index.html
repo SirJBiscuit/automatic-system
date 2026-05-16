@@ -1277,6 +1277,18 @@
             font-size: 16px;
         }
 
+        .setting-item strong {
+            color: #ffffff;
+        }
+
+        .setting-item > div {
+            color: #cccccc;
+        }
+
+        .setting-item > div > div {
+            color: #999999;
+        }
+
         .setting-item {
             display: flex;
             justify-content: space-between;
@@ -3111,6 +3123,11 @@
             <i class="fas fa-edit"></i>
             <span>Edit Server</span>
         </div>
+        <div class="context-menu-item" onclick="contextTogglePersist()">
+            <i class="fas fa-save" id="contextPersistIcon"></i>
+            <span id="contextPersistText">Keep Session Alive</span>
+        </div>
+        <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 4px 0;"></div>
         <div class="context-menu-item" onclick="contextDeleteServer()">
             <i class="fas fa-trash"></i>
             <span>Delete Server</span>
@@ -3350,6 +3367,14 @@
                         </div>
                         <input type="hidden" id="serverIcon" value="🔴">
                     </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="serverPersist" style="width: auto;">
+                            <span>Keep session alive on page refresh</span>
+                        </label>
+                        <small style="color: #888; display: block; margin-top: 4px;">When enabled, this server's terminal session will persist across page refreshes</small>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -3382,8 +3407,26 @@
 
             const savedTabs = localStorage.getItem('ssh_tabs');
             if (savedTabs) {
-                tabs = JSON.parse(savedTabs);
-                activeTabId = localStorage.getItem('ssh_active_tab');
+                const allTabs = JSON.parse(savedTabs);
+                tabs = {};
+                
+                // Only restore tabs for servers with persistSession enabled
+                Object.keys(allTabs).forEach(tabId => {
+                    const tab = allTabs[tabId];
+                    const server = servers.find(s => s.id === tab.serverId);
+                    if (server && server.persistSession) {
+                        tabs[tabId] = tab;
+                    }
+                });
+                
+                // Only restore activeTabId if that tab still exists
+                const savedActiveTab = localStorage.getItem('ssh_active_tab');
+                if (savedActiveTab && tabs[savedActiveTab]) {
+                    activeTabId = savedActiveTab;
+                } else {
+                    activeTabId = null;
+                }
+                
                 renderTabs();
                 renderTerminal();
             }
@@ -3486,6 +3529,19 @@
             event.stopPropagation();
             
             contextMenuServerId = serverId;
+            const server = servers.find(s => s.id === serverId);
+            
+            // Update persist menu item
+            const persistText = document.getElementById('contextPersistText');
+            const persistIcon = document.getElementById('contextPersistIcon');
+            if (server && server.persistSession) {
+                persistText.textContent = 'Disable Session Persistence';
+                persistIcon.className = 'fas fa-times-circle';
+            } else {
+                persistText.textContent = 'Keep Session Alive';
+                persistIcon.className = 'fas fa-save';
+            }
+            
             const menu = document.getElementById('serverContextMenu');
             menu.classList.add('active');
             menu.style.left = event.pageX + 'px';
@@ -3519,6 +3575,22 @@
             hideServerContextMenu();
         }
 
+        function contextTogglePersist() {
+            if (contextMenuServerId) {
+                const server = servers.find(s => s.id === contextMenuServerId);
+                if (server) {
+                    server.persistSession = !server.persistSession;
+                    saveData();
+                    renderServers();
+                    showNotification(
+                        server.persistSession ? 'Session persistence enabled' : 'Session persistence disabled',
+                        'success'
+                    );
+                }
+            }
+            hideServerContextMenu();
+        }
+
         // Close context menu when clicking outside
         document.addEventListener('click', hideServerContextMenu);
 
@@ -3544,6 +3616,8 @@
                 }
             });
 
+            document.getElementById('serverPersist').checked = server.persistSession || false;
+
             document.getElementById('serverModal').classList.add('active');
         }
 
@@ -3568,6 +3642,7 @@
                 protocol: document.getElementById('serverProtocol').value,
                 environment: document.getElementById('serverEnvironment').value,
                 icon: document.getElementById('serverIcon').value,
+                persistSession: document.getElementById('serverPersist').checked,
                 online: true,
                 uptime: '0d 0h 0m'
             };
@@ -4429,7 +4504,10 @@
                     opt.classList.add('selected');
                 }
             });
-            
+
+            // Update persistSession checkbox
+            document.getElementById('serverPersist').checked = false;
+
             // Close scan modal and open server modal
             closeNetworkScanModal();
             addServer();
@@ -4598,8 +4676,8 @@ drwxr-xr-x  2 demo demo 4096 May 12 13:25 Downloads
 d$$'     ,$P"'   .    $$$    Uptime: 2 hours, 34 mins
 $$P      d$'     ,    $$P    Shell: bash 5.1.16
 $$:      $$.   -    ,d$$'    Terminal: web-terminal
-$$;      Y$b._   _,d$P'      CPU: Demo CPU @ 3.4GHz
-Y$$.    \`.\`"Y$$$$P"'        Memory: 2048MiB / 8192MiB`
+Y$$.    \`.\`"Y$$$$P"'        CPU: Demo CPU @ 3.4GHz
+Yb,_    __dP""    Yb, _,    Memory: 2048MiB / 8192MiB`
                     };
                 
                 case 'df':
