@@ -278,17 +278,14 @@
         .server-item-info {
             flex: 1;
             min-width: 0;
+            cursor: pointer;
         }
 
         .server-item-actions {
             display: flex;
             gap: 4px;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .server-item:hover .server-item-actions {
             opacity: 1;
+            transition: all 0.2s;
         }
 
         .server-action-btn {
@@ -1916,17 +1913,7 @@
             background: #dc2626;
         }
 
-        /* Server item actions */
-        .server-item-actions {
-            display: flex;
-            gap: 4px;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .server-item:hover .server-item-actions {
-            opacity: 1;
-        }
+        /* Server item actions - removed duplicate, using earlier definition */
 
         .server-action-btn {
             background: rgba(255, 255, 255, 0.1);
@@ -3481,9 +3468,8 @@
 
             serverList.innerHTML = servers.map(server => `
                 <div class="server-item" 
-                     onclick="connectToServer('${server.id}')"
                      oncontextmenu="showServerContextMenu(event, '${server.id}')">
-                    <div class="server-item-info">
+                    <div class="server-item-info" onclick="connectToServer('${server.id}')">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                             <span style="font-size: 20px;">${server.icon}</span>
                             <strong>${server.name}</strong>
