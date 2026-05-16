@@ -2911,8 +2911,42 @@
                 </button>
             </div>
 
+            <!-- Empty State (shows when no active sessions) -->
+            <div class="empty-state" id="workspaceEmptyState" style="display: flex;">
+                <i class="fas fa-rocket" style="font-size: 64px; color: #667eea; margin-bottom: 20px;"></i>
+                <h2 style="color: #fff; margin-bottom: 12px;">Welcome to Enhanced SSH Terminal</h2>
+                <p style="color: #888; font-size: 16px; margin-bottom: 30px;">Nothing here yet! Get started by adding a server or creating widgets.</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; max-width: 800px; margin: 0 auto;">
+                    <button class="btn btn-primary" onclick="addServer()" style="padding: 16px; font-size: 14px;">
+                        <i class="fas fa-server"></i><br>
+                        <strong>Add Server</strong><br>
+                        <small style="opacity: 0.8;">Connect to SSH</small>
+                    </button>
+                    <button class="btn btn-secondary" onclick="createNewWidget()" style="padding: 16px; font-size: 14px;">
+                        <i class="fas fa-th"></i><br>
+                        <strong>Create Widget</strong><br>
+                        <small style="opacity: 0.8;">Custom tools</small>
+                    </button>
+                    <button class="btn btn-secondary" onclick="createNewScript()" style="padding: 16px; font-size: 14px;">
+                        <i class="fas fa-file-code"></i><br>
+                        <strong>New Script</strong><br>
+                        <small style="opacity: 0.8;">Automate tasks</small>
+                    </button>
+                    <button class="btn btn-secondary" onclick="startDemoTerminal()" style="padding: 16px; font-size: 14px;">
+                        <i class="fas fa-play-circle"></i><br>
+                        <strong>Try Demo</strong><br>
+                        <small style="opacity: 0.8;">Interactive demo</small>
+                    </button>
+                </div>
+                
+                <div style="margin-top: 40px; padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.3);">
+                    <p style="color: #667eea; margin: 0;"><i class="fas fa-info-circle"></i> <strong>Quick Tip:</strong> Right-click anywhere in the workspace to access the creation menu!</p>
+                </div>
+            </div>
+
             <!-- Terminal Container -->
-            <div class="terminal-container" id="terminalContainer">
+            <div class="terminal-container" id="terminalContainer" style="display: none;">
                 <div class="terminal-drag-handle" id="terminalDragHandle">
                     <div class="terminal-drag-handle-title">
                         <i class="fas fa-grip-vertical"></i>
@@ -2954,38 +2988,6 @@
                 <div class="resize-handle se" data-direction="se"></div>
                 <div class="resize-handle sw" data-direction="sw"></div>
                 <div class="iframe-overlay" id="iframeOverlay"></div>
-                <div class="empty-state" id="workspaceEmptyState">
-                    <i class="fas fa-rocket" style="font-size: 64px; color: #667eea; margin-bottom: 20px;"></i>
-                    <h2 style="color: #fff; margin-bottom: 12px;">Welcome to Enhanced SSH Terminal</h2>
-                    <p style="color: #888; font-size: 16px; margin-bottom: 30px;">Nothing here yet! Get started by adding a server or creating widgets.</p>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; max-width: 800px; margin: 0 auto;">
-                        <button class="btn btn-primary" onclick="addServer()" style="padding: 16px; font-size: 14px;">
-                            <i class="fas fa-server"></i><br>
-                            <strong>Add Server</strong><br>
-                            <small style="opacity: 0.8;">Connect to SSH</small>
-                        </button>
-                        <button class="btn btn-secondary" onclick="createNewWidget()" style="padding: 16px; font-size: 14px;">
-                            <i class="fas fa-th"></i><br>
-                            <strong>Create Widget</strong><br>
-                            <small style="opacity: 0.8;">Custom tools</small>
-                        </button>
-                        <button class="btn btn-secondary" onclick="createNewScript()" style="padding: 16px; font-size: 14px;">
-                            <i class="fas fa-file-code"></i><br>
-                            <strong>New Script</strong><br>
-                            <small style="opacity: 0.8;">Automate tasks</small>
-                        </button>
-                        <button class="btn btn-secondary" onclick="startDemoTerminal()" style="padding: 16px; font-size: 14px;">
-                            <i class="fas fa-play-circle"></i><br>
-                            <strong>Try Demo</strong><br>
-                            <small style="opacity: 0.8;">Interactive demo</small>
-                        </button>
-                    </div>
-                    
-                    <div style="margin-top: 40px; padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.3);">
-                        <p style="color: #667eea; margin: 0;"><i class="fas fa-info-circle"></i> <strong>Quick Tip:</strong> Right-click anywhere in the workspace to access the creation menu!</p>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
