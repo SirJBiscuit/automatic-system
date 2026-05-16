@@ -580,16 +580,17 @@
             position: fixed;
             width: 900px;
             height: 650px;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-            resize: both;
+            top: 100px;
+            left: 100px;
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
             overflow: hidden;
-            z-index: 4000;
-            border: 2px solid #667eea;
-            display: flex;
-            flex-direction: column;
+            resize: both;
             min-width: 400px;
             min-height: 300px;
+            display: flex;
+            flex-direction: column;
         }
 
         .terminal-container.draggable .demo-terminal,
@@ -648,6 +649,9 @@
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 8px;
+            position: relative;
+            z-index: 10;
+            min-height: 40px;
         }
 
         .terminal-container.draggable .terminal-drag-handle {
