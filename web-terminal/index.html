@@ -653,7 +653,7 @@
         }
 
         .terminal-container.draggable .terminal-drag-handle {
-            display: flex;
+            display: flex !important;
         }
 
         .terminal-drag-handle-btn {
@@ -5752,6 +5752,8 @@ Swap:       2048000           0     2048000`
             if (terminalDraggable) {
                 // Pop out the terminal
                 container.classList.add('draggable');
+                console.log('Added draggable class to container');
+                console.log('Container classes:', container.className);
                 
                 // Get workspace dimensions to center the terminal
                 const workspace = document.getElementById('workspace');
@@ -5767,6 +5769,8 @@ Swap:       2048000           0     2048000`
                 container.style.left = left + 'px';
                 container.style.width = termWidth + 'px';
                 container.style.height = termHeight + 'px';
+                
+                console.log('Container position:', {top, left, width: termWidth, height: termHeight});
                 
                 // Update title with active server
                 if (titleSpan && activeTabId && tabs[activeTabId]) {
