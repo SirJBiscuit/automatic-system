@@ -697,6 +697,14 @@
             flex-wrap: wrap;
         }
 
+        .terminal-drag-handle-btn span {
+            display: inline;
+        }
+
+        .terminal-drag-handle-btn.icon-only span {
+            display: none;
+        }
+
         /* Resize handles */
         .resize-handle {
             position: absolute;
@@ -5605,11 +5613,15 @@ Swap:       2048000           0     2048000`
                     if (titleSpan) titleSpan.textContent = 'Terminal Window';
                 }
                 
-                // Show drag handle and resize handles
-                if (handle) {
-                    handle.style.display = 'flex';
-                }
+                // Show drag handle and resize handles (CSS will handle display via .draggable class)
                 resizeHandles.forEach(h => h.style.display = 'block');
+                
+                // Debug: Check if toolbar is visible
+                console.log('Drag handle:', handle);
+                console.log('Drag handle display:', handle ? window.getComputedStyle(handle).display : 'N/A');
+                const toolbar = document.querySelector('.terminal-drag-handle-toolbar');
+                console.log('Toolbar:', toolbar);
+                console.log('Toolbar buttons:', toolbar ? toolbar.querySelectorAll('.terminal-drag-handle-btn').length : 0);
                 
                 // Update toolbar button
                 if (floatBtn) {
@@ -5638,10 +5650,7 @@ Swap:       2048000           0     2048000`
                 container.style.width = '';
                 container.style.height = '';
                 
-                // Hide drag handle and resize handles
-                if (handle) {
-                    handle.style.display = 'none';
-                }
+                // Hide resize handles (CSS will handle drag handle via .draggable class removal)
                 resizeHandles.forEach(h => h.style.display = 'none');
                 
                 // Reset maximize state
