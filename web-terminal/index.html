@@ -2536,8 +2536,9 @@
             cursor: not-allowed;
         }
 
-        /* AI Chat Toggle Button */
+        /* AI Chat Toggle Button - Hidden (now in toolbar) */
         .ai-chat-toggle {
+            display: none;
             position: fixed;
             bottom: 20px;
             right: 20px;
@@ -2750,6 +2751,12 @@
                 <i class="fas fa-bars"></i>
             </button>
             
+            <!-- AI Assistant Button -->
+            <button class="toolbar-btn" onclick="toggleAIChat()" data-tooltip="AI Assistant (Qwen2.5 7B)">
+                <i class="fas fa-robot"></i>
+                <span>AI Assistant</span>
+            </button>
+
             <!-- Desktop: Organized Dropdowns -->
             <div class="toolbar-dropdown">
                 <button class="toolbar-btn" data-tooltip="Tools">
@@ -2947,17 +2954,36 @@
                 <div class="resize-handle se" data-direction="se"></div>
                 <div class="resize-handle sw" data-direction="sw"></div>
                 <div class="iframe-overlay" id="iframeOverlay"></div>
-                <div class="empty-state">
-                    <i class="fas fa-terminal"></i>
-                    <h3>No Active Session</h3>
-                    <p>Add a server and click to connect</p>
-                    <div style="display: flex; gap: 12px; margin-top: 20px; justify-content: center;">
-                        <button class="btn btn-primary" onclick="startDemoTerminal()" data-tooltip="Try interactive demo terminal">
-                            <i class="fas fa-play"></i> Demo Terminal
+                <div class="empty-state" id="workspaceEmptyState">
+                    <i class="fas fa-rocket" style="font-size: 64px; color: #667eea; margin-bottom: 20px;"></i>
+                    <h2 style="color: #fff; margin-bottom: 12px;">Welcome to Enhanced SSH Terminal</h2>
+                    <p style="color: #888; font-size: 16px; margin-bottom: 30px;">Nothing here yet! Get started by adding a server or creating widgets.</p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; max-width: 800px; margin: 0 auto;">
+                        <button class="btn btn-primary" onclick="addServer()" style="padding: 16px; font-size: 14px;">
+                            <i class="fas fa-server"></i><br>
+                            <strong>Add Server</strong><br>
+                            <small style="opacity: 0.8;">Connect to SSH</small>
                         </button>
-                        <button class="btn btn-secondary" onclick="toggleTerminalDraggable()" data-tooltip="Make terminal draggable">
-                            <i class="fas fa-arrows-alt"></i> Make Draggable
+                        <button class="btn btn-secondary" onclick="createNewWidget()" style="padding: 16px; font-size: 14px;">
+                            <i class="fas fa-th"></i><br>
+                            <strong>Create Widget</strong><br>
+                            <small style="opacity: 0.8;">Custom tools</small>
                         </button>
+                        <button class="btn btn-secondary" onclick="createNewScript()" style="padding: 16px; font-size: 14px;">
+                            <i class="fas fa-file-code"></i><br>
+                            <strong>New Script</strong><br>
+                            <small style="opacity: 0.8;">Automate tasks</small>
+                        </button>
+                        <button class="btn btn-secondary" onclick="startDemoTerminal()" style="padding: 16px; font-size: 14px;">
+                            <i class="fas fa-play-circle"></i><br>
+                            <strong>Try Demo</strong><br>
+                            <small style="opacity: 0.8;">Interactive demo</small>
+                        </button>
+                    </div>
+                    
+                    <div style="margin-top: 40px; padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.3);">
+                        <p style="color: #667eea; margin: 0;"><i class="fas fa-info-circle"></i> <strong>Quick Tip:</strong> Right-click anywhere in the workspace to access the creation menu!</p>
                     </div>
                 </div>
             </div>
@@ -3462,20 +3488,21 @@
             const savedTabs = localStorage.getItem('ssh_tabs');
             if (savedTabs) {
                 const allTabs = JSON.parse(savedTabs);
-                tabs = {};
+                tabs = [];
                 
                 // Only restore tabs for servers with persistSession enabled
-                Object.keys(allTabs).forEach(tabId => {
-                    const tab = allTabs[tabId];
-                    const server = servers.find(s => s.id === tab.serverId);
-                    if (server && server.persistSession) {
-                        tabs[tabId] = tab;
-                    }
-                });
+                if (Array.isArray(allTabs)) {
+                    allTabs.forEach(tab => {
+                        const server = servers.find(s => s.id === tab.serverId);
+                        if (server && server.persistSession) {
+                            tabs.push(tab);
+                        }
+                    });
+                }
                 
                 // Only restore activeTabId if that tab still exists
                 const savedActiveTab = localStorage.getItem('ssh_active_tab');
-                if (savedActiveTab && tabs[savedActiveTab]) {
+                if (savedActiveTab && tabs.find(t => t.id === savedActiveTab)) {
                     activeTabId = savedActiveTab;
                 } else {
                     activeTabId = null;
@@ -3904,17 +3931,18 @@
         // Render terminal
         function renderTerminal() {
             const container = document.getElementById('terminalContainer');
+            const emptyState = document.getElementById('workspaceEmptyState');
             
             if (!activeTabId) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-terminal"></i>
-                        <h3>No Active Session</h3>
-                        <p>Add a server and click to connect</p>
-                    </div>
-                `;
+                // Show empty state, hide terminal content
+                if (emptyState) emptyState.style.display = 'flex';
+                container.style.display = 'none';
                 return;
             }
+            
+            // Hide empty state, show terminal
+            if (emptyState) emptyState.style.display = 'none';
+            container.style.display = 'flex';
 
             const activeTab = tabs.find(t => t.id === activeTabId);
             if (!activeTab) return;
