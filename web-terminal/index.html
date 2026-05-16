@@ -271,16 +271,51 @@
             margin-bottom: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
-            border-left: 3px solid transparent;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .server-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .server-item-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .server-item:hover .server-item-actions {
+            opacity: 1;
+        }
+
+        .server-action-btn {
+            background: rgba(102, 126, 234, 0.3);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .server-action-btn:hover {
+            background: rgba(102, 126, 234, 0.5);
+            transform: scale(1.1);
         }
 
         .server-item:hover {
             background: #333;
-        }
-
-        .server-item.active {
-            background: #333;
-            border-left-color: #667eea;
         }
 
         .server-item-header {
@@ -608,45 +643,37 @@
             color: white;
             font-size: 12px;
             font-weight: 600;
-            border-radius: 12px 12px 0 0;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .terminal-container.draggable .terminal-drag-handle {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .terminal-drag-handle-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-        }
-
-        .terminal-drag-handle-controls {
-            display: flex;
-            gap: 8px;
-            align-items: center;
         }
 
         .terminal-drag-handle-btn {
             background: rgba(255, 255, 255, 0.2);
             border: none;
             color: white;
-            width: 28px;
-            height: 28px;
+            padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 4px;
             transition: all 0.2s;
             font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .terminal-drag-handle-btn.icon-only {
+            width: 32px;
+            height: 32px;
+            padding: 6px;
         }
 
         .terminal-drag-handle-btn:hover {
@@ -654,28 +681,20 @@
             transform: scale(1.1);
         }
 
-        .terminal-drag-handle-btn.minimize {
-            background: rgba(255, 193, 7, 0.3);
+        .terminal-drag-handle-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-weight: 600;
+            flex: 1;
         }
 
-        .terminal-drag-handle-btn.minimize:hover {
-            background: rgba(255, 193, 7, 0.5);
-        }
-
-        .terminal-drag-handle-btn.maximize {
-            background: rgba(76, 175, 80, 0.3);
-        }
-
-        .terminal-drag-handle-btn.maximize:hover {
-            background: rgba(76, 175, 80, 0.5);
-        }
-
-        .terminal-drag-handle-btn.close {
-            background: rgba(244, 67, 54, 0.3);
-        }
-
-        .terminal-drag-handle-btn.close:hover {
-            background: rgba(244, 67, 54, 0.5);
+        .terminal-drag-handle-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
         }
 
         /* Resize handles */
@@ -1219,6 +1238,21 @@
             border-color: #43e97b;
         }
 
+        .keyboard-toggle-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: auto;
+        }
+
+        .keyboard-toggle-btn:hover {
+            opacity: 0.9;
+        }
+
         /* Settings Panel */
         .settings-section {
             margin-bottom: 24px;
@@ -1277,6 +1311,28 @@
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
         }
 
         /* Empty State */
@@ -1525,10 +1581,10 @@
         .server-action-btn {
             background: rgba(255, 255, 255, 0.1);
             border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
             color: #888;
             cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
             font-size: 12px;
             transition: all 0.2s;
         }
@@ -2189,10 +2245,7 @@
 
         [data-tooltip]::before {
             content: attr(data-tooltip);
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%) translateY(-5px);
+            position: fixed;
             background: rgba(0, 0, 0, 0.9);
             color: white;
             padding: 8px 12px;
@@ -2203,6 +2256,9 @@
             pointer-events: none;
             transition: all 0.3s ease;
             z-index: 10000;
+            max-width: 200px;
+            white-space: normal;
+            text-align: center;
         }
 
         [data-tooltip]::after {
@@ -2219,10 +2275,12 @@
             z-index: 10000;
         }
 
-        [data-tooltip]:hover::before,
+        [data-tooltip]:hover::before {
+            opacity: 1;
+        }
+
         [data-tooltip]:hover::after {
             opacity: 1;
-            transform: translateX(-50%) translateY(-10px);
         }
 
         [data-tooltip]:hover::after {
@@ -2493,23 +2551,28 @@
                         <i class="fas fa-grip-vertical"></i>
                         <span id="terminalWindowTitle">Terminal Window</span>
                     </div>
-                    <div class="terminal-drag-handle-controls">
-                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); minimizeTerminal()" data-tooltip="Minimize" title="Minimize">
+                    <div class="terminal-drag-handle-toolbar">
+                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); minimizeTerminal()" data-tooltip="Minimize">
                             <i class="fas fa-minus"></i>
+                            <span>Minimize</span>
                         </button>
-                        <button class="terminal-drag-handle-btn maximize" onclick="event.stopPropagation(); maximizeTerminal()" data-tooltip="Maximize" title="Maximize">
+                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); maximizeTerminal()" data-tooltip="Maximize">
                             <i class="fas fa-square"></i>
+                            <span>Maximize</span>
                         </button>
-                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); snapTerminalLeft()" data-tooltip="Snap Left" title="Snap Left">
+                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); snapTerminalLeft()" data-tooltip="Snap Left">
                             <i class="fas fa-arrow-left"></i>
+                            <span>Snap Left</span>
                         </button>
-                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); snapTerminalRight()" data-tooltip="Snap Right" title="Snap Right">
+                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); snapTerminalRight()" data-tooltip="Snap Right">
                             <i class="fas fa-arrow-right"></i>
+                            <span>Snap Right</span>
                         </button>
-                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); toggleTerminalDraggable()" data-tooltip="Dock Terminal" title="Dock">
+                        <button class="terminal-drag-handle-btn" onclick="event.stopPropagation(); toggleTerminalDraggable()" data-tooltip="Dock">
                             <i class="fas fa-compress-alt"></i>
+                            <span>Dock</span>
                         </button>
-                        <button class="terminal-drag-handle-btn close" onclick="event.stopPropagation(); closeTerminalWindow()" data-tooltip="Close" title="Close">
+                        <button class="terminal-drag-handle-btn close icon-only" onclick="event.stopPropagation(); closeTerminalWindow()" data-tooltip="Close">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -2695,9 +2758,14 @@
     <div class="onscreen-keyboard" id="onscreenKeyboard">
         <div class="keyboard-header">
             <strong>On-Screen Keyboard</strong>
-            <button class="terminal-drag-handle-btn close" onclick="toggleOnScreenKeyboard()">
-                <i class="fas fa-times"></i>
-            </button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="keyboard-toggle-btn" onclick="toggleNativeKeyboard()">
+                    <i class="fas fa-keyboard"></i> Toggle Native
+                </button>
+                <button class="terminal-drag-handle-btn close" onclick="toggleOnScreenKeyboard()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
         <div class="keyboard-row">
             <div class="keyboard-key special" onclick="toggleKeyModifier('Escape')">Esc</div>
@@ -2995,26 +3063,23 @@
 
             serverList.innerHTML = servers.map(server => `
                 <div class="server-item" onclick="connectToServer('${server.id}')">
-                    <div class="server-item-header">
-                        <div class="server-name">
-                            <span>${server.icon}</span>
-                            <span>${server.name}</span>
+                    <div class="server-item-info">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <span style="font-size: 20px;">${server.icon}</span>
+                            <strong>${server.name}</strong>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div class="server-item-actions">
-                                <button class="server-action-btn" onclick="event.stopPropagation(); editServer('${server.id}')" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="server-status ${server.online ? '' : 'offline'}"></div>
-                        </div>
+                        <div style="font-size: 12px; color: #888;">${server.host}:${server.port}</div>
                     </div>
-                    <div class="server-host">${server.host}:${server.port}</div>
-                    <div class="server-uptime">⏱ ${server.uptime || '0d 0h 0m'}</div>
-                    <div class="server-stats">
-                        <div class="server-stat">💾 ${server.diskUsage || '0%'}</div>
-                        <div class="server-stat">🔥 ${server.cpuUsage || '0%'}</div>
-                        <div class="server-stat">📊 ${server.memUsage || '0%'}</div>
+                    <div class="server-item-actions">
+                        <button class="server-action-btn" onclick="event.stopPropagation(); popOutServer('${server.id}')" title="Pop Out">
+                            <i class="fas fa-external-alt"></i>
+                        </button>
+                        <button class="server-action-btn" onclick="event.stopPropagation(); editServer('${server.id}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="server-action-btn" onclick="event.stopPropagation(); deleteServer('${server.id}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -3030,6 +3095,22 @@
             document.querySelectorAll('.icon-option').forEach(el => el.classList.remove('selected'));
             document.querySelector('.icon-option').classList.add('selected');
             document.getElementById('serverModal').classList.add('active');
+        }
+
+        function popOutServer(serverId) {
+            // Find the server
+            const server = servers.find(s => s.id === serverId);
+            if (!server) return;
+            
+            // Connect to the server first
+            connectToServer(serverId);
+            
+            // Then pop out the terminal after a short delay
+            setTimeout(() => {
+                if (!terminalDraggable) {
+                    toggleTerminalDraggable();
+                }
+            }, 200);
         }
 
         function editServer(serverId) {
@@ -4248,9 +4329,81 @@ Swap:       2048000           0     2048000`
                             </button>
                         </div>
                     </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                        <button class="btn btn-primary" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> Save & Apply
+                        </button>
+                    </div>
                 </div>
             `;
             document.body.appendChild(modal);
+        }
+
+        function saveSettings() {
+            const settings = {
+                font: currentFont,
+                opacity: terminalOpacity,
+                zoom: zoomLevel,
+                theme: currentTheme
+            };
+            localStorage.setItem('terminalSettings', JSON.stringify(settings));
+            document.querySelectorAll('.modal').forEach(m => m.remove());
+            showNotification('Settings saved successfully!', 'success');
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('terminalSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                if (settings.font) {
+                    currentFont = settings.font;
+                    changeFont(currentFont);
+                }
+                if (settings.opacity) {
+                    terminalOpacity = settings.opacity;
+                    changeOpacity(terminalOpacity);
+                }
+                if (settings.zoom) {
+                    zoomLevel = settings.zoom;
+                    document.getElementById('workspace').style.zoom = zoomLevel + '%';
+                }
+                if (settings.theme) {
+                    currentTheme = settings.theme;
+                    applyTheme(currentTheme);
+                }
+            }
+            
+            // Load saved theme separately
+            const savedTheme = localStorage.getItem('terminalTheme');
+            if (savedTheme) {
+                currentTheme = JSON.parse(savedTheme);
+                applyTheme(currentTheme);
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: ${type === 'success' ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
+                color: white;
+                padding: 16px 24px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                z-index: 10003;
+                animation: slideIn 0.3s ease;
+                font-weight: 600;
+            `;
+            notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i> ${message}`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         }
 
         function changeFont(font) {
@@ -4259,15 +4412,24 @@ Swap:       2048000           0     2048000`
             terminals.forEach(term => {
                 term.style.fontFamily = `'${font}', 'Consolas', 'Monaco', 'Courier New', monospace`;
             });
+            // Auto-save on change
+            const settings = JSON.parse(localStorage.getItem('terminalSettings') || '{}');
+            settings.font = font;
+            localStorage.setItem('terminalSettings', JSON.stringify(settings));
         }
 
         function changeOpacity(value) {
             terminalOpacity = value;
-            document.getElementById('opacityValue').textContent = value + '%';
+            const opacityEl = document.getElementById('opacityValue');
+            if (opacityEl) opacityEl.textContent = value + '%';
             const terminals = document.querySelectorAll('.demo-terminal, .terminal-frame');
             terminals.forEach(term => {
                 term.style.opacity = value / 100;
             });
+            // Auto-save on change
+            const settings = JSON.parse(localStorage.getItem('terminalSettings') || '{}');
+            settings.opacity = value;
+            localStorage.setItem('terminalSettings', JSON.stringify(settings));
         }
 
         function resetAllSettings() {
@@ -4307,9 +4469,21 @@ Swap:       2048000           0     2048000`
                             `).join('')}
                         </div>
                     </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                        <button class="btn btn-primary" onclick="saveTheme()">
+                            <i class="fas fa-save"></i> Save Theme
+                        </button>
+                    </div>
                 </div>
             `;
             document.body.appendChild(modal);
+        }
+
+        function saveTheme() {
+            localStorage.setItem('terminalTheme', JSON.stringify(currentTheme));
+            document.querySelectorAll('.modal').forEach(m => m.remove());
+            showNotification('Theme saved successfully!', 'success');
         }
 
         function selectTheme(index) {
@@ -4857,7 +5031,7 @@ Swap:       2048000           0     2048000`
                 if (titleSpan && activeTabId && tabs[activeTabId]) {
                     const server = servers.find(s => s.id === tabs[activeTabId].serverId);
                     if (server) {
-                        titleSpan.textContent = `${server.icon} ${server.name} - Terminal`;
+                        titleSpan.innerHTML = `${server.icon} ${server.name} <span style="opacity: 0.7; font-weight: 400;">- ${server.host}:${server.port}</span>`;
                     } else {
                         titleSpan.textContent = 'Terminal Window';
                     }
@@ -5104,11 +5278,26 @@ Swap:       2048000           0     2048000`
             
             if (keyboardOpen) {
                 keyboard.classList.add('active');
+                // On mobile, blur any active input to hide native keyboard
+                if (isMobileDevice()) {
+                    document.activeElement?.blur();
+                }
             } else {
                 keyboard.classList.remove('active');
                 // Reset modifiers
                 activeModifiers = { Control: false, Alt: false, Shift: false };
                 updateModifierKeys();
+            }
+        }
+
+        function toggleNativeKeyboard() {
+            const input = document.getElementById('demoInput');
+            if (input) {
+                if (document.activeElement === input) {
+                    input.blur();
+                } else {
+                    input.focus();
+                }
             }
         }
 
@@ -5679,6 +5868,16 @@ Swap:       2048000           0     2048000`
 
         // Initialize
         loadData();
+        loadSettings();
+        
+        // Auto-show on-screen keyboard on mobile when terminal is focused
+        if (isMobileDevice()) {
+            document.addEventListener('focusin', (e) => {
+                if (e.target.id === 'demoInput' && !keyboardOpen) {
+                    setTimeout(() => toggleOnScreenKeyboard(), 300);
+                }
+            });
+        }
     </script>
 </body>
 </html>
