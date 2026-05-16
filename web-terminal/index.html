@@ -3371,6 +3371,15 @@
                 <span>AI Terminal Assistant</span>
             </div>
             <div class="ai-chat-controls">
+                <button class="ai-chat-control-btn" onclick="event.stopPropagation(); togglePastConversations()" data-tooltip="Past Conversations">
+                    <i class="fas fa-history"></i>
+                </button>
+                <button class="ai-chat-control-btn" onclick="event.stopPropagation(); toggleAIRules()" data-tooltip="AI Rules">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button class="ai-chat-control-btn" onclick="event.stopPropagation(); toggleAIMemories()" data-tooltip="Memories">
+                    <i class="fas fa-brain"></i>
+                </button>
                 <button class="popout-btn" onclick="event.stopPropagation(); popoutWidget('aiChatWidget')" data-tooltip="Pop Out">
                     <i class="fas fa-external-link-alt"></i>
                 </button>
@@ -3406,6 +3415,77 @@
                 <button class="ai-chat-send-btn" id="aiChatSendBtn" onclick="sendAIMessage()">
                     <i class="fas fa-paper-plane"></i>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Past Conversations Panel -->
+    <div class="modal" id="pastConversationsModal">
+        <div class="modal-content" style="max-width: 900px; max-height: 80vh;">
+            <div class="modal-header">
+                <h2><i class="fas fa-history"></i> Past Conversations</h2>
+                <button class="close-btn" onclick="togglePastConversations()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <div style="padding: 16px; border-bottom: 1px solid #333; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" onclick="filterConversations('today')" style="padding: 6px 12px;">Today</button>
+                    <button class="btn btn-secondary" onclick="filterConversations('week')" style="padding: 6px 12px;">This Week</button>
+                    <button class="btn btn-secondary" onclick="filterConversations('month')" style="padding: 6px 12px;">This Month</button>
+                    <button class="btn btn-secondary" onclick="filterConversations('all')" style="padding: 6px 12px;">All Time</button>
+                </div>
+                <div id="conversationsList" style="padding: 16px; max-height: 500px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Rules Panel -->
+    <div class="modal" id="aiRulesModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> AI Rules</h2>
+                <button class="close-btn" onclick="toggleAIRules()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="aiRulesForm" onsubmit="saveAIRules(event)">
+                    <div class="form-group">
+                        <label class="form-label">AI Behavior Rules</label>
+                        <textarea class="form-input" id="aiBehaviorRules" rows="4" placeholder="e.g., Always provide code examples, Be concise..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Response Style</label>
+                        <select class="form-input" id="aiResponseStyle">
+                            <option value="detailed">Detailed</option>
+                            <option value="concise">Concise</option>
+                            <option value="technical">Technical</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="toggleAIRules()">Cancel</button>
+                <button type="submit" form="aiRulesForm" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Memories Panel -->
+    <div class="modal" id="aiMemoriesModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-brain"></i> AI Memories</h2>
+                <button class="close-btn" onclick="toggleAIMemories()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <button class="btn btn-primary" onclick="createMemory()" style="margin-bottom: 16px;">
+                    <i class="fas fa-plus"></i> Create Memory
+                </button>
+                <div id="memoriesList" style="display: grid; gap: 12px;"></div>
             </div>
         </div>
     </div>
@@ -6986,6 +7066,298 @@ Swap:       2048000           0     2048000`
                 showNotification('Code copied to clipboard!', 'success');
             });
         }
+
+        // Conversation Management
+        let conversations = [];
+        let currentSessionId = null;
+        let aiMemories = [];
+        let aiRules = {
+            behavior: '',
+            responseStyle: 'detailed',
+            includeComments: true,
+            includeExamples: true,
+            includeTests: false,
+            autoSave: 'always'
+        };
+
+        function startNewSession() {
+            // Save current session if exists
+            if (currentSessionId && aiMessages.length > 0) {
+                saveCurrentSession();
+            }
+            
+            // Create new session
+            currentSessionId = 'session_' + Date.now();
+            aiMessages = [];
+            document.getElementById('aiChatMessages').innerHTML = '';
+            loadAIChatHistory();
+        }
+
+        function saveCurrentSession() {
+            if (!aiMessages.length) return;
+            
+            const session = {
+                id: currentSessionId,
+                timestamp: new Date().toISOString(),
+                messages: [...aiMessages],
+                title: generateSessionTitle(aiMessages),
+                category: detectCategory(aiMessages),
+                success: null, // User can mark as success/failure
+                milestone: false
+            };
+            
+            conversations.push(session);
+            localStorage.setItem('ai_conversations', JSON.stringify(conversations));
+            localStorage.setItem('ai_chat_history', JSON.stringify(aiMessages));
+        }
+
+        function generateSessionTitle(messages) {
+            if (messages.length === 0) return 'Empty Conversation';
+            const firstUserMsg = messages.find(m => m.type === 'user');
+            if (firstUserMsg) {
+                return firstUserMsg.content.substring(0, 50) + (firstUserMsg.content.length > 50 ? '...' : '');
+            }
+            return 'Conversation ' + new Date().toLocaleString();
+        }
+
+        function detectCategory(messages) {
+            const text = messages.map(m => m.content).join(' ').toLowerCase();
+            if (text.includes('code') || text.includes('script') || text.includes('function')) return 'coding';
+            if (text.includes('error') || text.includes('debug') || text.includes('fix')) return 'troubleshooting';
+            if (text.includes('how') || text.includes('what') || text.includes('explain')) return 'learning';
+            if (text.includes('project') || text.includes('build') || text.includes('create')) return 'project';
+            return 'general';
+        }
+
+        function togglePastConversations() {
+            const modal = document.getElementById('pastConversationsModal');
+            modal.classList.toggle('active');
+            if (modal.classList.contains('active')) {
+                loadConversations();
+            }
+        }
+
+        function loadConversations() {
+            const saved = localStorage.getItem('ai_conversations');
+            if (saved) {
+                conversations = JSON.parse(saved);
+            }
+            filterConversations('all');
+        }
+
+        function filterConversations(period) {
+            const now = new Date();
+            let filtered = conversations;
+            
+            if (period === 'today') {
+                filtered = conversations.filter(c => {
+                    const date = new Date(c.timestamp);
+                    return date.toDateString() === now.toDateString();
+                });
+            } else if (period === 'week') {
+                const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+                filtered = conversations.filter(c => new Date(c.timestamp) > weekAgo);
+            } else if (period === 'month') {
+                const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+                filtered = conversations.filter(c => new Date(c.timestamp) > monthAgo);
+            }
+            
+            renderConversations(filtered);
+        }
+
+        function renderConversations(convos) {
+            const list = document.getElementById('conversationsList');
+            if (convos.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #888; padding: 40px;">No conversations found</div>';
+                return;
+            }
+            
+            const categoryIcons = {
+                coding: '💻',
+                troubleshooting: '🔧',
+                learning: '📚',
+                project: '🚀',
+                general: '💬'
+            };
+            
+            list.innerHTML = convos.map(conv => `
+                <div class="conversation-card" style="background: #2a2a2a; padding: 16px; border-radius: 8px; cursor: pointer; border: 1px solid #333;" onclick="loadConversation('${conv.id}')">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #fff; margin-bottom: 4px;">${categoryIcons[conv.category]} ${conv.title}</div>
+                            <div style="font-size: 12px; color: #888;">${new Date(conv.timestamp).toLocaleString()}</div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            ${conv.milestone ? '<span style="background: #667eea; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Milestone</span>' : ''}
+                            ${conv.success === true ? '<span style="background: #10b981; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Success</span>' : ''}
+                            ${conv.success === false ? '<span style="background: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Failed</span>' : ''}
+                        </div>
+                    </div>
+                    <div style="font-size: 13px; color: #aaa;">${conv.messages.length} messages</div>
+                    <div style="margin-top: 8px; display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" onclick="event.stopPropagation(); markSuccess('${conv.id}')" style="padding: 4px 8px; font-size: 11px;">✓ Success</button>
+                        <button class="btn btn-secondary" onclick="event.stopPropagation(); markFailed('${conv.id}')" style="padding: 4px 8px; font-size: 11px;">✗ Failed</button>
+                        <button class="btn btn-secondary" onclick="event.stopPropagation(); markMilestone('${conv.id}')" style="padding: 4px 8px; font-size: 11px;">⭐ Milestone</button>
+                        <button class="btn btn-danger" onclick="event.stopPropagation(); deleteConversation('${conv.id}')" style="padding: 4px 8px; font-size: 11px;">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadConversation(id) {
+            const conv = conversations.find(c => c.id === id);
+            if (!conv) return;
+            
+            currentSessionId = id;
+            aiMessages = [...conv.messages];
+            
+            const messagesContainer = document.getElementById('aiChatMessages');
+            messagesContainer.innerHTML = '';
+            aiMessages.forEach(msg => addAIMessage(msg.type, msg.content, msg.command));
+            
+            togglePastConversations();
+            toggleAIChat();
+            showNotification('Conversation loaded!', 'success');
+        }
+
+        function markSuccess(id) {
+            const conv = conversations.find(c => c.id === id);
+            if (conv) {
+                conv.success = true;
+                localStorage.setItem('ai_conversations', JSON.stringify(conversations));
+                filterConversations('all');
+            }
+        }
+
+        function markFailed(id) {
+            const conv = conversations.find(c => c.id === id);
+            if (conv) {
+                conv.success = false;
+                localStorage.setItem('ai_conversations', JSON.stringify(conversations));
+                filterConversations('all');
+            }
+        }
+
+        function markMilestone(id) {
+            const conv = conversations.find(c => c.id === id);
+            if (conv) {
+                conv.milestone = !conv.milestone;
+                localStorage.setItem('ai_conversations', JSON.stringify(conversations));
+                filterConversations('all');
+            }
+        }
+
+        function deleteConversation(id) {
+            if (confirm('Delete this conversation?')) {
+                conversations = conversations.filter(c => c.id !== id);
+                localStorage.setItem('ai_conversations', JSON.stringify(conversations));
+                filterConversations('all');
+            }
+        }
+
+        // AI Rules Management
+        function toggleAIRules() {
+            const modal = document.getElementById('aiRulesModal');
+            modal.classList.toggle('active');
+            if (modal.classList.contains('active')) {
+                loadAIRules();
+            }
+        }
+
+        function loadAIRules() {
+            const saved = localStorage.getItem('ai_rules');
+            if (saved) {
+                aiRules = JSON.parse(saved);
+            }
+            document.getElementById('aiBehaviorRules').value = aiRules.behavior || '';
+            document.getElementById('aiResponseStyle').value = aiRules.responseStyle || 'detailed';
+        }
+
+        function saveAIRules(event) {
+            event.preventDefault();
+            aiRules = {
+                behavior: document.getElementById('aiBehaviorRules').value,
+                responseStyle: document.getElementById('aiResponseStyle').value
+            };
+            localStorage.setItem('ai_rules', JSON.stringify(aiRules));
+            toggleAIRules();
+            showNotification('AI rules saved!', 'success');
+        }
+
+        // AI Memories Management
+        function toggleAIMemories() {
+            const modal = document.getElementById('aiMemoriesModal');
+            modal.classList.toggle('active');
+            if (modal.classList.contains('active')) {
+                loadMemories();
+            }
+        }
+
+        function loadMemories() {
+            const saved = localStorage.getItem('ai_memories');
+            if (saved) {
+                aiMemories = JSON.parse(saved);
+            }
+            renderMemories();
+        }
+
+        function renderMemories() {
+            const list = document.getElementById('memoriesList');
+            if (aiMemories.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #888; padding: 40px;">No memories yet</div>';
+                return;
+            }
+            
+            list.innerHTML = aiMemories.map(mem => `
+                <div style="background: #2a2a2a; padding: 16px; border-radius: 8px; border: 1px solid #333;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <strong style="color: #667eea;">${mem.topic}</strong>
+                        <button class="btn btn-danger" onclick="deleteMemory('${mem.id}')" style="padding: 2px 8px; font-size: 11px;">Delete</button>
+                    </div>
+                    <div style="color: #ddd; font-size: 13px;">${mem.content}</div>
+                    <div style="font-size: 11px; color: #888; margin-top: 8px;">${new Date(mem.timestamp).toLocaleString()}</div>
+                </div>
+            `).join('');
+        }
+
+        function createMemory() {
+            const topic = prompt('Memory topic (e.g., "Project Setup", "Bug Fix"):');
+            if (!topic) return;
+            
+            const content = prompt('Memory content:');
+            if (!content) return;
+            
+            const memory = {
+                id: 'memory_' + Date.now(),
+                topic,
+                content,
+                timestamp: new Date().toISOString()
+            };
+            
+            aiMemories.push(memory);
+            localStorage.setItem('ai_memories', JSON.stringify(aiMemories));
+            renderMemories();
+            showNotification('Memory created!', 'success');
+        }
+
+        function deleteMemory(id) {
+            if (confirm('Delete this memory?')) {
+                aiMemories = aiMemories.filter(m => m.id !== id);
+                localStorage.setItem('ai_memories', JSON.stringify(aiMemories));
+                renderMemories();
+            }
+        }
+
+        // Auto-save conversation on message send
+        const originalSendAIMessage = sendAIMessage;
+        sendAIMessage = function() {
+            if (!currentSessionId) {
+                currentSessionId = 'session_' + Date.now();
+            }
+            originalSendAIMessage();
+            // Auto-save after each message
+            setTimeout(() => saveCurrentSession(), 1000);
+        };
 
         function showAITyping() {
             isAITyping = true;
