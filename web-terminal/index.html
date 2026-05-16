@@ -2453,6 +2453,73 @@
             color: white;
         }
 
+        /* AI Code Blocks */
+        .ai-code-block {
+            margin: 12px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #1a1a1a;
+            border: 1px solid #333;
+        }
+
+        .ai-code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #2a2a2a;
+            border-bottom: 1px solid #333;
+        }
+
+        .ai-code-lang {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .ai-code-copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .ai-code-copy-btn:hover {
+            background: #7c8ef0;
+            transform: translateY(-1px);
+        }
+
+        .ai-code-block pre {
+            margin: 0;
+            padding: 16px;
+            overflow-x: auto;
+            background: #1a1a1a;
+        }
+
+        .ai-code-block code {
+            font-family: 'Courier New', Consolas, Monaco, monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #e0e0e0;
+        }
+
+        .ai-inline-code {
+            background: #2a2a2a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', Consolas, Monaco, monospace;
+            font-size: 0.9em;
+            color: #667eea;
+        }
+
         .ai-message-command {
             background: #1a1a1a;
             padding: 10px 12px;
@@ -3469,9 +3536,92 @@
         </div>
     </div>
 
+    <!-- Widget Creator Modal -->
+    <div class="modal" id="widgetModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Create Widget</h2>
+                <button class="close-btn" onclick="document.getElementById('widgetModal').classList.remove('active')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="widgetForm" onsubmit="saveWidget(event)">
+                    <div class="form-group">
+                        <label class="form-label">Widget Name</label>
+                        <input type="text" class="form-input" id="widgetName" placeholder="My Custom Widget" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Widget Type</label>
+                        <select class="form-input" id="widgetType" required>
+                            <option value="note">Sticky Note</option>
+                            <option value="monitor">System Monitor</option>
+                            <option value="clock">Clock</option>
+                            <option value="calculator">Calculator</option>
+                            <option value="custom">Custom HTML</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="customHtmlGroup" style="display: none;">
+                        <label class="form-label">Custom HTML Content</label>
+                        <textarea class="form-input" id="widgetHtml" rows="6" placeholder="<div>Your HTML here</div>"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('widgetModal').classList.remove('active')">Cancel</button>
+                <button type="submit" form="widgetForm" class="btn btn-primary">Create Widget</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Editor Modal -->
+    <div class="modal" id="scriptModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>Script Editor</h2>
+                <button class="close-btn" onclick="document.getElementById('scriptModal').classList.remove('active')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="scriptForm" onsubmit="saveScript(event)">
+                    <div class="form-group">
+                        <label class="form-label">Script Name</label>
+                        <input type="text" class="form-input" id="scriptName" placeholder="My Automation Script" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Language</label>
+                        <select class="form-input" id="scriptLanguage" required>
+                            <option value="bash">Bash</option>
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="powershell">PowerShell</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Script Content</label>
+                        <textarea class="form-input" id="scriptContent" rows="12" placeholder="#!/bin/bash&#10;echo 'Hello World'" required style="font-family: 'Courier New', monospace;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="scriptAutoRun" style="width: auto;">
+                            <span>Auto-run on schedule</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('scriptModal').classList.remove('active')">Cancel</button>
+                <button type="submit" form="scriptForm" class="btn btn-primary">Save Script</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global state
         let servers = [];
+        let widgets = [];
+        let scripts = [];
         let tabs = [];
         let activeTabId = null;
         let editingServerId = null;
@@ -3714,13 +3864,58 @@
         }
 
         function createNewWidget() {
-            showNotification('Widget creator coming soon!', 'info');
-            // TODO: Implement widget creator
+            document.getElementById('widgetModal').classList.add('active');
+            document.getElementById('widgetForm').reset();
+            
+            // Show/hide custom HTML field based on type
+            document.getElementById('widgetType').addEventListener('change', function() {
+                const customGroup = document.getElementById('customHtmlGroup');
+                customGroup.style.display = this.value === 'custom' ? 'block' : 'none';
+            });
+        }
+
+        function saveWidget(event) {
+            event.preventDefault();
+            const widget = {
+                id: 'widget_' + Date.now(),
+                name: document.getElementById('widgetName').value,
+                type: document.getElementById('widgetType').value,
+                html: document.getElementById('widgetHtml').value,
+                created: new Date().toISOString()
+            };
+            
+            widgets.push(widget);
+            localStorage.setItem('ssh_widgets', JSON.stringify(widgets));
+            document.getElementById('widgetModal').classList.remove('active');
+            showNotification(`Widget "${widget.name}" created!`, 'success');
+            
+            // TODO: Render widget in workspace
+            console.log('Widget created:', widget);
         }
 
         function createNewScript() {
-            showNotification('Script editor coming soon!', 'info');
-            // TODO: Implement script editor
+            document.getElementById('scriptModal').classList.add('active');
+            document.getElementById('scriptForm').reset();
+        }
+
+        function saveScript(event) {
+            event.preventDefault();
+            const script = {
+                id: 'script_' + Date.now(),
+                name: document.getElementById('scriptName').value,
+                language: document.getElementById('scriptLanguage').value,
+                content: document.getElementById('scriptContent').value,
+                autoRun: document.getElementById('scriptAutoRun').checked,
+                created: new Date().toISOString()
+            };
+            
+            scripts.push(script);
+            localStorage.setItem('ssh_scripts', JSON.stringify(scripts));
+            document.getElementById('scriptModal').classList.remove('active');
+            showNotification(`Script "${script.name}" saved!`, 'success');
+            
+            // TODO: Add to scripts panel
+            console.log('Script saved:', script);
         }
 
         function createNewShortcut() {
@@ -4269,8 +4464,8 @@
             e.preventDefault();
             e.stopPropagation();
             
-            // Check if clicking on terminal-area (workspace) - show workspace menu
-            if (e.target.closest('.terminal-area')) {
+            // Check if clicking on terminal-area or empty-state (workspace) - show workspace menu
+            if (e.target.closest('.terminal-area') || e.target.closest('.empty-state')) {
                 const menu = document.getElementById('workspaceContextMenu');
                 menu.style.left = e.clientX + 'px';
                 menu.style.top = e.clientY + 'px';
@@ -6642,11 +6837,27 @@ Swap:       2048000           0     2048000`
             const widget = document.getElementById('aiChatWidget');
             const toggle = document.getElementById('aiChatToggle');
             
-            widget.classList.toggle('active');
-            toggle.classList.toggle('hidden');
-            
             if (widget.classList.contains('active')) {
-                document.getElementById('aiChatInput').focus();
+                widget.classList.remove('active');
+            } else {
+                widget.classList.add('active');
+                // Load chat history on first open
+                if (aiMessages.length === 0) {
+                    loadAIChatHistory();
+                }
+            }
+        }
+
+        function loadAIChatHistory() {
+            const savedHistory = localStorage.getItem('ai_chat_history');
+            if (savedHistory) {
+                const history = JSON.parse(savedHistory);
+                const messagesContainer = document.getElementById('aiChatMessages');
+                messagesContainer.innerHTML = ''; // Clear welcome message
+                
+                history.forEach(msg => {
+                    addAIMessage(msg.type, msg.content, msg.command);
+                });
             }
         }
 
@@ -6658,6 +6869,7 @@ Swap:       2048000           0     2048000`
         function clearAIChat() {
             if (confirm('Clear all chat messages?')) {
                 aiMessages = [];
+                localStorage.removeItem('ai_chat_history');
                 const messagesContainer = document.getElementById('aiChatMessages');
                 messagesContainer.innerHTML = `
                     <div class="ai-message">
@@ -6712,6 +6924,29 @@ Swap:       2048000           0     2048000`
             const messageDiv = document.createElement('div');
             messageDiv.className = 'ai-message ' + type;
             
+            // Detect and format code blocks with copy buttons
+            let formattedContent = content;
+            if (type === 'ai') {
+                // Detect code blocks (```language\ncode\n```)
+                formattedContent = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                    const codeId = 'code_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    return `
+                        <div class="ai-code-block">
+                            <div class="ai-code-header">
+                                <span class="ai-code-lang">${lang || 'code'}</span>
+                                <button class="ai-code-copy-btn" onclick="copyAICode('${codeId}')" title="Copy code">
+                                    <i class="fas fa-copy"></i> Copy
+                                </button>
+                            </div>
+                            <pre id="${codeId}"><code>${code.trim()}</code></pre>
+                        </div>
+                    `;
+                });
+                
+                // Detect inline code (`code`)
+                formattedContent = formattedContent.replace(/`([^`]+)`/g, '<code class="ai-inline-code">$1</code>');
+            }
+            
             let commandHTML = '';
             if (command) {
                 commandHTML = `
@@ -6730,7 +6965,7 @@ Swap:       2048000           0     2048000`
                     <div class="ai-message-name">${type === 'user' ? 'You' : 'AI Assistant'}</div>
                 </div>
                 <div class="ai-message-content">
-                    ${content}
+                    ${formattedContent}
                     ${commandHTML}
                 </div>
             `;
@@ -6738,7 +6973,18 @@ Swap:       2048000           0     2048000`
             messagesContainer.appendChild(messageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
             
-            aiMessages.push({ type, content, command, timestamp: new Date().toISOString() });
+            // Save to history and localStorage
+            const message = { type, content, command, timestamp: new Date().toISOString() };
+            aiMessages.push(message);
+            localStorage.setItem('ai_chat_history', JSON.stringify(aiMessages));
+        }
+
+        function copyAICode(codeId) {
+            const codeElement = document.getElementById(codeId);
+            const code = codeElement.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                showNotification('Code copied to clipboard!', 'success');
+            });
         }
 
         function showAITyping() {
