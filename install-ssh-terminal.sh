@@ -173,7 +173,7 @@ server {
     add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
     
     # Content Security Policy
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com data:; img-src 'self' data: https:; connect-src 'self' https://ui.cloudmc.online ws: wss: http: https:; frame-ancestors 'self';" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com data:; img-src 'self' data: https:; connect-src 'self' https://ui.cloudmc.online ws: wss: http: https:; frame-src 'self' http: https:; frame-ancestors 'self';" always;
     
     # Disable server tokens
     server_tokens off;
