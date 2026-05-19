@@ -7390,63 +7390,157 @@ Swap:       2048000           0     2048000`
             }
         }
 
-        function getAIContext() {
+        // Load AI context file
+        let systemContext = null;
+        async function loadSystemContext() {
+            if (systemContext) return systemContext;
+            try {
+                const response = await fetch('ai-context.json');
+                systemContext = await response.json();
+                return systemContext;
+            } catch (error) {
+                console.error('Failed to load AI context:', error);
+                return null;
+            }
+        }
+
+        async function getAIContext() {
             const activeTab = tabs.find(t => t.id === activeTabId);
             const server = activeTab ? servers.find(s => s.id === activeTab.serverId) : null;
             
+            // Load system context
+            const sysContext = await loadSystemContext();
+            
+            // Get AI rules
+            const savedRules = localStorage.getItem('ai_rules');
+            const rules = savedRules ? JSON.parse(savedRules) : aiRules;
+            
+            // Get recent memories
+            const savedMemories = localStorage.getItem('ai_memories');
+            const memories = savedMemories ? JSON.parse(savedMemories) : [];
+            const recentMemories = memories.slice(-5); // Last 5 memories
+            
             return {
+                // System information
+                system: sysContext,
+                
+                // Current session
                 currentServer: server ? {
                     name: server.name,
                     host: server.host,
-                    environment: server.environment
+                    port: server.port,
+                    username: server.username
                 } : null,
-                recentCommands: commandHistory.slice(0, 5).map(h => h.command),
-                favoriteCommands: favoriteCommands
+                
+                // Command history
+                recentCommands: commandHistory.slice(-10).map(h => h.command),
+                favoriteCommands: favoriteCommands,
+                
+                // User preferences
+                aiRules: rules,
+                
+                // Memories for context
+                recentMemories: recentMemories.map(m => ({
+                    topic: m.topic,
+                    content: m.content
+                })),
+                
+                // Available resources
+                servers: servers.map(s => ({ name: s.name, host: s.host })),
+                widgets: widgets.map(w => ({ name: w.name, type: w.type })),
+                scripts: scripts.map(s => ({ name: s.name, language: s.language }))
             };
         }
 
         async function callOpenWebUI(message, context) {
-            // This is a simulated response. In production, you would call:
-            // const response = await fetch(`${OPENWEBUI_URL}/api/chat`, {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({
-            //         message: message,
-            //         context: context,
-            //         model: 'qwen2.5:7b'
-            //     })
-            // });
-            
-            // Simulate AI response with command suggestions
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    const responses = [
-                        {
-                            message: "To check disk space, use the df command with the -h flag for human-readable output.",
-                            command: "df -h"
-                        },
-                        {
-                            message: "To see running Docker containers, use docker ps. Add -a to see all containers including stopped ones.",
-                            command: "docker ps -a"
-                        },
-                        {
-                            message: "To check the status of nginx, use systemctl status. This will show if it's running and recent logs.",
-                            command: "systemctl status nginx"
-                        },
-                        {
-                            message: "To monitor system resources in real-time, htop is a great interactive tool.",
-                            command: "htop"
-                        },
-                        {
-                            message: "To view the last 50 lines of the system log and follow new entries, use tail with -f flag.",
-                            command: "tail -f /var/log/syslog"
-                        }
-                    ];
-                    
-                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                    resolve(randomResponse);
-                }, 1000 + Math.random() * 1000);
-            });
+            try {
+                // Build system prompt with full context
+                const systemPrompt = `You are an AI assistant for the Enhanced SSH Terminal web application.
+
+SYSTEM INFORMATION:
+${context.system ? JSON.stringify(context.system, null, 2) : 'Loading...'}
+
+CURRENT SESSION:
+- Server: ${context.currentServer ? `${context.currentServer.name} (${context.currentServer.username}@${context.currentServer.host}:${context.currentServer.port})` : 'None'}
+- Recent Commands: ${context.recentCommands?.join(', ') || 'None'}
+
+USER PREFERENCES:
+- Response Style: ${context.aiRules?.responseStyle || 'detailed'}
+- Custom Rules: ${context.aiRules?.behavior || 'None'}
+
+RECENT MEMORIES:
+${context.recentMemories?.map(m => `- ${m.topic}: ${m.content}`).join('\n') || 'None'}
+
+AVAILABLE RESOURCES:
+- Servers: ${context.servers?.length || 0}
+- Widgets: ${context.widgets?.length || 0}
+- Scripts: ${context.scripts?.length || 0}
+
+INSTRUCTIONS:
+1. You have full knowledge of the Enhanced SSH Terminal system
+2. You can provide code examples, troubleshooting help, and command suggestions
+3. Format code blocks with \`\`\`language syntax for automatic copy buttons
+4. Be helpful and provide working, tested solutions
+5. Reference the system context when answering questions about features
+6. Respect user's response style preference
+7. Consider recent memories for context continuity
+
+USER QUESTION: ${message}`;
+
+                // Try to call real Open WebUI API
+                const response = await fetch(`${OPENWEBUI_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'qwen2.5:7b',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: systemPrompt
+                            },
+                            {
+                                role: 'user',
+                                content: message
+                            }
+                        ],
+                        stream: false
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return {
+                    message: data.message || data.response || data.content || 'No response from AI',
+                    command: null
+                };
+
+            } catch (error) {
+                console.error('Open WebUI API error:', error);
+                
+                // Fallback to simulated response
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        const responses = [
+                            {
+                                message: `I'm currently in demo mode. To enable full AI capabilities, ensure Open WebUI is running at ${OPENWEBUI_URL} with Qwen2.5 7B model loaded.\n\nHowever, I can still help! Here's a useful command:\n\`\`\`bash\ndf -h\n\`\`\`\n\nThis checks disk space in human-readable format.`,
+                                command: null
+                            },
+                            {
+                                message: `Demo mode active. For full AI features, configure Open WebUI connection.\n\nHere's a Docker command example:\n\`\`\`bash\ndocker ps -a\n\`\`\`\n\nThis shows all containers including stopped ones.`,
+                                command: null
+                            }
+                        ];
+                        
+                        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                        resolve(randomResponse);
+                    }, 1000);
+                });
+            }
         }
 
         function runAICommand(command) {

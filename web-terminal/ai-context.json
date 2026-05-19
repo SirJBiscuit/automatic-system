@@ -1,0 +1,188 @@
+{
+  "system_name": "Enhanced SSH Terminal",
+  "version": "2.0",
+  "description": "A modern, feature-rich web-based SSH terminal with AI assistance, widgets, scripts, and advanced session management",
+  
+  "architecture": {
+    "frontend": "Single-page HTML application",
+    "backend": "ttyd (terminal server on port 7681)",
+    "ai_backend": "Open WebUI with Qwen2.5 7B model",
+    "storage": "localStorage for persistence"
+  },
+  
+  "core_features": {
+    "ssh_connections": {
+      "description": "Connect to multiple SSH servers",
+      "server_properties": ["id", "name", "host", "port", "username", "icon", "persistSession"],
+      "default_port": 22,
+      "session_persistence": "Optional per-server setting to keep sessions alive across page refreshes"
+    },
+    
+    "terminal_management": {
+      "tabs": "Multiple terminal tabs, each connected to a server",
+      "detachable": "Terminals can be popped out and dragged within workspace",
+      "operations": ["maximize", "minimize", "snap left", "snap right", "dock", "close"],
+      "drag_constraints": "Terminals constrained within .terminal-area grid column"
+    },
+    
+    "workspace_layout": {
+      "grid": "CSS Grid with 2 columns: 250px server panel + flexible terminal area",
+      "server_panel": "Left sidebar showing server list",
+      "terminal_area": "Main workspace for terminals and widgets",
+      "empty_state": "Welcome screen shown when no active sessions"
+    },
+    
+    "widgets": {
+      "types": ["Sticky Note", "System Monitor", "Clock", "Calculator", "Custom HTML"],
+      "storage_key": "ssh_widgets",
+      "properties": ["id", "name", "type", "html", "created"],
+      "creation": "Right-click workspace → Create Widget"
+    },
+    
+    "scripts": {
+      "languages": ["bash", "python", "javascript", "powershell"],
+      "storage_key": "ssh_scripts",
+      "properties": ["id", "name", "language", "content", "autoRun", "created"],
+      "creation": "Right-click workspace → New Script"
+    },
+    
+    "ai_assistant": {
+      "model": "Qwen2.5 7B",
+      "endpoint": "https://ui.cloudmc.online",
+      "features": [
+        "Command suggestions",
+        "Troubleshooting help",
+        "Code generation with syntax highlighting",
+        "Copy button for code blocks",
+        "Conversation history persistence",
+        "Session management",
+        "Memory system",
+        "Configurable rules"
+      ],
+      "code_formatting": {
+        "block_syntax": "```language\\ncode\\n```",
+        "inline_syntax": "`code`",
+        "copy_button": "Automatic for all code blocks"
+      }
+    },
+    
+    "conversation_system": {
+      "storage_key": "ai_conversations",
+      "session_properties": ["id", "timestamp", "messages", "title", "category", "success", "milestone"],
+      "categories": {
+        "coding": "Keywords: code, script, function, class, variable",
+        "troubleshooting": "Keywords: error, debug, fix, issue, problem",
+        "learning": "Keywords: how, what, explain, learn, understand",
+        "project": "Keywords: project, build, create, deploy, setup",
+        "general": "Everything else"
+      },
+      "time_filters": ["today", "week", "month", "all"],
+      "auto_save": "Saves after every message"
+    },
+    
+    "memories": {
+      "storage_key": "ai_memories",
+      "properties": ["id", "topic", "content", "timestamp"],
+      "purpose": "Track milestones, successes, failures, and important context",
+      "use_cases": ["Project milestones", "Bug fixes", "Learning achievements", "Failed attempts"]
+    },
+    
+    "ai_rules": {
+      "storage_key": "ai_rules",
+      "properties": ["behavior", "responseStyle"],
+      "response_styles": ["detailed", "concise", "technical"],
+      "purpose": "Customize AI behavior and response format"
+    }
+  },
+  
+  "ui_components": {
+    "toolbar": {
+      "location": "Top of page",
+      "sections": ["title", "AI Assistant button", "Tools dropdown", "View dropdown", "Help dropdown"],
+      "theme": "Dark mode with purple accents (#667eea)"
+    },
+    
+    "context_menus": {
+      "server_menu": "Right-click server → Pop Out, Edit, Toggle Persistence, Delete",
+      "workspace_menu": "Right-click workspace → Create Terminal, Widget, Script, Shortcut, Note, Monitor",
+      "tab_menu": "Right-click tab → Rename, Duplicate, Close, Close Others"
+    },
+    
+    "modals": {
+      "server_modal": "Add/Edit SSH servers",
+      "widget_modal": "Create custom widgets",
+      "script_modal": "Script editor with language selection",
+      "past_conversations": "Browse conversation history",
+      "ai_rules": "Configure AI behavior",
+      "ai_memories": "Manage AI memories"
+    }
+  },
+  
+  "keyboard_shortcuts": {
+    "Ctrl+K": "Open command palette",
+    "Ctrl+Shift+F": "Toggle file browser",
+    "Ctrl+N": "New terminal tab",
+    "Ctrl+W": "Close current tab",
+    "Ctrl+Tab": "Next tab",
+    "Ctrl+Shift+Tab": "Previous tab"
+  },
+  
+  "localStorage_schema": {
+    "ssh_servers": "Array of server objects",
+    "ssh_tabs": "Array of active terminal tabs",
+    "ssh_active_tab": "ID of currently active tab",
+    "ssh_widgets": "Array of created widgets",
+    "ssh_scripts": "Array of saved scripts",
+    "ssh_command_history": "Array of executed commands",
+    "ai_chat_history": "Current session messages",
+    "ai_conversations": "All saved conversation sessions",
+    "ai_memories": "User-created memory entries",
+    "ai_rules": "AI configuration and behavior rules"
+  },
+  
+  "common_tasks": {
+    "add_server": "Click + button or right-click server list → Add Server",
+    "connect_to_server": "Click server name in server list",
+    "create_widget": "Right-click workspace → Create Widget → Select type → Fill form",
+    "create_script": "Right-click workspace → New Script → Select language → Write code",
+    "view_past_conversations": "AI chat → History button → Select time filter → Click conversation",
+    "create_memory": "AI chat → Memories button → Create Memory → Enter topic and content",
+    "configure_ai": "AI chat → Rules button → Set behavior and style → Save",
+    "pop_out_terminal": "View menu → Pop Out Terminal OR right-click server → Pop Out",
+    "drag_terminal": "Click and drag terminal title bar (when popped out)"
+  },
+  
+  "code_examples": {
+    "add_server_programmatically": "servers.push({id: 'server_' + Date.now(), name: 'My Server', host: '192.168.1.100', port: 22, username: 'root', icon: '🖥️', persistSession: false}); saveData();",
+    "create_widget_programmatically": "widgets.push({id: 'widget_' + Date.now(), name: 'My Widget', type: 'note', html: '<div>Content</div>', created: new Date().toISOString()}); localStorage.setItem('ssh_widgets', JSON.stringify(widgets));",
+    "save_memory": "aiMemories.push({id: 'memory_' + Date.now(), topic: 'Topic', content: 'Content', timestamp: new Date().toISOString()}); localStorage.setItem('ai_memories', JSON.stringify(aiMemories));"
+  },
+  
+  "troubleshooting": {
+    "terminal_not_connecting": "Check if ttyd is running on port 7681, verify server credentials, check network connectivity",
+    "tabs_not_working": "Ensure tabs array is properly initialized, check localStorage for corruption",
+    "ai_not_responding": "Verify Open WebUI endpoint is accessible, check API key if required, ensure Qwen model is loaded",
+    "widgets_not_saving": "Check localStorage quota, verify JSON serialization, check browser console for errors",
+    "drag_not_working": "Ensure terminal has 'draggable' class, check if terminal-area bounds are correct"
+  },
+  
+  "best_practices": {
+    "server_management": "Use descriptive names and icons, enable persistence for important servers, organize by project or environment",
+    "conversation_management": "Mark successful conversations, create memories for important learnings, use time filters to find recent work",
+    "script_organization": "Use clear names, add comments, test before auto-run, backup important scripts",
+    "widget_usage": "Keep widgets small and focused, use custom HTML for complex needs, position strategically",
+    "ai_interaction": "Be specific in questions, provide context, use code blocks for code-related queries, save successful solutions as memories"
+  },
+  
+  "api_endpoints": {
+    "ttyd": "ws://localhost:7681 (WebSocket for terminal)",
+    "open_webui": "https://ui.cloudmc.online (AI chat API)"
+  },
+  
+  "file_structure": {
+    "index.html": "Main application file (7000+ lines)",
+    "ai-context.json": "This file - AI context and documentation",
+    "README.md": "Project documentation",
+    "REDESIGN_COMPLETE.md": "Design documentation"
+  }
+}
