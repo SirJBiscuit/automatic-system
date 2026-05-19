@@ -178,16 +178,7 @@ server {
     # Disable server tokens
     server_tokens off;
     
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=sshterminal_login:10m rate=5r/m;
-    
     location / {
-        try_files $uri $uri/ =404;
-    }
-    
-    # Rate limit login attempts
-    location ~ /login {
-        limit_req zone=sshterminal_login burst=3 nodelay;
         try_files $uri $uri/ =404;
     }
     
