@@ -33,7 +33,7 @@ declare -A SERVICE_PORTS=(
     ["panel"]="80 443"
     ["wings"]="8080 2022"
     ["admin-panel"]="5002"
-    ["ssh-terminal"]="5000"
+    ["ssh-terminal"]="8095 7681"
     ["openwebui"]="3000"
     ["ollama"]="11434"
     ["filebrowser"]="8081"
@@ -176,9 +176,9 @@ auto_detect_services() {
     fi
     
     # Check for SSH Terminal
-    if [ -d "/opt/ssh-terminal" ]; then
+    if [ -d "/var/www/ssh-terminal" ] || [ -d "/opt/ssh-terminal" ]; then
         detected_services+=("ssh-terminal")
-        log_info "Detected: SSH Terminal"
+        log_info "Detected: Enhanced SSH Terminal"
     fi
     
     # Check for FileBrowser

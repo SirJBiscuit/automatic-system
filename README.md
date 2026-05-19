@@ -52,6 +52,19 @@ A comprehensive, interactive installation script for Pterodactyl Panel and Wings
 - **🔄 Update Manager**: Check and apply updates to all components
 - **⚙️ Advanced Configuration**: Database, performance, network settings
 
+### Enhanced SSH Terminal
+- **🖥️ Modern Web Interface**: Beautiful, responsive SSH terminal accessible via browser
+- **🔐 Secure Authentication**: SHA-256 password hashing with session management
+- **📊 Custom Widgets**: Draggable widgets (notes, monitor, clock, calculator, custom HTML)
+- **🤖 AI Integration**: Built-in AI assistant powered by Qwen2.5 7B
+- **💾 Conversation History**: Save and browse past AI conversations
+- **🧠 AI Memories**: Track milestones, successes, and failures
+- **📝 Script Editor**: Create and manage scripts in 4 languages (Bash, Python, JS, PowerShell)
+- **🎨 Context Menus**: Right-click anywhere for quick actions
+- **📱 Mobile Responsive**: Full mobile support with touch-friendly interface
+- **🔒 Production Security**: CSP headers, XSS protection, rate limiting
+- **Port**: 8095 (Web UI), 7681 (ttyd)
+
 ### AI Assistant
 - **🤖 Local AI with Ollama & Gemma2**: Runs entirely on your server, no external APIs
 - **🔍 Intelligent Monitoring**: AI-powered system health analysis every 5 minutes

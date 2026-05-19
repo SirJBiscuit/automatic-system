@@ -682,7 +682,7 @@ Ports that will be used:
 • Wings API: 8080
 • Wings SFTP: 2022
 • Admin Panel: 5002
-• SSH Terminal: 5000
+• SSH Terminal: 8095, 7681
 • AI Services: 3000, 11434
 • File Management: 8081, 3001, 8082
 
