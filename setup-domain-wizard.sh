@@ -433,7 +433,7 @@ setup_all_domains() {
                     echo "SSH_DOMAIN=$domain" >> /etc/automatic-system/domains.conf
                     
                     # Offer Cloudflare Tunnel
-                    setup_cloudflare_tunnel "ssh-terminal" "5000" "ssh" "${domain#*.}"
+                    setup_cloudflare_tunnel "ssh-terminal" "8095" "ssh" "${domain#*.}"
                 fi
                 ;;
             "openwebui")

@@ -429,14 +429,15 @@ Port:" 14 70 "$ssh_port" 3>&1 1>&2 2>&3)
     fi
     
     # Ask for domain
-    domain=$(whiptail --title "SSH Domain" --inputbox "
-Enter the subdomain for SSH access:
+    domain=$(whiptail --title "Enhanced SSH Terminal Domain" --inputbox "
+Enter the subdomain for Enhanced SSH Terminal:
 
-Example: ssh.yourdomain.com
+Example: ssh.cloudmc.online
 
-This will be your SSH connection address.
+This will be your web terminal access address.
+The terminal includes AI assistant and modern features.
 
-Domain:" 14 70 "ssh.$(hostname).yourdomain.com" 3>&1 1>&2 2>&3)
+Domain:" 16 70 "ssh.cloudmc.online" 3>&1 1>&2 2>&3)
     
     if [ -z "$domain" ]; then
         whiptail --title "Error" --msgbox "
@@ -695,14 +696,14 @@ Press OK to exit..." 10 50
         exit 1
     fi
     
-    # Create tunnel configuration using HTTP for web terminal
+    # Create tunnel configuration using HTTP for Enhanced SSH Terminal
     cat > "$TUNNEL_CONFIG" <<EOF
 tunnel: $tunnel_id
 credentials-file: /root/.cloudflared/$tunnel_id.json
 
 ingress:
   - hostname: $domain
-    service: http://localhost:7681
+    service: http://localhost:8095
   - service: http_status:404
 EOF
     
@@ -942,17 +943,18 @@ show_connection_instructions() {
     
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  🎉 SSH TUNNEL SETUP COMPLETE!"
+    echo "  🎉 ENHANCED SSH TERMINAL SETUP COMPLETE!"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "CONNECTION INFO:"
     echo "  Domain: $domain"
+    echo "  Port: 8095 (Web UI) + 7681 (ttyd)"
     if [ "$ssh_port" != "22" ]; then
-        echo "  Server Port: $ssh_port (Cloudflare routes to this)"
+        echo "  SSH Port: $ssh_port (for direct SSH access)"
     fi
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  CONNECT FROM ANYWHERE (Enhanced Web Terminal):"
+    echo "  ACCESS FROM ANYWHERE:"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "  Open in your browser:"
@@ -961,16 +963,16 @@ show_connection_instructions() {
     echo ""
     echo "  ✨ Enhanced Features:"
     echo "  ────────────────────"
-    echo "  • 🎨 Syntax highlighting & colors"
-    echo "  • ⌨️  Tab auto-completion"
-    echo "  • 📋 Right-click copy/paste"
-    echo "  • 🔤 Modern monospace fonts"
-    echo "  • 📜 10,000 line scrollback"
-    echo "  • 💾 File transfer support (zmodem)"
-    echo "  • 📱 Works on any device"
-    echo "  • 🌙 Dark theme optimized"
-    echo "  • ⚡ Blinking cursor"
-    echo "  • 📊 Command history (10k lines)"
+    echo "  • 🖥️  Modern web-based SSH terminal"
+    echo "  • 🔐 Secure password authentication"
+    echo "  • � Custom draggable widgets"
+    echo "  • 🤖 AI assistant (Qwen2.5 7B)"
+    echo "  • � Conversation history & memories"
+    echo "  • � Script editor (4 languages)"
+    echo "  • 🎨 Context menus everywhere"
+    echo "  • 📱 Mobile responsive design"
+    echo "  • 🌙 Dark mode optimized"
+    echo "  • ⚡ Real-time terminal sessions"
     echo ""
     echo "  Keyboard Shortcuts:"
     echo "  ──────────────────"
@@ -1002,12 +1004,14 @@ show_connection_instructions() {
     
     # Save to file for later reference
     cat > "$TUNNEL_DIR/connection-info.txt" <<EOF
-SSH TUNNEL CONNECTION INFORMATION (Enhanced Web Terminal)
+ENHANCED SSH TERMINAL CONNECTION INFORMATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Domain: $domain
-Server SSH Port: $ssh_port (internal)
-Mode: Enhanced Web-based SSH Terminal (ttyd)
+Access URL: https://$domain
+Web UI Port: 8095
+ttyd Port: 7681
+SSH Port: $ssh_port (for direct SSH access)
+Mode: Enhanced Web Terminal with AI Assistant
 
 CONNECT FROM ANY DEVICE:
 
@@ -1058,33 +1062,28 @@ EOF
     read -p "Press ENTER to continue..."
 }
 
-# Backup old SSH terminal
-backup_old_ssh_terminal() {
+# Check for old SSH terminal and warn user
+check_old_ssh_terminal() {
     if [ -d "/opt/ssh-terminal" ]; then
-        whiptail --title "Backup Old SSH Terminal" --msgbox "
-💾 Backing up old SSH terminal...
+        whiptail --title "Old SSH Terminal Detected" --msgbox "
+⚠️  Old SSH terminal installation found!
 
-Old system will be saved to:
-  /opt/ssh-terminal.backup
+Location: /opt/ssh-terminal
 
-Press OK to continue..." 10 60
-        
-        mv /opt/ssh-terminal /opt/ssh-terminal.backup
-        
-        # Stop old service if running
-        if systemctl is-active --quiet ssh-terminal.service 2>/dev/null; then
-            systemctl stop ssh-terminal.service
-            systemctl disable ssh-terminal.service
-        fi
-        
-        whiptail --title "Backup Complete" --msgbox "
-✅ Old SSH terminal backed up!
+The new Enhanced SSH Terminal is installed at:
+  /var/www/ssh-terminal (Port 8095)
 
-Backup location: /opt/ssh-terminal.backup
+The old installation (Port 5000) is deprecated.
 
-The old web-based SSH terminal has been disabled.
+Recommendation: Remove old installation after verifying
+the new terminal works correctly.
 
-Press OK to continue..." 12 60
+To remove old installation:
+  sudo rm -rf /opt/ssh-terminal
+  sudo systemctl stop ssh-terminal
+  sudo systemctl disable ssh-terminal
+
+Press OK to continue..." 18 70
     fi
 }
 
@@ -1254,8 +1253,8 @@ setup_ssh_tunnel() {
         install_cloudflared
     fi
     
-    # Backup old SSH terminal
-    backup_old_ssh_terminal
+    # Check for old SSH terminal
+    check_old_ssh_terminal
     
     # Authenticate with Cloudflare
     if [ ! -f "/root/.cloudflared/cert.pem" ]; then
