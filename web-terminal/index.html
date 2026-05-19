@@ -1845,6 +1845,11 @@
             background: #222;
         }
 
+        textarea.form-input {
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
         .form-select {
             width: 100%;
             padding: 10px 12px;
@@ -4347,37 +4352,44 @@
         }
 
         function makeDraggable(element, handle) {
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            let offsetX = 0, offsetY = 0;
             handle.onmousedown = dragMouseDown;
 
             function dragMouseDown(e) {
                 e.preventDefault();
-                pos3 = e.clientX;
-                pos4 = e.clientY;
+                
+                // Calculate offset between mouse position and element position
+                const rect = element.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                
                 document.onmouseup = closeDragElement;
                 document.onmousemove = elementDrag;
             }
 
             function elementDrag(e) {
                 e.preventDefault();
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                element.style.top = (element.offsetTop - pos2) + "px";
-                element.style.left = (element.offsetLeft - pos1) + "px";
+                
+                // Calculate new position
+                const newX = e.clientX - offsetX;
+                const newY = e.clientY - offsetY;
+                
+                // Set position
+                element.style.left = newX + 'px';
+                element.style.top = newY + 'px';
             }
 
             function closeDragElement() {
                 document.onmouseup = null;
                 document.onmousemove = null;
+                
                 // Save position
                 const widgetId = element.id;
                 const widget = widgets.find(w => w.id === widgetId);
                 if (widget) {
                     widget.position = {
-                        x: element.offsetLeft,
-                        y: element.offsetTop
+                        x: parseInt(element.style.left),
+                        y: parseInt(element.style.top)
                     };
                     localStorage.setItem('ssh_widgets', JSON.stringify(widgets));
                 }
@@ -5537,7 +5549,18 @@
         let demoHistoryIndex = -1;
 
         function startDemoTerminal() {
+            // Hide login screen and show main app
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            
+            // Set demo mode flag
             demoTerminalActive = true;
+            sessionStorage.setItem('ssh_terminal_session', 'demo');
+            
+            // Load minimal data for demo
+            loadSettings();
+            
+            // Get terminal container
             const container = document.getElementById('terminalContainer');
             
             container.innerHTML = `
