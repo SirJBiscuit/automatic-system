@@ -3030,6 +3030,10 @@
             <div class="server-panel-header">
                 <div class="server-panel-title">Servers</div>
                 <div style="display: flex; gap: 8px;">
+                    <button class="add-server-btn" onclick="quickConnect()" data-tooltip="Quick Connect (SSH)">
+                        <i class="fas fa-bolt"></i>
+                        <span>Quick</span>
+                    </button>
                     <button class="add-server-btn" onclick="addServer()" data-tooltip="Add New Server">
                         <i class="fas fa-plus"></i>
                         <span>Add</span>
@@ -3348,6 +3352,10 @@
             <span id="contextPersistText">Keep Session Alive</span>
         </div>
         <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 4px 0;"></div>
+        <div class="context-menu-item" onclick="contextForgetServer()" id="contextForgetBtn" style="display: none;">
+            <i class="fas fa-eraser"></i>
+            <span>Forget Server</span>
+        </div>
         <div class="context-menu-item" onclick="contextDeleteServer()">
             <i class="fas fa-trash"></i>
             <span>Delete Server</span>
@@ -3719,6 +3727,47 @@
         </div>
     </div>
 
+    <!-- Quick Connect Modal -->
+    <div class="modal" id="quickConnectModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <div class="modal-title">⚡ Quick Connect</div>
+                <button class="modal-close" onclick="closeQuickConnectModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="quickConnectForm" onsubmit="performQuickConnect(event)">
+                    <div class="form-group">
+                        <label class="form-label">SSH Connection String</label>
+                        <input type="text" class="form-input" id="quickConnectString" 
+                               placeholder="user@host:port or user@host" 
+                               required
+                               style="font-family: 'Fira Code', monospace;">
+                        <small style="color: #888; display: block; margin-top: 8px;">
+                            Examples:<br>
+                            • guythatcooks@143.103.18.56<br>
+                            • guythatcooks@143.103.18.56:22<br>
+                            • root@panel.cloudmc.online
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Server Name (Optional)</label>
+                        <input type="text" class="form-input" id="quickConnectName" 
+                               placeholder="Auto-generated if empty">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeQuickConnectModal()">Cancel</button>
+                <button type="submit" form="quickConnectForm" class="btn btn-primary">
+                    <i class="fas fa-bolt"></i> Connect
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Widget Creator Modal -->
     <div class="modal" id="widgetModal">
         <div class="modal-content" style="max-width: 600px;">
@@ -4075,6 +4124,12 @@
                 persistIcon.className = 'fas fa-save';
             }
             
+            // Show/hide "Forget" button based on whether server is saved
+            const forgetBtn = document.getElementById('contextForgetBtn');
+            const savedServers = JSON.parse(localStorage.getItem('ssh_servers') || '[]');
+            const isSaved = savedServers.some(s => s.id === serverId);
+            forgetBtn.style.display = isSaved ? 'flex' : 'none';
+            
             const menu = document.getElementById('serverContextMenu');
             menu.classList.add('active');
             menu.style.left = event.pageX + 'px';
@@ -4114,11 +4169,30 @@
                 if (server) {
                     server.persistSession = !server.persistSession;
                     saveData();
-                    renderServers();
+                    renderServerList();
                     showNotification(
                         server.persistSession ? 'Session persistence enabled' : 'Session persistence disabled',
                         'success'
                     );
+                }
+            }
+            hideServerContextMenu();
+        }
+
+        function contextForgetServer() {
+            if (contextMenuServerId) {
+                const server = servers.find(s => s.id === contextMenuServerId);
+                if (server && confirm(`Forget server "${server.name}"?\n\nThis will remove it from your saved servers list. Active connections will remain open.`)) {
+                    // Remove from servers array
+                    servers = servers.filter(s => s.id !== contextMenuServerId);
+                    
+                    // Save to localStorage
+                    saveData();
+                    
+                    // Re-render server list
+                    renderServerList();
+                    
+                    showNotification(`Server "${server.name}" forgotten`, 'info');
                 }
             }
             hideServerContextMenu();
@@ -4397,6 +4471,100 @@
         function closeServerModal() {
             document.getElementById('serverModal').classList.remove('active');
             editingServerId = null;
+        }
+
+        // Quick Connect Functions
+        function quickConnect() {
+            document.getElementById('quickConnectModal').classList.add('active');
+            document.getElementById('quickConnectString').focus();
+        }
+
+        function closeQuickConnectModal() {
+            document.getElementById('quickConnectModal').classList.remove('active');
+            document.getElementById('quickConnectForm').reset();
+        }
+
+        function performQuickConnect(event) {
+            event.preventDefault();
+            
+            const connectionString = document.getElementById('quickConnectString').value.trim();
+            const customName = document.getElementById('quickConnectName').value.trim();
+            
+            // Parse SSH connection string: user@host:port or user@host
+            const match = connectionString.match(/^(.+)@([^:]+)(?::(\d+))?$/);
+            
+            if (!match) {
+                showNotification('Invalid format. Use: user@host or user@host:port', 'error');
+                return;
+            }
+            
+            const [, username, host, port] = match;
+            const sshPort = port || '22';
+            const serverName = customName || `${username}@${host}`;
+            
+            // Check if this server already exists
+            const existingServer = servers.find(s => 
+                s.host === host && s.port === '7681' // ttyd port
+            );
+            
+            if (existingServer) {
+                // Ask if user wants to save this connection
+                if (confirm(`Connect to existing server "${existingServer.name}"?`)) {
+                    closeQuickConnectModal();
+                    connectToServer(existingServer.id);
+                    return;
+                }
+            }
+            
+            // Ask if user wants to remember this connection
+            const remember = confirm(`Save this connection for future use?\n\n${username}@${host}:${sshPort}`);
+            
+            if (remember) {
+                // Create and save the server
+                const serverData = {
+                    id: 'server_' + Date.now(),
+                    name: serverName,
+                    host: host,
+                    port: '7681', // ttyd port
+                    protocol: 'http',
+                    environment: 'host',
+                    icon: '⚡',
+                    persistSession: false,
+                    sshUsername: username,
+                    sshPort: sshPort
+                };
+                
+                servers.push(serverData);
+                saveData();
+                renderServerList();
+                
+                closeQuickConnectModal();
+                connectToServer(serverData.id);
+                showNotification(`Connected and saved: ${serverName}`, 'success');
+            } else {
+                // Create temporary server (not saved)
+                const tempServer = {
+                    id: 'temp_' + Date.now(),
+                    name: `${serverName} (Temporary)`,
+                    host: host,
+                    port: '7681',
+                    protocol: 'http',
+                    environment: 'host',
+                    icon: '⚡',
+                    persistSession: false,
+                    sshUsername: username,
+                    sshPort: sshPort,
+                    temporary: true
+                };
+                
+                // Add to servers array temporarily (don't save)
+                servers.push(tempServer);
+                renderServerList();
+                
+                closeQuickConnectModal();
+                connectToServer(tempServer.id);
+                showNotification(`Connected (not saved): ${serverName}`, 'info');
+            }
         }
 
         function selectIcon(event, icon) {
