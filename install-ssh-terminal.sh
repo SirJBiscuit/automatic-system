@@ -48,9 +48,9 @@ install_dependencies() {
     output "Installing dependencies..."
     
     apt-get update -qq
-    apt-get install -y nginx ttyd curl wget git
+    apt-get install -y nginx curl wget git || true
     
-    output "Dependencies installed"
+    output "Dependencies installed (ttyd will be installed separately)"
 }
 
 # Install ttyd if not present
