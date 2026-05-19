@@ -48,7 +48,7 @@ install_dependencies() {
     output "Installing dependencies..."
     
     apt-get update -qq
-    apt-get install -y nginx ttyd curl wget git > /dev/null 2>&1
+    apt-get install -y nginx ttyd curl wget git
     
     output "Dependencies installed"
 }
@@ -59,10 +59,14 @@ install_ttyd() {
         output "Installing ttyd..."
         
         # Get latest ttyd release
+        output "Fetching latest ttyd version..."
         TTYD_VERSION=$(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
+        output "Latest version: $TTYD_VERSION"
+        
         TTYD_URL="https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.x86_64"
         
-        wget -q "$TTYD_URL" -O /usr/local/bin/ttyd
+        output "Downloading ttyd..."
+        wget "$TTYD_URL" -O /usr/local/bin/ttyd
         chmod +x /usr/local/bin/ttyd
         
         output "ttyd installed: $TTYD_VERSION"
@@ -91,8 +95,13 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF
 
+    output "Reloading systemd daemon..."
     systemctl daemon-reload
+    
+    output "Enabling ttyd service..."
     systemctl enable ttyd
+    
+    output "Starting ttyd service..."
     systemctl start ttyd
     
     output "ttyd service created and started"
@@ -118,12 +127,15 @@ deploy_files() {
     output "Deploying application files..."
     
     # Create installation directory
+    output "Creating installation directory: $INSTALL_DIR"
     mkdir -p "$INSTALL_DIR"
     
     # Clone or copy files
     if [ -d "/tmp/automatic-system/web-terminal" ]; then
+        output "Copying files from /tmp/automatic-system/web-terminal..."
         cp -r /tmp/automatic-system/web-terminal/* "$INSTALL_DIR/"
     elif [ -d "$(dirname $0)/web-terminal" ]; then
+        output "Copying files from $(dirname $0)/web-terminal..."
         cp -r "$(dirname $0)/web-terminal"/* "$INSTALL_DIR/"
     else
         error "Source files not found"
@@ -131,17 +143,19 @@ deploy_files() {
     fi
     
     # Set permissions
+    output "Setting file permissions..."
     chown -R www-data:www-data "$INSTALL_DIR"
     chmod -R 755 "$INSTALL_DIR"
     chmod 644 "$INSTALL_DIR"/*.html "$INSTALL_DIR"/*.json 2>/dev/null || true
     
-    output "Files deployed"
+    output "Files deployed successfully"
 }
 
 # Configure Nginx
 configure_nginx() {
     output "Configuring Nginx..."
     
+    output "Creating Nginx configuration file..."
     cat > "$NGINX_CONF" << 'EOF'
 server {
     listen 8095;
@@ -206,12 +220,15 @@ server {
 EOF
 
     # Enable site
+    output "Enabling Nginx site..."
     ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/ssh-terminal
     
     # Test nginx configuration
-    if nginx -t 2>/dev/null; then
+    output "Testing Nginx configuration..."
+    if nginx -t 2>&1; then
+        output "Reloading Nginx..."
         systemctl reload nginx
-        output "Nginx configured"
+        output "Nginx configured successfully"
     else
         error "Nginx configuration test failed"
         return 1
@@ -237,14 +254,18 @@ configure_firewall() {
 verify_installation() {
     output "Verifying installation..."
     
+    output "Waiting for services to start..."
     sleep 2
     
     # Check if service is responding
-    if curl -s -o /dev/null -w "%{http_code}" http://localhost:$SERVICE_PORT | grep -q "200"; then
-        output "Installation verified successfully"
+    output "Testing HTTP endpoint on port $SERVICE_PORT..."
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$SERVICE_PORT)
+    
+    if echo "$HTTP_CODE" | grep -q "200"; then
+        output "✓ Installation verified successfully (HTTP $HTTP_CODE)"
         return 0
     else
-        error "Installation verification failed"
+        error "✗ Installation verification failed (HTTP $HTTP_CODE)"
         return 1
     fi
 }
