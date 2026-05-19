@@ -2801,9 +2801,100 @@
         .popout-btn:hover {
             background: rgba(255, 255, 255, 0.3);
         }
+
+        /* Login Screen */
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d1b4e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .login-container {
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 16px;
+            text-align: center;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 24px;
+        }
     </style>
 </head>
 <body>
+    <!-- Login Screen -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-container">
+            <div class="login-header">
+                <i class="fas fa-terminal" style="font-size: 48px; color: #667eea; margin-bottom: 16px;"></i>
+                <h1 style="color: #fff; margin: 0 0 8px 0;">Enhanced SSH Terminal</h1>
+                <p style="color: #888; margin: 0;">Admin Access Required</p>
+            </div>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-lock"></i> Password
+                    </label>
+                    <input 
+                        type="password" 
+                        id="loginPassword" 
+                        class="form-input" 
+                        placeholder="Enter admin password"
+                        autocomplete="current-password"
+                        required
+                        autofocus
+                    >
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+            </form>
+            <div id="loginError" class="login-error" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i> Incorrect password
+            </div>
+            <div class="login-footer">
+                <p style="color: #666; font-size: 12px; margin: 16px 0 0 0;">
+                    <i class="fas fa-info-circle"></i> First time? Set your password on first login
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application (hidden until logged in) -->
+    <div id="mainApp" style="display: none;">
     <!-- Toolbar -->
     <div class="toolbar">
         <div class="toolbar-left">
@@ -2916,6 +3007,16 @@
                     <div class="dropdown-item" onclick="toggleOnScreenKeyboard()">
                         <i class="fas fa-keyboard"></i>
                         <span>On-Screen Keyboard</span>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-header">Account</div>
+                    <div class="dropdown-item" onclick="resetPassword()">
+                        <i class="fas fa-key"></i>
+                        <span>Reset Password</span>
+                    </div>
+                    <div class="dropdown-item" onclick="logout()" style="color: #ef4444;">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
                     </div>
                 </div>
             </div>
@@ -3698,6 +3799,123 @@
     </div>
 
     <script>
+        // ===== AUTHENTICATION SYSTEM =====
+        
+        // Simple hash function for password (SHA-256 would be better in production)
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Check if user is logged in
+        function checkAuth() {
+            const session = sessionStorage.getItem('ssh_terminal_session');
+            const savedHash = localStorage.getItem('ssh_terminal_password');
+            
+            // First time setup - no password set
+            if (!savedHash) {
+                showFirstTimeSetup();
+                return false;
+            }
+            
+            // Check if session is valid
+            if (session === 'authenticated') {
+                showMainApp();
+                return true;
+            }
+            
+            return false;
+        }
+
+        // Show first-time password setup
+        function showFirstTimeSetup() {
+            const loginForm = document.getElementById('loginForm');
+            const loginHeader = document.querySelector('.login-header p');
+            const loginFooter = document.querySelector('.login-footer p');
+            
+            loginHeader.innerHTML = '<strong style="color: #667eea;">First Time Setup</strong>';
+            loginFooter.innerHTML = '<i class="fas fa-shield-alt"></i> Create a secure password to protect your terminal';
+            document.getElementById('loginPassword').placeholder = 'Create admin password';
+        }
+
+        // Handle login form submission
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const password = document.getElementById('loginPassword').value;
+            const savedHash = localStorage.getItem('ssh_terminal_password');
+            const loginError = document.getElementById('loginError');
+            
+            // First time setup - save password
+            if (!savedHash) {
+                if (password.length < 6) {
+                    loginError.textContent = 'Password must be at least 6 characters';
+                    loginError.style.display = 'block';
+                    return;
+                }
+                
+                const hash = await hashPassword(password);
+                localStorage.setItem('ssh_terminal_password', hash);
+                sessionStorage.setItem('ssh_terminal_session', 'authenticated');
+                showNotification('Password set successfully!', 'success');
+                showMainApp();
+                return;
+            }
+            
+            // Verify password
+            const hash = await hashPassword(password);
+            if (hash === savedHash) {
+                sessionStorage.setItem('ssh_terminal_session', 'authenticated');
+                loginError.style.display = 'none';
+                showMainApp();
+            } else {
+                loginError.textContent = 'Incorrect password';
+                loginError.style.display = 'block';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginPassword').focus();
+            }
+        }
+
+        // Show main application
+        function showMainApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            
+            // Initialize application
+            loadData();
+            loadSettings();
+        }
+
+        // Logout function
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('ssh_terminal_session');
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('mainApp').style.display = 'none';
+                document.getElementById('loginPassword').value = '';
+                showNotification('Logged out successfully', 'info');
+            }
+        }
+
+        // Reset password (for admin recovery)
+        function resetPassword() {
+            if (confirm('Reset password? This will clear your saved password and require you to set a new one.')) {
+                localStorage.removeItem('ssh_terminal_password');
+                sessionStorage.removeItem('ssh_terminal_session');
+                location.reload();
+            }
+        }
+
+        // Check auth on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+        });
+
+        // ===== END AUTHENTICATION SYSTEM =====
+
         // Global state
         let servers = [];
         let widgets = [];
@@ -7548,9 +7766,9 @@ USER QUESTION: ${message}`;
             addToHistory(command);
         }
 
-        // Initialize
-        loadData();
-        loadSettings();
+        // Initialize (called from showMainApp() after login)
+        // loadData();
+        // loadSettings();
         
         // Auto-show on-screen keyboard on mobile when terminal is focused
         if (isMobileDevice()) {
@@ -7575,5 +7793,6 @@ USER QUESTION: ${message}`;
             }
         });
     </script>
+    </div> <!-- End mainApp -->
 </body>
 </html>
