@@ -4352,49 +4352,40 @@
         }
 
         function makeDraggable(element, handle) {
-            let isDragging = false;
-            let currentX = 0;
-            let currentY = 0;
-            let initialX = 0;
-            let initialY = 0;
+            let offsetX = 0;
+            let offsetY = 0;
             
             handle.addEventListener('mousedown', dragStart);
 
             function dragStart(e) {
                 e.preventDefault();
-                isDragging = true;
                 
-                // Get current element position
+                // Calculate offset: where on the element did we click?
                 const rect = element.getBoundingClientRect();
-                const parentRect = element.parentElement.getBoundingClientRect();
-                
-                // Store initial mouse position
-                initialX = e.clientX;
-                initialY = e.clientY;
-                
-                // Store current element position relative to parent
-                currentX = rect.left - parentRect.left;
-                currentY = rect.top - parentRect.top;
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
                 
                 document.addEventListener('mousemove', drag);
                 document.addEventListener('mouseup', dragEnd);
             }
 
             function drag(e) {
-                if (!isDragging) return;
                 e.preventDefault();
                 
-                // Calculate movement delta
-                const dx = e.clientX - initialX;
-                const dy = e.clientY - initialY;
+                // Get parent position
+                const parent = element.parentElement;
+                const parentRect = parent.getBoundingClientRect();
                 
-                // Set new position
-                element.style.left = (currentX + dx) + 'px';
-                element.style.top = (currentY + dy) + 'px';
+                // Calculate new position: mouse position - offset - parent position
+                let newX = e.clientX - offsetX - parentRect.left;
+                let newY = e.clientY - offsetY - parentRect.top;
+                
+                // Set position
+                element.style.left = newX + 'px';
+                element.style.top = newY + 'px';
             }
 
             function dragEnd() {
-                isDragging = false;
                 document.removeEventListener('mousemove', drag);
                 document.removeEventListener('mouseup', dragEnd);
                 
