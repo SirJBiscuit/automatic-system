@@ -6756,17 +6756,14 @@ Swap:       2048000           0     2048000`
         function onDrag(e) {
             if (!draggedWidget) return;
             
-            const x = e.clientX - dragOffset.x;
-            const y = e.clientY - dragOffset.y;
-            
             // Get terminal-area bounds for terminal container (stays in grid column 2)
             if (draggedWidget.id === 'terminalContainer') {
                 const terminalArea = document.querySelector('.terminal-area');
                 const terminalAreaRect = terminalArea.getBoundingClientRect();
                 
-                // Calculate position relative to terminal-area
-                const relativeX = e.clientX - terminalAreaRect.left - dragOffset.x;
-                const relativeY = e.clientY - terminalAreaRect.top - dragOffset.y;
+                // Calculate position: mouse - offset - parent position
+                const relativeX = e.clientX - dragOffset.x - terminalAreaRect.left;
+                const relativeY = e.clientY - dragOffset.y - terminalAreaRect.top;
                 
                 const maxX = terminalAreaRect.width - draggedWidget.offsetWidth;
                 const maxY = terminalAreaRect.height - draggedWidget.offsetHeight;
@@ -6774,7 +6771,11 @@ Swap:       2048000           0     2048000`
                 draggedWidget.style.left = Math.max(0, Math.min(relativeX, maxX)) + 'px';
                 draggedWidget.style.top = Math.max(0, Math.min(relativeY, maxY)) + 'px';
             } else {
-                // Other widgets use window bounds
+                // Other widgets (AI chat, file transfer) are position:fixed relative to viewport
+                // Calculate position: mouse - offset (no parent offset needed for fixed positioning)
+                const x = e.clientX - dragOffset.x;
+                const y = e.clientY - dragOffset.y;
+                
                 draggedWidget.style.left = Math.max(0, Math.min(x, window.innerWidth - draggedWidget.offsetWidth)) + 'px';
                 draggedWidget.style.top = Math.max(0, Math.min(y, window.innerHeight - draggedWidget.offsetHeight)) + 'px';
             }
