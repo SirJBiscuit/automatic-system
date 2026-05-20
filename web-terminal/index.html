@@ -4358,10 +4358,14 @@
             function dragMouseDown(e) {
                 e.preventDefault();
                 
-                // Calculate offset between mouse position and element position
-                const rect = element.getBoundingClientRect();
-                offsetX = e.clientX - rect.left;
-                offsetY = e.clientY - rect.top;
+                // Get parent container position
+                const parent = element.parentElement;
+                const parentRect = parent.getBoundingClientRect();
+                const elementRect = element.getBoundingClientRect();
+                
+                // Calculate offset from mouse to element's top-left corner
+                offsetX = e.clientX - elementRect.left;
+                offsetY = e.clientY - elementRect.top;
                 
                 document.onmouseup = closeDragElement;
                 document.onmousemove = elementDrag;
@@ -4370,9 +4374,13 @@
             function elementDrag(e) {
                 e.preventDefault();
                 
-                // Calculate new position
-                const newX = e.clientX - offsetX;
-                const newY = e.clientY - offsetY;
+                // Get parent container position
+                const parent = element.parentElement;
+                const parentRect = parent.getBoundingClientRect();
+                
+                // Calculate new position relative to parent
+                const newX = e.clientX - parentRect.left - offsetX;
+                const newY = e.clientY - parentRect.top - offsetY;
                 
                 // Set position
                 element.style.left = newX + 'px';

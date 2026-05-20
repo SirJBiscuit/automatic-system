@@ -165,6 +165,41 @@ document.addEventListener('contextmenu', (e) => {
    - Authentication: Admin password verification
    - Rate limiting: Max 1 scan per minute
 
+### 14. Right-Click Context Menu Issues
+**Issue**: Context menu has multiple problems
+**Problems**:
+1. Sometimes goes back one page (browser back button) when right-clicking
+2. Workspace context menu doesn't work (terminal-area)
+3. Server items work but global handler returns early without preventDefault
+4. Need to override default browser context menu everywhere
+
+**Root Cause**: 
+- `preventDefault()` is called AFTER checking for server-item/tab (line 5088)
+- Should be called BEFORE or during the checks
+- Workspace menu check might not be matching correctly
+
+**Fix**:
+```javascript
+document.addEventListener('contextmenu', (e) => {
+    // ALWAYS prevent default first (except inputs/textareas)
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+    }
+    
+    e.preventDefault(); // Move this UP
+    e.stopPropagation();
+    
+    // Then check what to show...
+});
+```
+
+**Areas to verify**:
+- Server items (should show server menu)
+- Tabs (should show tab menu)
+- Workspace/terminal-area (should show workspace menu)
+- Everywhere else (should show global menu)
+- No browser back navigation on right-click
+
 ## 💡 NOTES
 
 - Icons (fa-external-alt, fa-trash) are already in the HTML
@@ -174,3 +209,4 @@ document.addEventListener('contextmenu', (e) => {
 - Host discovery requires backend implementation (not just frontend)
 - Context menus should be consistent across all areas
 - Overlay system should be toggleable (show/hide with keyboard shortcut)
+- Right-click should NEVER trigger browser back navigation
