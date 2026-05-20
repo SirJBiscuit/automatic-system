@@ -5080,6 +5080,10 @@
                 return;
             }
 
+            // ALWAYS prevent default browser context menu (prevents back navigation)
+            e.preventDefault();
+            e.stopPropagation();
+
             // Check if clicking on server item or its children - let server context menu handle it
             if (e.target.closest('.server-item')) {
                 return; // Don't show global menu, server menu will handle it
@@ -5089,9 +5093,6 @@
             if (e.target.closest('.tab')) {
                 return; // Don't show global menu, tab menu will handle it
             }
-
-            e.preventDefault();
-            e.stopPropagation();
             
             // Check if clicking on terminal-area or empty-state (workspace) - show workspace menu
             if (e.target.closest('.terminal-area') || e.target.closest('.empty-state')) {
