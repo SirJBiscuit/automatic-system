@@ -4352,41 +4352,51 @@
         }
 
         function makeDraggable(element, handle) {
-            let startX = 0, startY = 0;
-            let initialLeft = 0, initialTop = 0;
+            let isDragging = false;
+            let currentX = 0;
+            let currentY = 0;
+            let initialX = 0;
+            let initialY = 0;
             
-            handle.onmousedown = dragMouseDown;
+            handle.addEventListener('mousedown', dragStart);
 
-            function dragMouseDown(e) {
+            function dragStart(e) {
                 e.preventDefault();
+                isDragging = true;
+                
+                // Get current element position
+                const rect = element.getBoundingClientRect();
+                const parentRect = element.parentElement.getBoundingClientRect();
                 
                 // Store initial mouse position
-                startX = e.clientX;
-                startY = e.clientY;
+                initialX = e.clientX;
+                initialY = e.clientY;
                 
-                // Store initial element position
-                initialLeft = element.offsetLeft;
-                initialTop = element.offsetTop;
+                // Store current element position relative to parent
+                currentX = rect.left - parentRect.left;
+                currentY = rect.top - parentRect.top;
                 
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', dragEnd);
             }
 
-            function elementDrag(e) {
+            function drag(e) {
+                if (!isDragging) return;
                 e.preventDefault();
                 
-                // Calculate how far the mouse has moved
-                const deltaX = e.clientX - startX;
-                const deltaY = e.clientY - startY;
+                // Calculate movement delta
+                const dx = e.clientX - initialX;
+                const dy = e.clientY - initialY;
                 
-                // Set new position based on initial position + delta
-                element.style.left = (initialLeft + deltaX) + 'px';
-                element.style.top = (initialTop + deltaY) + 'px';
+                // Set new position
+                element.style.left = (currentX + dx) + 'px';
+                element.style.top = (currentY + dy) + 'px';
             }
 
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
+            function dragEnd() {
+                isDragging = false;
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('mouseup', dragEnd);
                 
                 // Save position
                 const widgetId = element.id;
@@ -5080,19 +5090,23 @@
                 return;
             }
 
-            // ALWAYS prevent default browser context menu (prevents back navigation)
+            // Check if clicking on server item or its children - let inline handler handle it
+            if (e.target.closest('.server-item')) {
+                // Only prevent default, don't stop propagation (let inline handler fire)
+                e.preventDefault();
+                return;
+            }
+
+            // Check if clicking on tab - let inline handler handle it
+            if (e.target.closest('.tab')) {
+                // Only prevent default, don't stop propagation (let inline handler fire)
+                e.preventDefault();
+                return;
+            }
+
+            // For everything else, prevent default and stop propagation
             e.preventDefault();
             e.stopPropagation();
-
-            // Check if clicking on server item or its children - let server context menu handle it
-            if (e.target.closest('.server-item')) {
-                return; // Don't show global menu, server menu will handle it
-            }
-
-            // Check if clicking on tab - let tab context menu handle it
-            if (e.target.closest('.tab')) {
-                return; // Don't show global menu, tab menu will handle it
-            }
             
             // Check if clicking on terminal-area or empty-state (workspace) - show workspace menu
             if (e.target.closest('.terminal-area') || e.target.closest('.empty-state')) {
