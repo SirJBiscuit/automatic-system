@@ -4352,18 +4352,23 @@
         }
 
         function makeDraggable(element, handle) {
-            let offsetX = 0;
-            let offsetY = 0;
+            let startX = 0;
+            let startY = 0;
+            let startLeft = 0;
+            let startTop = 0;
             
             handle.addEventListener('mousedown', dragStart);
 
             function dragStart(e) {
                 e.preventDefault();
                 
-                // Calculate offset: where on the element did we click?
-                const rect = element.getBoundingClientRect();
-                offsetX = e.clientX - rect.left;
-                offsetY = e.clientY - rect.top;
+                // Store starting mouse position
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                // Store starting element position (parse from style or use offsetLeft/Top)
+                startLeft = parseInt(element.style.left) || element.offsetLeft;
+                startTop = parseInt(element.style.top) || element.offsetTop;
                 
                 document.addEventListener('mousemove', drag);
                 document.addEventListener('mouseup', dragEnd);
@@ -4372,17 +4377,13 @@
             function drag(e) {
                 e.preventDefault();
                 
-                // Get parent position
-                const parent = element.parentElement;
-                const parentRect = parent.getBoundingClientRect();
+                // Calculate how far mouse has moved from start
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
                 
-                // Calculate new position: mouse position - offset - parent position
-                let newX = e.clientX - offsetX - parentRect.left;
-                let newY = e.clientY - offsetY - parentRect.top;
-                
-                // Set position
-                element.style.left = newX + 'px';
-                element.style.top = newY + 'px';
+                // Set new position = start position + delta
+                element.style.left = (startLeft + deltaX) + 'px';
+                element.style.top = (startTop + deltaY) + 'px';
             }
 
             function dragEnd() {
