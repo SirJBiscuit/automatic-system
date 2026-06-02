@@ -888,6 +888,25 @@
             opacity: 1;
         }
 
+        .syntax-highlight {
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-family: inherit;
+            font-size: inherit;
+            pointer-events: none;
+            white-space: pre;
+            z-index: 0;
+        }
+
+        .syntax-command { color: #5af78e; font-weight: bold; }
+        .syntax-flag { color: #57c7ff; }
+        .syntax-path { color: #f3f99d; }
+        .syntax-string { color: #ff6ac1; }
+        .syntax-number { color: #ff9f43; }
+        .syntax-operator { color: #9aedfe; }
+        .syntax-pipe { color: #ff6ac1; font-weight: bold; }
+
         .demo-terminal-cursor {
             display: inline-block;
             width: 8px;
@@ -5600,8 +5619,9 @@
                     <div class="demo-terminal-input-line">
                         <span class="demo-terminal-prompt">demo@terminal:~$</span>
                         <div style="position: relative; flex: 1; display: flex; align-items: center;">
+                            <span class="syntax-highlight" id="syntaxHighlight"></span>
                             <span class="ghost-text" id="ghostText"></span>
-                            <input type="text" class="demo-terminal-input" id="demoInput" autocomplete="off" spellcheck="false">
+                            <input type="text" class="demo-terminal-input" id="demoInput" autocomplete="off" spellcheck="false" style="background: transparent; color: transparent; caret-color: #cccccc;">
                         </div>
                     </div>
                 </div>
@@ -5611,7 +5631,10 @@
             input.focus();
             
             input.addEventListener('keydown', handleDemoCommand);
-            input.addEventListener('input', handleGhostCommand);
+            input.addEventListener('input', (e) => {
+                handleGhostCommand(e);
+                updateSyntaxHighlight(e.target.value);
+            });
             
             // Initialize ghost command system
             initGhostCommands();
@@ -5735,6 +5758,96 @@
                 ghostEl.textContent = '';
             }
             currentGhostSuggestion = '';
+        }
+
+        // Syntax Highlighting System
+        function updateSyntaxHighlight(text) {
+            const syntaxEl = document.getElementById('syntaxHighlight');
+            if (!syntaxEl) return;
+            
+            if (!text) {
+                syntaxEl.innerHTML = '';
+                return;
+            }
+            
+            // Parse and highlight the command
+            const highlighted = highlightCommand(text);
+            syntaxEl.innerHTML = highlighted;
+        }
+
+        function highlightCommand(cmd) {
+            // Split by spaces but preserve quoted strings
+            const tokens = parseCommandTokens(cmd);
+            let result = '';
+            
+            tokens.forEach((token, index) => {
+                if (index === 0) {
+                    // First token is the command
+                    result += `<span class="syntax-command">${escapeHtml(token)}</span>`;
+                } else if (token.startsWith('-')) {
+                    // Flags (e.g., -la, --help)
+                    result += ` <span class="syntax-flag">${escapeHtml(token)}</span>`;
+                } else if (token.startsWith('/') || token.startsWith('~') || token.startsWith('./') || token.startsWith('../')) {
+                    // Paths
+                    result += ` <span class="syntax-path">${escapeHtml(token)}</span>`;
+                } else if (token.startsWith('"') || token.startsWith("'")) {
+                    // Strings
+                    result += ` <span class="syntax-string">${escapeHtml(token)}</span>`;
+                } else if (/^\d+$/.test(token)) {
+                    // Numbers
+                    result += ` <span class="syntax-number">${escapeHtml(token)}</span>`;
+                } else if (['|', '>', '<', '>>', '&&', '||', ';'].includes(token)) {
+                    // Operators and pipes
+                    result += ` <span class="syntax-pipe">${escapeHtml(token)}</span>`;
+                } else {
+                    // Regular arguments
+                    result += ` <span style="color: #cccccc;">${escapeHtml(token)}</span>`;
+                }
+            });
+            
+            return result;
+        }
+
+        function parseCommandTokens(cmd) {
+            const tokens = [];
+            let current = '';
+            let inQuote = false;
+            let quoteChar = '';
+            
+            for (let i = 0; i < cmd.length; i++) {
+                const char = cmd[i];
+                
+                if ((char === '"' || char === "'") && !inQuote) {
+                    inQuote = true;
+                    quoteChar = char;
+                    current += char;
+                } else if (char === quoteChar && inQuote) {
+                    inQuote = false;
+                    current += char;
+                    tokens.push(current);
+                    current = '';
+                    quoteChar = '';
+                } else if (char === ' ' && !inQuote) {
+                    if (current) {
+                        tokens.push(current);
+                        current = '';
+                    }
+                } else {
+                    current += char;
+                }
+            }
+            
+            if (current) {
+                tokens.push(current);
+            }
+            
+            return tokens;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function executeDemoCommand(command) {
