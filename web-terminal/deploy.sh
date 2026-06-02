@@ -109,14 +109,20 @@ server {
     index index.html;
     
     # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Frame-Options "ALLOW-FROM https://ssh.cloudmc.online" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
     
-    # Content Security Policy
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com data:; img-src 'self' data: https:; connect-src 'self' https://ui.cloudmc.online ws://localhost:7681 wss://localhost:7681; frame-ancestors 'self';" always;
+    # Content Security Policy - Allow embedding from ssh.cloudmc.online and API calls to ui.cloudmc.online
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com data:; img-src 'self' data: https:; connect-src 'self' https://ui.cloudmc.online https://ssh.cloudmc.online ws://localhost:7681 wss://localhost:7681 ws://term.cloudmc.online:7681 wss://term.cloudmc.online:7681; frame-ancestors 'self' https://ssh.cloudmc.online;" always;
+    
+    # CORS headers for API access
+    add_header Access-Control-Allow-Origin "https://ssh.cloudmc.online" always;
+    add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+    add_header Access-Control-Allow-Headers "Content-Type, Authorization" always;
+    add_header Access-Control-Allow-Credentials "true" always;
     
     # Disable server tokens
     server_tokens off;

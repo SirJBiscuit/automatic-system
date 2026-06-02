@@ -8055,11 +8055,15 @@ INSTRUCTIONS:
 
 USER QUESTION: ${message}`;
 
-                // Try to call real Open WebUI API
-                const response = await fetch(`${OPENWEBUI_URL}/api/chat`, {
+                // Get API key from localStorage (user should set this in settings)
+                const apiKey = localStorage.getItem('openwebui_api_key') || '';
+                
+                // Try to call real Open WebUI API (correct endpoint)
+                const response = await fetch(`${OPENWEBUI_URL}/api/chat/completions`, {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
                     },
                     body: JSON.stringify({
                         model: 'qwen2.5:7b',
@@ -8078,12 +8082,15 @@ USER QUESTION: ${message}`;
                 });
 
                 if (!response.ok) {
-                    throw new Error(`API error: ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`API error ${response.status}: ${errorText}`);
                 }
 
                 const data = await response.json();
+                const aiResponse = data.choices?.[0]?.message?.content || data.message || data.response || 'No response from AI';
+                
                 return {
-                    message: data.message || data.response || data.content || 'No response from AI',
+                    message: aiResponse,
                     command: null
                 };
 
