@@ -3373,6 +3373,14 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
+        <div style="padding: 12px; background: #1a1a1a; border-bottom: 1px solid #333;">
+            <input type="text" 
+                   id="snippetSearch" 
+                   class="form-input" 
+                   placeholder="🔍 Search snippets..." 
+                   oninput="filterSnippets(this.value)"
+                   style="width: 100%; margin: 0;">
+        </div>
         <div class="snippets-content" id="snippetsContent"></div>
     </div>
 
@@ -6469,17 +6477,25 @@ Swap:       2048000           0     2048000`
             }
         }
 
-        function renderSnippets() {
+        let filteredSnippets = snippets;
+
+        function renderSnippets(snippetsToRender = filteredSnippets) {
             const content = document.getElementById('snippetsContent');
-            const categories = [...new Set(snippets.map(s => s.category))];
+            
+            if (snippetsToRender.length === 0) {
+                content.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;"><i class="fas fa-search"></i><br>No snippets found</div>';
+                return;
+            }
+            
+            const categories = [...new Set(snippetsToRender.map(s => s.category))];
             
             content.innerHTML = categories.map(category => `
                 <div style="margin-bottom: 24px;">
                     <h4 style="color: #667eea; margin-bottom: 12px; font-size: 14px;">
                         <i class="fas fa-folder"></i> ${category}
                     </h4>
-                    ${snippets.filter(s => s.category === category).map(snippet => `
-                        <div class="snippet-item" onclick="useSnippet('${snippet.command.replace(/'/g, "\\'")}')"
+                    ${snippetsToRender.filter(s => s.category === category).map(snippet => `
+                        <div class="snippet-item" onclick="useSnippet('${snippet.command.replace(/'/g, "\\'")}')" 
                              title="Click to use this snippet">
                             <div class="snippet-name">${snippet.name}</div>
                             <div class="snippet-command">${snippet.command}</div>
@@ -6487,6 +6503,23 @@ Swap:       2048000           0     2048000`
                     `).join('')}
                 </div>
             `).join('');
+        }
+
+        function filterSnippets(query) {
+            if (!query || query.trim() === '') {
+                filteredSnippets = snippets;
+                renderSnippets();
+                return;
+            }
+            
+            const lowerQuery = query.toLowerCase();
+            filteredSnippets = snippets.filter(s => 
+                s.name.toLowerCase().includes(lowerQuery) ||
+                s.command.toLowerCase().includes(lowerQuery) ||
+                s.category.toLowerCase().includes(lowerQuery)
+            );
+            
+            renderSnippets(filteredSnippets);
         }
 
         function useSnippet(command) {
