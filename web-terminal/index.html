@@ -5662,11 +5662,13 @@
                 
                 input.value = '';
                 clearGhostText();
+                updateSyntaxHighlight('');
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 if (demoHistoryIndex > 0) {
                     demoHistoryIndex--;
                     e.target.value = demoCommandHistory[demoHistoryIndex];
+                    updateSyntaxHighlight(e.target.value);
                 }
                 clearGhostText();
             } else if (e.key === 'ArrowDown') {
@@ -5674,9 +5676,11 @@
                 if (demoHistoryIndex < demoCommandHistory.length - 1) {
                     demoHistoryIndex++;
                     e.target.value = demoCommandHistory[demoHistoryIndex];
+                    updateSyntaxHighlight(e.target.value);
                 } else {
                     demoHistoryIndex = demoCommandHistory.length;
                     e.target.value = '';
+                    updateSyntaxHighlight('');
                 }
                 clearGhostText();
             } else if (e.key === 'Escape') {
