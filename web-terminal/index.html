@@ -871,6 +871,21 @@
             font-family: inherit;
             font-size: inherit;
             outline: none;
+            position: relative;
+            z-index: 2;
+        }
+
+        .ghost-text {
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: #444;
+            font-family: inherit;
+            font-size: inherit;
+            pointer-events: none;
+            white-space: pre;
+            z-index: 1;
+            opacity: 0.6;
         }
 
         .demo-terminal-cursor {
@@ -5584,7 +5599,10 @@
                     </div>
                     <div class="demo-terminal-input-line">
                         <span class="demo-terminal-prompt">demo@terminal:~$</span>
-                        <input type="text" class="demo-terminal-input" id="demoInput" autocomplete="off" spellcheck="false">
+                        <div style="position: relative; flex: 1; display: flex; align-items: center;">
+                            <span class="ghost-text" id="ghostText"></span>
+                            <input type="text" class="demo-terminal-input" id="demoInput" autocomplete="off" spellcheck="false">
+                        </div>
                     </div>
                 </div>
             `;
@@ -5593,9 +5611,22 @@
             input.focus();
             
             input.addEventListener('keydown', handleDemoCommand);
+            input.addEventListener('input', handleGhostCommand);
+            
+            // Initialize ghost command system
+            initGhostCommands();
         }
 
         function handleDemoCommand(e) {
+            // Handle Tab or Right Arrow to accept ghost text
+            if ((e.key === 'Tab' || e.key === 'ArrowRight') && currentGhostSuggestion) {
+                e.preventDefault();
+                const input = e.target;
+                input.value = currentGhostSuggestion;
+                clearGhostText();
+                return;
+            }
+            
             if (e.key === 'Enter') {
                 const input = e.target;
                 const command = input.value.trim();
@@ -5607,12 +5638,14 @@
                 }
                 
                 input.value = '';
+                clearGhostText();
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 if (demoHistoryIndex > 0) {
                     demoHistoryIndex--;
                     e.target.value = demoCommandHistory[demoHistoryIndex];
                 }
+                clearGhostText();
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
                 if (demoHistoryIndex < demoCommandHistory.length - 1) {
@@ -5622,7 +5655,86 @@
                     demoHistoryIndex = demoCommandHistory.length;
                     e.target.value = '';
                 }
+                clearGhostText();
+            } else if (e.key === 'Escape') {
+                clearGhostText();
             }
+        }
+
+        // Ghost Command Autocomplete System
+        let currentGhostSuggestion = '';
+        let ghostCommandSources = [];
+
+        function initGhostCommands() {
+            // Build autocomplete sources from history, snippets, and common commands
+            ghostCommandSources = [
+                ...demoCommandHistory,
+                ...snippets.map(s => s.command),
+                'ls -la', 'ls -lh', 'cd ..', 'cd ~', 'pwd', 'whoami', 'date', 'clear',
+                'neofetch', 'df -h', 'free -h', 'uptime', 'ps aux', 'top', 'htop',
+                'cat ', 'nano ', 'vim ', 'grep ', 'find ', 'chmod ', 'chown ',
+                'ssh ', 'scp ', 'rsync ', 'wget ', 'curl ', 'git status', 'git pull',
+                'docker ps', 'docker logs ', 'systemctl status ', 'journalctl -f'
+            ];
+        }
+
+        function handleGhostCommand(e) {
+            const input = e.target;
+            const typed = input.value;
+            
+            if (!typed || typed.length < 2) {
+                clearGhostText();
+                return;
+            }
+            
+            // Find best match
+            const match = findBestMatch(typed);
+            
+            if (match && match !== typed) {
+                showGhostText(match, typed.length);
+                currentGhostSuggestion = match;
+            } else {
+                clearGhostText();
+            }
+        }
+
+        function findBestMatch(typed) {
+            const lowerTyped = typed.toLowerCase();
+            
+            // First try exact prefix match
+            for (const cmd of ghostCommandSources) {
+                if (cmd.toLowerCase().startsWith(lowerTyped)) {
+                    return cmd;
+                }
+            }
+            
+            // Then try fuzzy match (contains)
+            for (const cmd of ghostCommandSources) {
+                if (cmd.toLowerCase().includes(lowerTyped)) {
+                    return cmd;
+                }
+            }
+            
+            return null;
+        }
+
+        function showGhostText(fullCommand, typedLength) {
+            const ghostEl = document.getElementById('ghostText');
+            if (!ghostEl) return;
+            
+            const input = document.getElementById('demoInput');
+            const typed = input.value;
+            const remaining = fullCommand.substring(typedLength);
+            
+            ghostEl.textContent = typed + remaining;
+        }
+
+        function clearGhostText() {
+            const ghostEl = document.getElementById('ghostText');
+            if (ghostEl) {
+                ghostEl.textContent = '';
+            }
+            currentGhostSuggestion = '';
         }
 
         function executeDemoCommand(command) {
