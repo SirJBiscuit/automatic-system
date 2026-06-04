@@ -3756,6 +3756,22 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-user"></i> Username (for authentication)
+                        </label>
+                        <input type="text" class="form-input" id="serverConfigUsername" placeholder="root" value="root">
+                        <small style="color: #888; display: block; margin-top: 4px;">Username required to connect to this server</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-key"></i> Password (for authentication)
+                        </label>
+                        <input type="password" class="form-input" id="serverConfigPassword" placeholder="Enter server password">
+                        <small style="color: #888; display: block; margin-top: 4px;">Password required to connect to this server</small>
+                    </div>
+
+                    <div class="form-group">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                             <input type="checkbox" id="serverPersist" style="width: auto;">
                             <span>Keep session alive on page refresh</span>
@@ -4515,6 +4531,8 @@
             document.getElementById('serverProtocol').value = server.protocol || 'https';
             document.getElementById('serverEnvironment').value = server.environment || 'production';
             document.getElementById('serverIcon').value = server.icon;
+            document.getElementById('serverConfigUsername').value = server.username || 'root';
+            document.getElementById('serverConfigPassword').value = server.password || '';
             
             // Update icon selection
             document.querySelectorAll('.icon-option').forEach(el => {
@@ -4644,6 +4662,8 @@
                 protocol: document.getElementById('serverProtocol').value,
                 environment: document.getElementById('serverEnvironment').value,
                 icon: document.getElementById('serverIcon').value,
+                username: document.getElementById('serverConfigUsername').value,
+                password: document.getElementById('serverConfigPassword').value, // Stored in plain text (use encryption in production)
                 persistSession: document.getElementById('serverPersist').checked,
                 online: true,
                 uptime: '0d 0h 0m'
@@ -4792,9 +4812,27 @@
                 return;
             }
 
-            // Store credentials for this session (you can add real auth here)
+            // Validate against stored credentials
             const server = servers.find(s => s.id === serverId);
             if (server) {
+                // Check if credentials match
+                const usernameMatch = username === (server.username || 'root');
+                const passwordMatch = password === server.password;
+                
+                if (!passwordMatch) {
+                    showNotification('Incorrect password', 'error');
+                    document.getElementById('serverPassword').value = '';
+                    document.getElementById('serverPassword').focus();
+                    return;
+                }
+                
+                if (!usernameMatch) {
+                    showNotification('Incorrect username', 'error');
+                    document.getElementById('serverUsername').focus();
+                    return;
+                }
+                
+                // Store credentials for this session
                 server.credentials = { username, password };
                 
                 // Close modal
