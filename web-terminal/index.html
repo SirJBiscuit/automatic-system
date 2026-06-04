@@ -4984,6 +4984,143 @@
             }
         }
 
+        // Quick Connect from Network Scan
+        function showQuickConnectPrompt(host, port) {
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.id = 'quickConnectModal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 450px;">
+                    <div class="modal-header">
+                        <div class="modal-title">
+                            <i class="fas fa-bolt"></i> Quick Connect
+                        </div>
+                        <button class="modal-close" onclick="this.closest('.modal').remove(); return false;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="background: #2a2a2a; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i class="fas fa-server" style="font-size: 24px; color: #667eea;"></i>
+                                <div>
+                                    <div style="font-weight: 600; margin-bottom: 4px;">${host.hostname}</div>
+                                    <div style="color: #888; font-size: 13px;">${host.ip}:${port}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 8px; color: #ddd;">
+                                <i class="fas fa-user"></i> Username
+                            </label>
+                            <input type="text" 
+                                   id="quickConnectUsername" 
+                                   class="form-input" 
+                                   value="root"
+                                   placeholder="Username">
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 8px; color: #ddd;">
+                                <i class="fas fa-key"></i> Password
+                            </label>
+                            <input type="password" 
+                                   id="quickConnectPassword" 
+                                   class="form-input" 
+                                   placeholder="Enter password"
+                                   onkeypress="if(event.key==='Enter') document.getElementById('quickConnectBtn').click()"
+                                   autofocus>
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="quickConnectSave" style="width: auto;">
+                                <span style="color: #ddd;">Remember this server</span>
+                            </label>
+                            <small style="color: #666; margin-left: 24px;">Save to server list for future connections</small>
+                        </div>
+                        
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
+                                Cancel
+                            </button>
+                            <button id="quickConnectBtn" class="btn btn-primary" onclick="performQuickConnect('${host.ip}', ${port}, '${host.hostname}', '${host.type}')">
+                                <i class="fas fa-bolt"></i> Connect Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            document.getElementById('quickConnectPassword').focus();
+        }
+
+        async function performQuickConnect(ip, port, hostname, type) {
+            const username = document.getElementById('quickConnectUsername').value;
+            const password = document.getElementById('quickConnectPassword').value;
+            const saveServer = document.getElementById('quickConnectSave').checked;
+            
+            if (!password) {
+                showNotification('Password required', 'error');
+                return;
+            }
+            
+            // Create temporary server object
+            const tempServer = {
+                id: 'temp_' + Date.now(),
+                name: hostname || ip,
+                host: ip,
+                port: port,
+                protocol: 'https',
+                environment: 'host',
+                icon: type === 'Server' ? '🖥️' : (type === 'Router' ? '🌐' : (type === 'NAS' ? '💾' : '🟢')),
+                username: username,
+                password: await encryptPassword(password),
+                persistSession: false,
+                online: true,
+                uptime: '0d 0h 0m'
+            };
+            
+            // Save to server list if checkbox is checked
+            if (saveServer) {
+                servers.push(tempServer);
+                localStorage.setItem('ssh_servers', JSON.stringify(servers));
+                renderServerList();
+                showNotification(`Server "${tempServer.name}" saved`, 'success');
+            }
+            
+            // Close modal
+            document.getElementById('quickConnectModal').remove();
+            
+            // Connect immediately
+            const tabId = 'tab_' + Date.now();
+            const tab = {
+                id: tabId,
+                serverId: tempServer.id,
+                serverName: tempServer.name,
+                serverIcon: tempServer.icon,
+                url: `${tempServer.protocol}://${tempServer.host}:${tempServer.port}`
+            };
+            
+            tabs.push(tab);
+            activeTabId = tabId;
+            
+            // Store credentials for this session
+            tempServer.credentials = { username, password };
+            
+            // Add to servers temporarily if not saved
+            if (!saveServer) {
+                servers.push(tempServer);
+            }
+            
+            renderTabs();
+            renderTerminal();
+            
+            showNotification(`Connected to ${tempServer.name}`, 'success');
+        }
+
         // Render tabs
         function renderTabs() {
             const tabBar = document.getElementById('tabBar');
@@ -5819,12 +5956,11 @@
             const hasTerminal = host.ports.includes(7681);
             const suggestedPort = hasTerminal ? 7681 : (hasSSH ? 22 : host.ports[0]);
             
-            // Auto-fill server form
-            document.getElementById('serverName').value = host.hostname || host.ip;
-            document.getElementById('serverHost').value = host.ip;
-            document.getElementById('serverPort').value = suggestedPort;
-            document.getElementById('serverProtocol').value = 'https';
-            document.getElementById('serverEnvironment').value = 'host';
+            // Close scan modal
+            document.getElementById('networkScanModal').classList.remove('active');
+            
+            // Show quick connect password prompt
+            showQuickConnectPrompt(host, suggestedPort);
             
             // Select appropriate icon based on type
             const iconMap = {
