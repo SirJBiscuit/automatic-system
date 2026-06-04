@@ -5980,31 +5980,6 @@
             
             // Show quick connect password prompt
             showQuickConnectPrompt(host, suggestedPort);
-            
-            // Select appropriate icon based on type
-            const iconMap = {
-                'Router': '🌐',
-                'Server': '🖥️',
-                'NAS': '💾',
-                'Current Host': '🏠'
-            };
-            const icon = iconMap[host.type] || '🟢';
-            document.getElementById('serverIcon').value = icon;
-            
-            // Update icon selector
-            document.querySelectorAll('.icon-option').forEach(opt => {
-                opt.classList.remove('selected');
-                if (opt.textContent.trim() === icon) {
-                    opt.classList.add('selected');
-                }
-            });
-
-            // Update persistSession checkbox
-            document.getElementById('serverPersist').checked = false;
-
-            // Close scan modal and open server modal
-            closeNetworkScanModal();
-            addServer();
         }
 
         function rescanNetwork() {
