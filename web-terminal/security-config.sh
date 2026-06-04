@@ -74,6 +74,11 @@ echo -e "${BLUE}  Username: admin${NC}"
 echo -e "${BLUE}  Password: $TERM_PASSWORD${NC}"
 echo -e "${YELLOW}  Save this password! It's stored in: /etc/nginx/auth/term.htpasswd${NC}"
 
+# Add rate limiting zone to main nginx config if not exists
+if ! grep -q "limit_req_zone.*term_login" /etc/nginx/nginx.conf; then
+    sed -i '/http {/a \    # Rate limiting for term.cloudmc.online\n    limit_req_zone $binary_remote_addr zone=term_login:10m rate=5r/m;' /etc/nginx/nginx.conf
+fi
+
 # Update Nginx config for term.cloudmc.online with auth
 cat > /etc/nginx/sites-available/ssh-terminal << 'NGINX_EOF'
 server {
@@ -106,9 +111,6 @@ server {
     
     # Disable server tokens
     server_tokens off;
-    
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=term_login:10m rate=5r/m;
     
     location / {
         try_files $uri $uri/ =404;
