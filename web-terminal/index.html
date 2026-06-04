@@ -4700,21 +4700,112 @@
             const server = servers.find(s => s.id === serverId);
             if (!server) return;
 
-            // Create new tab for this server
-            const tabId = 'tab_' + Date.now();
-            const protocol = server.protocol || 'https';
-            const tab = {
-                id: tabId,
-                serverId: serverId,
-                serverName: server.name,
-                serverIcon: server.icon,
-                url: `${protocol}://${server.host}:${server.port}`
-            };
+            // Show password prompt before connecting
+            showServerPasswordPrompt(server, (authenticated) => {
+                if (!authenticated) {
+                    showNotification('Authentication failed', 'error');
+                    return;
+                }
 
-            tabs.push(tab);
-            activeTabId = tabId;
-            renderTabs();
-            renderTerminal();
+                // Create new tab for this server
+                const tabId = 'tab_' + Date.now();
+                const protocol = server.protocol || 'https';
+                const tab = {
+                    id: tabId,
+                    serverId: serverId,
+                    serverName: server.name,
+                    serverIcon: server.icon,
+                    url: `${protocol}://${server.host}:${server.port}`
+                };
+
+                tabs.push(tab);
+                activeTabId = tabId;
+                renderTabs();
+                renderTerminal();
+                showNotification(`Connected to ${server.name}`, 'success');
+            });
+        }
+
+        function showServerPasswordPrompt(server, callback) {
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.id = 'serverPasswordModal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 400px;">
+                    <div class="modal-header">
+                        <div class="modal-title">
+                            <i class="fas fa-lock"></i> Server Authentication
+                        </div>
+                        <button class="modal-close" onclick="this.closest('.modal').remove(); return false;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin-bottom: 16px; color: #999;">
+                            Enter password to connect to <strong>${server.name}</strong>
+                        </p>
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 8px; color: #ddd;">
+                                <i class="fas fa-user"></i> Username
+                            </label>
+                            <input type="text" 
+                                   id="serverUsername" 
+                                   class="form-input" 
+                                   value="${server.username || 'root'}"
+                                   placeholder="Username">
+                        </div>
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 8px; color: #ddd;">
+                                <i class="fas fa-key"></i> Password
+                            </label>
+                            <input type="password" 
+                                   id="serverPassword" 
+                                   class="form-input" 
+                                   placeholder="Enter server password"
+                                   onkeypress="if(event.key==='Enter') document.getElementById('connectServerBtn').click()">
+                        </div>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
+                                Cancel
+                            </button>
+                            <button id="connectServerBtn" class="btn btn-primary" onclick="authenticateServer('${server.id}')">
+                                <i class="fas fa-sign-in-alt"></i> Connect
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            document.getElementById('serverPassword').focus();
+            
+            // Store callback for authentication
+            window.serverAuthCallback = callback;
+        }
+
+        function authenticateServer(serverId) {
+            const username = document.getElementById('serverUsername').value;
+            const password = document.getElementById('serverPassword').value;
+            
+            if (!password) {
+                showNotification('Password required', 'error');
+                return;
+            }
+
+            // Store credentials for this session (you can add real auth here)
+            const server = servers.find(s => s.id === serverId);
+            if (server) {
+                server.credentials = { username, password };
+                
+                // Close modal
+                document.getElementById('serverPasswordModal').remove();
+                
+                // Call the callback with success
+                if (window.serverAuthCallback) {
+                    window.serverAuthCallback(true);
+                    delete window.serverAuthCallback;
+                }
+            }
         }
 
         // Render tabs
