@@ -270,74 +270,108 @@
         }
 
         .server-item {
-            padding: 12px;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             background: #2a2a2a;
             border-radius: 8px;
-            cursor: pointer;
             transition: all 0.2s;
             border: 2px solid transparent;
-            position: relative;
-        }
-
-        .server-item strong {
-            color: #ffffff;
-        }
-
-        .server-item .server-item-info > div:last-child {
-            color: #888 !important;
-        }
-
-        .server-item-info {
-            flex: 1;
-            min-width: 0;
-            cursor: pointer;
-        }
-
-        .server-item-actions {
-            display: flex;
-            gap: 4px;
-            opacity: 1;
-            transition: all 0.2s;
-        }
-
-        .server-action-btn {
-            background: rgba(102, 126, 234, 0.3);
-            border: none;
-            color: white;
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            font-size: 12px;
-        }
-
-        .server-action-btn:hover {
-            background: rgba(102, 126, 234, 0.5);
-            transform: scale(1.1);
+            overflow: hidden;
         }
 
         .server-item:hover {
             background: #333;
+            border-color: #667eea;
         }
 
         .server-item-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            gap: 12px;
+            padding: 14px;
+            cursor: grab;
+            position: relative;
+        }
+
+        .server-item-header:active {
+            cursor: grabbing;
+        }
+
+        .server-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .server-details {
+            flex: 1;
+            min-width: 0;
         }
 
         .server-name {
             font-weight: 600;
             font-size: 14px;
+            color: #fff;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .server-address {
+            font-size: 12px;
+            color: #888;
+            font-family: 'Courier New', monospace;
+        }
+
+        .server-popout-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .server-popout-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .server-item-actions {
+            display: flex;
+            gap: 8px;
+            padding: 0 14px 14px 14px;
+            justify-content: flex-end;
+        }
+
+        .server-action-btn {
+            background: #3d3d3d;
+            border: none;
+            color: #aaa;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
             display: flex;
             align-items: center;
             gap: 6px;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .server-action-btn:hover {
+            background: #4d4d4d;
+            color: #fff;
+        }
+
+        .server-action-btn.delete:hover {
+            background: #dc3545;
+            color: #fff;
         }
 
         .server-status {
@@ -3910,86 +3944,7 @@
     <!-- Quick Connect Modal - Now handled dynamically by showQuickConnectPrompt() -->
     <!-- Removed static modal, using dynamic modal creation instead -->
 
-    <!-- Widget Creator Modal -->
-    <div class="modal" id="widgetModal">
-        <div class="modal-content" style="max-width: 600px;">
-            <div class="modal-header">
-                <h2>Create Widget</h2>
-                <button class="close-btn" onclick="document.getElementById('widgetModal').classList.remove('active')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="widgetForm" onsubmit="saveWidget(event)">
-                    <div class="form-group">
-                        <label class="form-label">Widget Name</label>
-                        <input type="text" class="form-input" id="widgetName" placeholder="My Custom Widget" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Widget Type</label>
-                        <select class="form-input" id="widgetType" required>
-                            <option value="note">Sticky Note</option>
-                            <option value="monitor">System Monitor</option>
-                            <option value="clock">Clock</option>
-                            <option value="calculator">Calculator</option>
-                            <option value="custom">Custom HTML</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="customHtmlGroup" style="display: none;">
-                        <label class="form-label">Custom HTML Content</label>
-                        <textarea class="form-input" id="widgetHtml" rows="6" placeholder="<div>Your HTML here</div>"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('widgetModal').classList.remove('active')">Cancel</button>
-                <button type="submit" form="widgetForm" class="btn btn-primary">Create Widget</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Script Editor Modal -->
-    <div class="modal" id="scriptModal">
-        <div class="modal-content" style="max-width: 800px;">
-            <div class="modal-header">
-                <h2>Script Editor</h2>
-                <button class="close-btn" onclick="document.getElementById('scriptModal').classList.remove('active')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="scriptForm" onsubmit="saveScript(event)">
-                    <div class="form-group">
-                        <label class="form-label">Script Name</label>
-                        <input type="text" class="form-input" id="scriptName" placeholder="My Automation Script" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Language</label>
-                        <select class="form-input" id="scriptLanguage" required>
-                            <option value="bash">Bash</option>
-                            <option value="python">Python</option>
-                            <option value="javascript">JavaScript</option>
-                            <option value="powershell">PowerShell</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Script Content</label>
-                        <textarea class="form-input" id="scriptContent" rows="12" placeholder="#!/bin/bash&#10;echo 'Hello World'" required style="font-family: 'Courier New', monospace;"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" id="scriptAutoRun" style="width: auto;">
-                            <span>Auto-run on schedule</span>
-                        </label>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('scriptModal').classList.remove('active')">Cancel</button>
-                <button type="submit" form="scriptForm" class="btn btn-primary">Save Script</button>
-            </div>
-        </div>
-    </div>
+    <!-- Widgets and Scripts removed - Simplified workspace -->
 
     <script>
         // ===== AUTHENTICATION SYSTEM =====
@@ -4318,21 +4273,25 @@
             serverList.innerHTML = servers.map(server => `
                 <div class="server-item" 
                      oncontextmenu="showServerContextMenu(event, '${server.id}')">
-                    <div class="server-item-info" onclick="connectToServer('${server.id}')">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                            <span style="font-size: 20px;">${server.icon}</span>
-                            <strong>${server.name}</strong>
+                    <div class="server-item-header" 
+                         draggable="true"
+                         ondragstart="startDragServer(event, '${server.id}')"
+                         onclick="connectToServer('${server.id}')"
+                         title="Click to connect | Drag to workspace to pop out">
+                        <span class="server-icon">${server.icon}</span>
+                        <div class="server-details">
+                            <div class="server-name">${server.name}</div>
+                            <div class="server-address">${server.host}:${server.port}</div>
                         </div>
-                        <div style="font-size: 12px; color: #888;">${server.host}:${server.port}</div>
+                        <button class="server-popout-btn" onclick="event.stopPropagation(); popOutServer('${server.id}')" title="Pop Out Window">
+                            <i class="fas fa-window-restore"></i>
+                        </button>
                     </div>
                     <div class="server-item-actions">
-                        <button class="server-action-btn" onclick="event.stopPropagation(); popOutServer('${server.id}')" title="Pop Out">
-                            <i class="fas fa-external-alt"></i>
-                        </button>
-                        <button class="server-action-btn" onclick="event.stopPropagation(); editServer('${server.id}')" title="Edit">
+                        <button class="server-action-btn" onclick="event.stopPropagation(); editServer('${server.id}')" title="Edit Server">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="server-action-btn" onclick="event.stopPropagation(); deleteServer('${server.id}')" title="Delete">
+                        <button class="server-action-btn delete" onclick="event.stopPropagation(); deleteServer('${server.id}')" title="Delete Server">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -4357,16 +4316,75 @@
             const server = servers.find(s => s.id === serverId);
             if (!server) return;
             
-            // Connect to the server first
-            connectToServer(serverId);
+            // Create a new tab for this server
+            const tabId = 'tab_' + Date.now();
+            const protocol = server.protocol || 'https';
+            const tab = {
+                id: tabId,
+                serverId: serverId,
+                serverName: server.name,
+                serverIcon: server.icon,
+                url: `${protocol}://${server.host}${server.host.includes('.') ? '' : ':' + server.port}`
+            };
             
-            // Then pop out the terminal after a short delay
-            setTimeout(() => {
-                if (!terminalDraggable) {
-                    toggleTerminalDraggable();
-                }
-            }, 200);
+            tabs.push(tab);
+            activeTabId = tabId;
+            
+            // Create portal in floating mode
+            const portal = {
+                id: 'portal_' + (++portalCounter),
+                tabId: tab.id,
+                serverName: tab.serverName,
+                url: tab.url,
+                docked: false, // Start undocked
+                compact: false,
+                position: { x: 100 + (portals.length * 30), y: 100 + (portals.length * 30) },
+                size: { width: 900, height: 650 }
+            };
+            
+            portals.push(portal);
+            activePortalId = portal.id;
+            
+            renderTabs();
+            renderPortals();
+            showNotification(`Popped out ${server.name}`, 'success');
         }
+
+        // Drag server to workspace
+        let draggedServerId = null;
+
+        function startDragServer(event, serverId) {
+            draggedServerId = serverId;
+            event.dataTransfer.effectAllowed = 'copy';
+            event.dataTransfer.setData('text/plain', serverId);
+            
+            // Visual feedback
+            event.target.style.opacity = '0.5';
+        }
+
+        // Setup workspace drop zone
+        document.addEventListener('DOMContentLoaded', () => {
+            const workspace = document.getElementById('terminalContainer');
+            if (workspace) {
+                workspace.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                });
+                
+                workspace.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedServerId) {
+                        popOutServer(draggedServerId);
+                        draggedServerId = null;
+                    }
+                });
+            }
+            
+            // Reset opacity on drag end
+            document.addEventListener('dragend', (e) => {
+                e.target.style.opacity = '';
+            });
+        });
 
         // Context menu for servers
         let contextMenuServerId = null;
