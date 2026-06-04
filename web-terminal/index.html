@@ -4145,6 +4145,10 @@
 
         // Check auth on page load
         window.addEventListener('DOMContentLoaded', () => {
+            // If accessing term.cloudmc.online directly (not embedded in iframe), require fresh login
+            if (window.location.hostname === 'term.cloudmc.online' && window.self === window.top) {
+                sessionStorage.removeItem('ssh_terminal_session');
+            }
             checkAuth();
         });
 
