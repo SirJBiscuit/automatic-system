@@ -1789,6 +1789,17 @@
             to { opacity: 1; }
         }
 
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
         .modal-content {
             background: #2a2a2a;
             border-radius: 12px;
@@ -3790,46 +3801,8 @@
         </div>
     </div>
 
-    <!-- Quick Connect Modal -->
-    <div class="modal" id="quickConnectModal">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <div class="modal-title">⚡ Quick Connect</div>
-                <button class="modal-close" onclick="closeQuickConnectModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="quickConnectForm" onsubmit="performQuickConnect(event)">
-                    <div class="form-group">
-                        <label class="form-label">SSH Connection String</label>
-                        <input type="text" class="form-input" id="quickConnectString" 
-                               placeholder="user@host:port or user@host" 
-                               required
-                               style="font-family: 'Fira Code', monospace;">
-                        <small style="color: #888; display: block; margin-top: 8px;">
-                            Examples:<br>
-                            • guythatcooks@143.103.18.56<br>
-                            • guythatcooks@143.103.18.56:22<br>
-                            • root@panel.cloudmc.online
-                        </small>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Server Name (Optional)</label>
-                        <input type="text" class="form-input" id="quickConnectName" 
-                               placeholder="Auto-generated if empty">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeQuickConnectModal()">Cancel</button>
-                <button type="submit" form="quickConnectForm" class="btn btn-primary">
-                    <i class="fas fa-bolt"></i> Connect
-                </button>
-            </div>
-        </div>
-    </div>
+    <!-- Quick Connect Modal - Now handled dynamically by showQuickConnectPrompt() -->
+    <!-- Removed static modal, using dynamic modal creation instead -->
 
     <!-- Widget Creator Modal -->
     <div class="modal" id="widgetModal">
@@ -4680,8 +4653,7 @@
 
         // Quick Connect Functions
         function quickConnect() {
-            document.getElementById('quickConnectModal').classList.add('active');
-            document.getElementById('quickConnectString').focus();
+            quickSearch(); // Open Quick Search instead
         }
 
         function closeQuickConnectModal() {
@@ -4987,15 +4959,22 @@
         // Quick Connect from Network Scan
         function showQuickConnectPrompt(host, port) {
             const modal = document.createElement('div');
-            modal.className = 'modal active';
             modal.id = 'quickConnectModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 3000;
+                animation: slideIn 0.3s ease;
+            `;
             modal.innerHTML = `
-                <div class="modal-content" style="max-width: 450px;">
+                <div class="modal-content" style="max-width: 450px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
                     <div class="modal-header">
                         <div class="modal-title">
                             <i class="fas fa-bolt"></i> Quick Connect
                         </div>
-                        <button class="modal-close" onclick="this.closest('.modal').remove(); return false;">
+                        <button class="modal-close" onclick="document.getElementById('quickConnectModal').remove(); return false;">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
