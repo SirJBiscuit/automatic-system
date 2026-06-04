@@ -5046,15 +5046,19 @@
                 return;
             }
             
+            // Detect if it's a Cloudflare tunnel (domain name)
+            const isCloudflare = ip.includes('.cloudmc.online') || ip.includes('.');
+            const protocol = isCloudflare ? 'https' : 'https';
+            
             // Create temporary server object
             const tempServer = {
                 id: 'temp_' + Date.now(),
                 name: hostname || ip,
                 host: ip,
                 port: port,
-                protocol: 'https',
+                protocol: protocol,
                 environment: 'host',
-                icon: type === 'Server' ? '🖥️' : (type === 'Router' ? '🌐' : (type === 'NAS' ? '💾' : '🟢')),
+                icon: type.includes('☁️') ? '☁️' : (type === 'Server' ? '🖥️' : (type === 'Router' ? '🌐' : (type === 'NAS' ? '💾' : '🟢'))),
                 username: username,
                 password: await encryptPassword(password),
                 persistSession: false,
@@ -5075,12 +5079,21 @@
             
             // Connect immediately
             const tabId = 'tab_' + Date.now();
+            
+            // Build URL - Cloudflare tunnels don't need port in URL
+            let url;
+            if (isCloudflare) {
+                url = `${protocol}://${tempServer.host}`;
+            } else {
+                url = `${protocol}://${tempServer.host}:${tempServer.port}`;
+            }
+            
             const tab = {
                 id: tabId,
                 serverId: tempServer.id,
                 serverName: tempServer.name,
                 serverIcon: tempServer.icon,
-                url: `${tempServer.protocol}://${tempServer.host}:${tempServer.port}`
+                url: url
             };
             
             tabs.push(tab);
