@@ -27,9 +27,17 @@ app.use(session({
     saveUninitialized: false,
     cookie: { 
         secure: false, // Set to true if using HTTPS
-        maxAge: 3600000 // 1 hour
+        maxAge: 3600000, // 1 hour
+        sameSite: 'none' // Allow cross-site cookies for iframe
     }
 }));
+
+// Security headers - Allow iframe embedding from ssh.cloudmc.online
+app.use((req, res, next) => {
+    res.setHeader('X-Frame-Options', 'ALLOW-FROM https://ssh.cloudmc.online');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://ssh.cloudmc.online http://ssh.cloudmc.online");
+    next();
+});
 
 // Serve static files for login page
 app.use('/static', express.static(path.join(__dirname, 'public')));
