@@ -4024,6 +4024,125 @@
             }
         }
 
+        // ========================================
+        // ENCRYPTION & SECURITY UTILITIES
+        // ========================================
+
+        // Generate encryption key from user's session
+        async function getEncryptionKey() {
+            const session = sessionStorage.getItem('ssh_terminal_session');
+            if (!session) return null;
+            
+            const encoder = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(session),
+                { name: 'PBKDF2' },
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            return await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: encoder.encode('ssh-terminal-salt-v1'),
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        // Encrypt password
+        async function encryptPassword(password) {
+            try {
+                const key = await getEncryptionKey();
+                if (!key) return password; // Fallback to plain text if no key
+                
+                const encoder = new TextEncoder();
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const encrypted = await crypto.subtle.encrypt(
+                    { name: 'AES-GCM', iv },
+                    key,
+                    encoder.encode(password)
+                );
+                
+                // Combine IV and encrypted data
+                const combined = new Uint8Array(iv.length + encrypted.byteLength);
+                combined.set(iv);
+                combined.set(new Uint8Array(encrypted), iv.length);
+                
+                // Convert to base64
+                return btoa(String.fromCharCode(...combined));
+            } catch (error) {
+                console.error('Encryption error:', error);
+                return password; // Fallback
+            }
+        }
+
+        // Decrypt password
+        async function decryptPassword(encryptedPassword) {
+            try {
+                const key = await getEncryptionKey();
+                if (!key) return encryptedPassword; // Fallback
+                
+                // Decode from base64
+                const combined = Uint8Array.from(atob(encryptedPassword), c => c.charCodeAt(0));
+                const iv = combined.slice(0, 12);
+                const encrypted = combined.slice(12);
+                
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv },
+                    key,
+                    encrypted
+                );
+                
+                const decoder = new TextDecoder();
+                return decoder.decode(decrypted);
+            } catch (error) {
+                console.error('Decryption error:', error);
+                return encryptedPassword; // Fallback
+            }
+        }
+
+        // Generate authentication token
+        function generateAuthToken() {
+            const array = new Uint8Array(32);
+            crypto.getRandomValues(array);
+            return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Store auth token
+        function storeAuthToken(serverId, token) {
+            const tokens = JSON.parse(sessionStorage.getItem('auth_tokens') || '{}');
+            tokens[serverId] = {
+                token,
+                timestamp: Date.now(),
+                expiresIn: 3600000 // 1 hour
+            };
+            sessionStorage.setItem('auth_tokens', JSON.stringify(tokens));
+        }
+
+        // Get auth token
+        function getAuthToken(serverId) {
+            const tokens = JSON.parse(sessionStorage.getItem('auth_tokens') || '{}');
+            const tokenData = tokens[serverId];
+            
+            if (!tokenData) return null;
+            
+            // Check if expired
+            if (Date.now() - tokenData.timestamp > tokenData.expiresIn) {
+                delete tokens[serverId];
+                sessionStorage.setItem('auth_tokens', JSON.stringify(tokens));
+                return null;
+            }
+            
+            return tokenData.token;
+        }
+
         // Check auth on page load
         window.addEventListener('DOMContentLoaded', () => {
             checkAuth();
@@ -4518,7 +4637,7 @@
             togglePerfMonitor(); // Use existing performance monitor
         }
 
-        function editServer(serverId) {
+        async function editServer(serverId) {
             const server = servers.find(s => s.id === serverId);
             if (!server) return;
 
@@ -4532,7 +4651,10 @@
             document.getElementById('serverEnvironment').value = server.environment || 'production';
             document.getElementById('serverIcon').value = server.icon;
             document.getElementById('serverConfigUsername').value = server.username || 'root';
-            document.getElementById('serverConfigPassword').value = server.password || '';
+            
+            // Decrypt password for editing
+            const decryptedPassword = server.password ? await decryptPassword(server.password) : '';
+            document.getElementById('serverConfigPassword').value = decryptedPassword;
             
             // Update icon selection
             document.querySelectorAll('.icon-option').forEach(el => {
@@ -4652,8 +4774,11 @@
             document.getElementById('serverIcon').value = icon;
         }
 
-        function saveServer(event) {
+        async function saveServer(event) {
             event.preventDefault();
+
+            const password = document.getElementById('serverConfigPassword').value;
+            const encryptedPassword = password ? await encryptPassword(password) : '';
 
             const serverData = {
                 name: document.getElementById('serverName').value,
@@ -4663,7 +4788,7 @@
                 environment: document.getElementById('serverEnvironment').value,
                 icon: document.getElementById('serverIcon').value,
                 username: document.getElementById('serverConfigUsername').value,
-                password: document.getElementById('serverConfigPassword').value, // Stored in plain text (use encryption in production)
+                password: encryptedPassword, // Encrypted password
                 persistSession: document.getElementById('serverPersist').checked,
                 online: true,
                 uptime: '0d 0h 0m'
@@ -4803,7 +4928,7 @@
             window.serverAuthCallback = callback;
         }
 
-        function authenticateServer(serverId) {
+        async function authenticateServer(serverId) {
             const username = document.getElementById('serverUsername').value;
             const password = document.getElementById('serverPassword').value;
             
@@ -4815,9 +4940,12 @@
             // Validate against stored credentials
             const server = servers.find(s => s.id === serverId);
             if (server) {
+                // Decrypt stored password
+                const decryptedPassword = await decryptPassword(server.password);
+                
                 // Check if credentials match
                 const usernameMatch = username === (server.username || 'root');
-                const passwordMatch = password === server.password;
+                const passwordMatch = password === decryptedPassword;
                 
                 if (!passwordMatch) {
                     showNotification('Incorrect password', 'error');
@@ -4832,8 +4960,12 @@
                     return;
                 }
                 
+                // Generate and store authentication token
+                const authToken = generateAuthToken();
+                storeAuthToken(serverId, authToken);
+                
                 // Store credentials for this session
-                server.credentials = { username, password };
+                server.credentials = { username, password, token: authToken };
                 
                 // Close modal
                 document.getElementById('serverPasswordModal').remove();
@@ -4843,6 +4975,8 @@
                     window.serverAuthCallback(true);
                     delete window.serverAuthCallback;
                 }
+                
+                showNotification('Authentication successful', 'success');
             }
         }
 
