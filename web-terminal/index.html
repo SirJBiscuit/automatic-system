@@ -805,6 +805,112 @@
             background: #000;
         }
 
+        /* Multi-Window Portal System */
+        .portal {
+            position: absolute;
+            background: #1a1a1a;
+            border: 2px solid #3d3d3d;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .portal.docked {
+            position: relative !important;
+            width: 100% !important;
+            height: 100% !important;
+            left: 0 !important;
+            top: 0 !important;
+            border-radius: 0;
+            border: none;
+        }
+
+        .portal.floating {
+            position: absolute;
+            min-width: 400px;
+            min-height: 300px;
+            resize: both;
+            overflow: auto;
+        }
+
+        .portal.active {
+            border-color: #667eea;
+            box-shadow: 0 10px 60px rgba(102, 126, 234, 0.3);
+        }
+
+        .portal.compact .portal-content {
+            height: 200px !important;
+        }
+
+        .portal-toolbar {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #3d3d3d;
+            cursor: move;
+            user-select: none;
+        }
+
+        .portal.docked .portal-toolbar {
+            cursor: default;
+        }
+
+        .portal-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .portal-icon {
+            font-size: 16px;
+        }
+
+        .portal-name {
+            font-size: 13px;
+        }
+
+        .portal-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        .portal-btn {
+            background: transparent;
+            border: none;
+            color: #888;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .portal-btn:hover {
+            background: #3d3d3d;
+            color: #fff;
+        }
+
+        .portal-content {
+            width: 100%;
+            height: calc(100% - 41px);
+            position: relative;
+        }
+
+        .portal.docked .portal-content {
+            height: calc(100% - 41px);
+        }
+
+        .portal-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
         /* Demo Terminal */
         .demo-terminal {
             width: 100%;
@@ -5194,51 +5300,107 @@
             document.body.appendChild(modal);
         }
 
-        // Render terminal
+        // Multi-Window Portal System
+        let portals = []; // Array of open portals
+        let portalCounter = 0;
+        let activePortalId = null;
+
+        // Render terminal (legacy - now creates portal)
         function renderTerminal() {
             const container = document.getElementById('terminalContainer');
             const emptyState = document.getElementById('workspaceEmptyState');
             
             if (!activeTabId) {
-                // Show empty state, hide terminal content
+                // Show empty state
                 if (emptyState) emptyState.style.display = 'flex';
                 container.style.display = 'none';
                 return;
             }
             
-            // Hide empty state, show terminal
+            // Hide empty state
             if (emptyState) emptyState.style.display = 'none';
             container.style.display = 'flex';
 
             const activeTab = tabs.find(t => t.id === activeTabId);
             if (!activeTab) return;
 
-            container.innerHTML = `
-                <div class="iframe-overlay" id="iframeOverlay"></div>
-                <iframe class="terminal-frame" src="${activeTab.url}"></iframe>
-                <div class="file-drop-zone" id="fileDropZone">
-                    <div class="file-drop-content">
-                        <div class="file-drop-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-                        <div class="file-drop-text">Drop files to upload</div>
-                        <div class="file-drop-hint">Release to start uploading to server</div>
+            // Check if portal already exists for this tab
+            let portal = portals.find(p => p.tabId === activeTabId);
+            if (!portal) {
+                // Create new portal
+                createPortal(activeTab);
+            } else {
+                // Focus existing portal
+                focusPortal(portal.id);
+            }
+        }
+
+        function createPortal(tab) {
+            const portalId = 'portal_' + (++portalCounter);
+            const container = document.getElementById('terminalContainer');
+            
+            const portal = {
+                id: portalId,
+                tabId: tab.id,
+                serverName: tab.serverName,
+                url: tab.url,
+                docked: true,
+                compact: false,
+                position: { x: 20 + (portals.length * 30), y: 20 + (portals.length * 30) },
+                size: { width: 800, height: 600 }
+            };
+            
+            portals.push(portal);
+            activePortalId = portalId;
+            
+            renderPortals();
+        }
+
+        function renderPortals() {
+            const container = document.getElementById('terminalContainer');
+            container.innerHTML = '';
+            
+            portals.forEach(portal => {
+                const tab = tabs.find(t => t.id === portal.tabId);
+                if (!tab) return;
+                
+                const portalEl = document.createElement('div');
+                portalEl.className = `portal ${portal.docked ? 'docked' : 'floating'} ${portal.compact ? 'compact' : ''} ${portal.id === activePortalId ? 'active' : ''}`;
+                portalEl.id = portal.id;
+                
+                if (!portal.docked) {
+                    portalEl.style.left = portal.position.x + 'px';
+                    portalEl.style.top = portal.position.y + 'px';
+                    portalEl.style.width = portal.size.width + 'px';
+                    portalEl.style.height = portal.size.height + 'px';
+                }
+                
+                portalEl.innerHTML = `
+                    <div class="portal-toolbar" onmousedown="startDragPortal(event, '${portal.id}')">
+                        <div class="portal-title">
+                            <span class="portal-icon">${tab.serverIcon || '🖥️'}</span>
+                            <span class="portal-name">${tab.serverName}</span>
+                        </div>
+                        <div class="portal-controls">
+                            <button class="portal-btn" onclick="toggleCompactPortal('${portal.id}')" title="${portal.compact ? 'Expand' : 'Compact'}">
+                                <i class="fas fa-${portal.compact ? 'expand' : 'compress'}"></i>
+                            </button>
+                            <button class="portal-btn" onclick="toggleDockPortal('${portal.id}')" title="${portal.docked ? 'Undock' : 'Dock'}">
+                                <i class="fas fa-${portal.docked ? 'external-link-alt' : 'window-restore'}"></i>
+                            </button>
+                            <button class="portal-btn" onclick="closePortal('${portal.id}')" title="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="ghost-typing" id="ghostTyping">
-                    <div class="ghost-icon">👻</div>
-                    <div class="ghost-content">
-                        <div class="ghost-label">AI Suggestion</div>
-                        <div class="ghost-command" id="ghostCommand"></div>
+                    <div class="portal-content">
+                        <iframe class="terminal-frame" src="${tab.url}"></iframe>
                     </div>
-                    <div class="ghost-actions">
-                        <button class="ghost-btn accept" onclick="acceptGhostCommand()">
-                            <i class="fas fa-check"></i> Run (Enter)
-                        </button>
-                        <button class="ghost-btn reject" onclick="rejectGhostCommand()">
-                            <i class="fas fa-times"></i> Cancel (Esc)
-                        </button>
-                    </div>
-                </div>
-            `;
+                `;
+                
+                portalEl.addEventListener('mousedown', () => focusPortal(portal.id));
+                container.appendChild(portalEl);
+            });
 
             // Setup terminal right-click
             setupTerminalContextMenu();
@@ -5248,6 +5410,85 @@
             
             // Setup drag and drop
             setupFileDragDrop();
+        }
+
+        // Portal Control Functions
+        function focusPortal(portalId) {
+            activePortalId = portalId;
+            document.querySelectorAll('.portal').forEach(p => p.classList.remove('active'));
+            const portal = document.getElementById(portalId);
+            if (portal) {
+                portal.classList.add('active');
+                portal.style.zIndex = 1000 + portals.length;
+            }
+        }
+
+        function toggleDockPortal(portalId) {
+            const portal = portals.find(p => p.id === portalId);
+            if (portal) {
+                portal.docked = !portal.docked;
+                renderPortals();
+            }
+        }
+
+        function toggleCompactPortal(portalId) {
+            const portal = portals.find(p => p.id === portalId);
+            if (portal) {
+                portal.compact = !portal.compact;
+                renderPortals();
+            }
+        }
+
+        function closePortal(portalId) {
+            const index = portals.findIndex(p => p.id === portalId);
+            if (index !== -1) {
+                portals.splice(index, 1);
+                if (activePortalId === portalId) {
+                    activePortalId = portals.length > 0 ? portals[0].id : null;
+                }
+                renderPortals();
+            }
+        }
+
+        // Portal Dragging
+        let draggedPortal = null;
+        let portalDragOffset = { x: 0, y: 0 };
+
+        function startDragPortal(event, portalId) {
+            const portal = portals.find(p => p.id === portalId);
+            if (!portal || portal.docked) return;
+            
+            event.preventDefault();
+            draggedPortal = portal;
+            
+            const portalEl = document.getElementById(portalId);
+            const rect = portalEl.getBoundingClientRect();
+            portalDragOffset.x = event.clientX - rect.left;
+            portalDragOffset.y = event.clientY - rect.top;
+            
+            document.addEventListener('mousemove', dragPortal);
+            document.addEventListener('mouseup', stopDragPortal);
+            
+            focusPortal(portalId);
+        }
+
+        function dragPortal(event) {
+            if (!draggedPortal) return;
+            
+            draggedPortal.position.x = event.clientX - portalDragOffset.x;
+            draggedPortal.position.y = event.clientY - portalDragOffset.y;
+            
+            const portalEl = document.getElementById(draggedPortal.id);
+            if (portalEl) {
+                portalEl.style.left = draggedPortal.position.x + 'px';
+                portalEl.style.top = draggedPortal.position.y + 'px';
+            }
+        }
+
+        function stopDragPortal() {
+            draggedPortal = null;
+            document.removeEventListener('mousemove', dragPortal);
+            document.removeEventListener('mouseup', stopDragPortal);
         }
 
         // File Transfer Functions
