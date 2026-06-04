@@ -3077,9 +3077,9 @@
                         <i class="fas fa-plus"></i>
                         <span>Add</span>
                     </button>
-                    <button class="add-server-btn" onclick="scanNetwork()" data-tooltip="Scan Network for Hosts" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-                        <i class="fas fa-network-wired"></i>
-                        <span>Scan</span>
+                    <button class="add-server-btn" onclick="quickSearch()" data-tooltip="Quick Search Servers" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        <i class="fas fa-search"></i>
+                        <span>Quick Search</span>
                     </button>
                 </div>
             </div>
@@ -5820,53 +5820,89 @@
             console.log('Zoom level:', zoomLevel + '%');
         }
 
-        // Network Scanning Functions
+        // Quick Search Functions
         let discoveredHosts = [];
 
-        function scanNetwork() {
+        function quickSearch() {
             const modal = document.getElementById('networkScanModal');
             modal.classList.add('active');
+            
+            // Update modal title
+            const modalTitle = modal.querySelector('.modal-title');
+            if (modalTitle) {
+                modalTitle.innerHTML = '<i class="fas fa-search"></i> Quick Search Servers';
+            }
             
             // Show scanning status
             document.getElementById('scanStatus').style.display = 'block';
             document.getElementById('hostList').style.display = 'none';
             
-            // Simulate network scan (in production, this would use WebRTC, WebSocket, or backend API)
+            // Perform search
             setTimeout(() => {
-                performNetworkScan();
-            }, 2000);
+                performQuickSearch();
+            }, 1500);
         }
 
-        function performNetworkScan() {
-            // Simulated network scan results
-            // In production, this would:
-            // 1. Use WebRTC to discover local network devices
-            // 2. Call a backend API that performs nmap/arp-scan
-            // 3. Use mDNS/Bonjour for service discovery
-            
+        function scanNetwork() {
+            quickSearch(); // Redirect to quick search
+        }
+
+        function performQuickSearch() {
+            // Combine Cloudflare tunnels and local network hosts
             discoveredHosts = [
+                // Cloudflare Tunnels (Your Domains)
+                {
+                    ip: 'term.cloudmc.online',
+                    hostname: 'Direct Terminal',
+                    mac: 'Cloudflare',
+                    ports: [8095],
+                    type: '☁️ Cloudflare Tunnel',
+                    online: true,
+                    isCloudflare: true
+                },
+                {
+                    ip: 'ssh.cloudmc.online',
+                    hostname: 'Enhanced SSH Terminal',
+                    mac: 'Cloudflare',
+                    ports: [8085],
+                    type: '☁️ Cloudflare Tunnel',
+                    online: true,
+                    isCloudflare: true
+                },
+                {
+                    ip: 'panel.cloudmc.online',
+                    hostname: 'Pterodactyl Panel',
+                    mac: 'Cloudflare',
+                    ports: [443],
+                    type: '☁️ Cloudflare Tunnel',
+                    online: true,
+                    isCloudflare: true
+                },
+                {
+                    ip: 'ui.cloudmc.online',
+                    hostname: 'Open WebUI',
+                    mac: 'Cloudflare',
+                    ports: [3000],
+                    type: '☁️ Cloudflare Tunnel',
+                    online: true,
+                    isCloudflare: true
+                },
+                {
+                    ip: 'admin.cloudmc.online',
+                    hostname: 'Admin Panel',
+                    mac: 'Cloudflare',
+                    ports: [5002],
+                    type: '☁️ Cloudflare Tunnel',
+                    online: true,
+                    isCloudflare: true
+                },
+                // Local Network (Simulated - in production, use real network scan)
                 {
                     ip: '192.168.1.1',
                     hostname: 'router.local',
                     mac: '00:11:22:33:44:55',
                     ports: [22, 80, 443],
-                    type: 'Router',
-                    online: true
-                },
-                {
-                    ip: '192.168.1.100',
-                    hostname: 'server.local',
-                    mac: 'AA:BB:CC:DD:EE:FF',
-                    ports: [22, 7681, 8080],
-                    type: 'Server',
-                    online: true
-                },
-                {
-                    ip: '192.168.1.50',
-                    hostname: 'nas.local',
-                    mac: '11:22:33:44:55:66',
-                    ports: [22, 445, 5000],
-                    type: 'NAS',
+                    type: '🌐 Router',
                     online: true
                 },
                 {
@@ -5874,12 +5910,16 @@
                     hostname: 'current-host',
                     mac: 'FF:EE:DD:CC:BB:AA',
                     ports: [22, 7681],
-                    type: 'Current Host',
+                    type: '🏠 Current Host',
                     online: true
                 }
             ];
             
             displayDiscoveredHosts();
+        }
+
+        function performNetworkScan() {
+            performQuickSearch(); // Use quick search
         }
 
         function displayDiscoveredHosts() {
