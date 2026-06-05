@@ -2144,6 +2144,174 @@
             color: #fff;
         }
 
+        /* Radial Context Menu */
+        .radial-menu {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            z-index: 5000;
+            pointer-events: none;
+        }
+
+        .radial-menu.active {
+            pointer-events: all;
+        }
+
+        .radial-menu-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            animation: radialPulse 2s infinite;
+        }
+
+        @keyframes radialPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+
+        .radial-menu-item {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 70px;
+            height: 70px;
+            margin: -35px 0 0 -35px;
+            transform-origin: center;
+            transform: rotate(var(--angle)) translateY(-110px) rotate(calc(-1 * var(--angle)));
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .radial-menu.active .radial-menu-item {
+            opacity: 1;
+        }
+
+        .radial-menu-item::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: #2a2a2a;
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .radial-menu-item:hover::before {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: scale(1.15);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .radial-menu-item i {
+            position: relative;
+            z-index: 1;
+            font-size: 24px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .radial-menu-item span {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: #fff;
+            white-space: nowrap;
+            background: rgba(0,0,0,0.8);
+            padding: 4px 8px;
+            border-radius: 4px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .radial-menu-item:hover span {
+            opacity: 1;
+        }
+
+        /* Widgets */
+        .widget {
+            position: absolute;
+            background: #1a1a1a;
+            border: 2px solid #3d3d3d;
+            border-radius: 8px;
+            min-width: 200px;
+            min-height: 150px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            will-change: transform;
+            transition: border-color 0.2s;
+        }
+
+        .widget.active {
+            border-color: #667eea;
+            box-shadow: 0 10px 60px rgba(102, 126, 234, 0.3);
+        }
+
+        .widget-header {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
+            padding: 10px 12px;
+            border-bottom: 1px solid #3d3d3d;
+            cursor: move;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .widget-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .widget-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        .widget-btn {
+            background: transparent;
+            border: none;
+            color: #888;
+            padding: 4px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 11px;
+        }
+
+        .widget-btn:hover {
+            background: #3d3d3d;
+            color: #fff;
+        }
+
+        .widget-content {
+            flex: 1;
+            padding: 12px;
+            overflow: auto;
+            color: #ddd;
+        }
+
         /* Context Menu */
         .context-menu {
             position: fixed;
@@ -3356,6 +3524,45 @@
         </div>
     </div>
 
+    <!-- Radial Context Menu -->
+    <div class="radial-menu" id="radialMenu" style="display: none;">
+        <div class="radial-menu-center">
+            <i class="fas fa-plus"></i>
+        </div>
+        <div class="radial-menu-item" data-action="ai-box" style="--angle: 0deg;">
+            <i class="fas fa-robot"></i>
+            <span>AI Box</span>
+        </div>
+        <div class="radial-menu-item" data-action="notepad" style="--angle: 45deg;">
+            <i class="fas fa-file-alt"></i>
+            <span>Notepad</span>
+        </div>
+        <div class="radial-menu-item" data-action="calculator" style="--angle: 90deg;">
+            <i class="fas fa-calculator"></i>
+            <span>Calculator</span>
+        </div>
+        <div class="radial-menu-item" data-action="sticky-note" style="--angle: 135deg;">
+            <i class="fas fa-sticky-note"></i>
+            <span>Sticky Note</span>
+        </div>
+        <div class="radial-menu-item" data-action="code-editor" style="--angle: 180deg;">
+            <i class="fas fa-code"></i>
+            <span>Code Editor</span>
+        </div>
+        <div class="radial-menu-item" data-action="tools" style="--angle: 225deg;">
+            <i class="fas fa-tools"></i>
+            <span>Tools</span>
+        </div>
+        <div class="radial-menu-item" data-action="widgets" style="--angle: 270deg;">
+            <i class="fas fa-th"></i>
+            <span>Widgets</span>
+        </div>
+        <div class="radial-menu-item" data-action="settings" style="--angle: 315deg;">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </div>
+    </div>
+
     <!-- Tab Context Menu -->
     <div class="context-menu" id="tabContextMenu">
         <div class="context-menu-item" onclick="renameTab()">
@@ -4384,7 +4591,243 @@
             document.addEventListener('dragend', (e) => {
                 e.target.style.opacity = '';
             });
+            
+            // Radial menu on workspace right-click
+            workspace.addEventListener('contextmenu', (e) => {
+                // Only show on workspace, not on portals or widgets
+                if (e.target === workspace || e.target.id === 'workspaceEmptyState') {
+                    e.preventDefault();
+                    showRadialMenu(e.clientX, e.clientY);
+                }
+            });
         });
+
+        // Radial Menu System
+        let widgetCounter = 0;
+
+        function showRadialMenu(x, y) {
+            const radialMenu = document.getElementById('radialMenu');
+            radialMenu.style.left = (x - 150) + 'px';
+            radialMenu.style.top = (y - 150) + 'px';
+            radialMenu.classList.add('active');
+            
+            // Close on click outside
+            setTimeout(() => {
+                document.addEventListener('click', closeRadialMenu, { once: true });
+            }, 100);
+        }
+
+        function closeRadialMenu() {
+            const radialMenu = document.getElementById('radialMenu');
+            radialMenu.classList.remove('active');
+        }
+
+        // Radial menu item click handlers
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.radial-menu-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const action = e.currentTarget.getAttribute('data-action');
+                    handleRadialAction(action);
+                    closeRadialMenu();
+                });
+            });
+        });
+
+        function handleRadialAction(action) {
+            switch(action) {
+                case 'ai-box':
+                    toggleAIBox();
+                    break;
+                case 'notepad':
+                    createWidget('notepad', 'Notepad', '<textarea style="width:100%;height:100%;background:#1a1a1a;color:#ddd;border:none;padding:8px;resize:none;" placeholder="Type your notes here..."></textarea>');
+                    break;
+                case 'calculator':
+                    createWidget('calculator', 'Calculator', '<iframe src="https://www.calculator.net/calculator.html" style="width:100%;height:100%;border:none;"></iframe>', 350, 450);
+                    break;
+                case 'sticky-note':
+                    createWidget('sticky-note', 'Sticky Note', '<textarea style="width:100%;height:100%;background:#ffd700;color:#000;border:none;padding:12px;font-family:Comic Sans MS,cursive;resize:none;" placeholder="Quick note..."></textarea>', 250, 250);
+                    break;
+                case 'code-editor':
+                    showCodeEditorModal();
+                    break;
+                case 'tools':
+                    showToolsMenu();
+                    break;
+                case 'widgets':
+                    showWidgetsMenu();
+                    break;
+                case 'settings':
+                    document.getElementById('settingsModal').classList.add('active');
+                    break;
+            }
+        }
+
+        function toggleAIBox() {
+            const aiBox = document.getElementById('ghostTyping');
+            if (aiBox) {
+                aiBox.style.display = aiBox.style.display === 'none' ? 'flex' : 'none';
+                showNotification(aiBox.style.display === 'none' ? 'AI Box hidden' : 'AI Box shown', 'info');
+            }
+        }
+
+        function createWidget(type, title, content, width = 400, height = 300) {
+            const widgetId = 'widget_' + (++widgetCounter);
+            const container = document.getElementById('terminalContainer');
+            
+            const widget = {
+                id: widgetId,
+                type: type,
+                title: title,
+                position: { x: 50 + (widgets.length * 20), y: 50 + (widgets.length * 20) },
+                size: { width, height }
+            };
+            
+            widgets.push(widget);
+            
+            const widgetEl = document.createElement('div');
+            widgetEl.className = 'widget active';
+            widgetEl.id = widgetId;
+            widgetEl.style.left = widget.position.x + 'px';
+            widgetEl.style.top = widget.position.y + 'px';
+            widgetEl.style.width = widget.size.width + 'px';
+            widgetEl.style.height = widget.size.height + 'px';
+            widgetEl.style.zIndex = 2000 + widgets.length;
+            
+            widgetEl.innerHTML = `
+                <div class="widget-header" onmousedown="startDragWidget(event, '${widgetId}')">
+                    <div class="widget-title">
+                        <i class="fas fa-${type === 'notepad' ? 'file-alt' : type === 'calculator' ? 'calculator' : type === 'sticky-note' ? 'sticky-note' : 'code'}"></i>
+                        ${title}
+                    </div>
+                    <div class="widget-controls">
+                        <button class="widget-btn" onclick="closeWidget('${widgetId}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    ${content}
+                </div>
+            `;
+            
+            widgetEl.addEventListener('mousedown', () => focusWidget(widgetId));
+            container.appendChild(widgetEl);
+            showNotification(`${title} created`, 'success');
+        }
+
+        function focusWidget(widgetId) {
+            document.querySelectorAll('.widget').forEach(w => w.classList.remove('active'));
+            const widget = document.getElementById(widgetId);
+            if (widget) {
+                widget.classList.add('active');
+                widget.style.zIndex = 2000 + widgets.length;
+            }
+        }
+
+        function closeWidget(widgetId) {
+            const index = widgets.findIndex(w => w.id === widgetId);
+            if (index !== -1) {
+                widgets.splice(index, 1);
+                const widgetEl = document.getElementById(widgetId);
+                if (widgetEl) widgetEl.remove();
+            }
+        }
+
+        // Widget Dragging (60fps)
+        let draggedWidget = null;
+        let widgetDragOffset = { x: 0, y: 0 };
+        let widgetMousePos = { x: 0, y: 0 };
+        let widgetRafId = null;
+
+        function startDragWidget(event, widgetId) {
+            event.preventDefault();
+            const widget = widgets.find(w => w.id === widgetId);
+            if (!widget) return;
+            
+            draggedWidget = widget;
+            const widgetEl = document.getElementById(widgetId);
+            const rect = widgetEl.getBoundingClientRect();
+            
+            widgetDragOffset.x = event.clientX - rect.left;
+            widgetDragOffset.y = event.clientY - rect.top;
+            widgetMousePos.x = event.clientX;
+            widgetMousePos.y = event.clientY;
+            
+            document.addEventListener('mousemove', onWidgetMouseMove);
+            document.addEventListener('mouseup', stopDragWidget);
+            
+            focusWidget(widgetId);
+            updateWidgetPosition();
+        }
+
+        function onWidgetMouseMove(event) {
+            widgetMousePos.x = event.clientX;
+            widgetMousePos.y = event.clientY;
+        }
+
+        function updateWidgetPosition() {
+            if (!draggedWidget) return;
+            
+            const container = document.getElementById('terminalContainer');
+            const widgetEl = document.getElementById(draggedWidget.id);
+            if (!widgetEl || !container) return;
+            
+            const containerRect = container.getBoundingClientRect();
+            const widgetRect = widgetEl.getBoundingClientRect();
+            
+            let newX = widgetMousePos.x - widgetDragOffset.x;
+            let newY = widgetMousePos.y - widgetDragOffset.y;
+            
+            // Constrain to workspace
+            const minX = containerRect.left;
+            const minY = containerRect.top;
+            const maxX = containerRect.right - widgetRect.width;
+            const maxY = containerRect.bottom - widgetRect.height;
+            
+            newX = Math.max(minX, Math.min(newX, maxX));
+            newY = Math.max(minY, Math.min(newY, maxY));
+            
+            draggedWidget.position.x = newX - containerRect.left;
+            draggedWidget.position.y = newY - containerRect.top;
+            
+            widgetEl.style.transform = `translate(${draggedWidget.position.x}px, ${draggedWidget.position.y}px)`;
+            widgetEl.style.left = '0';
+            widgetEl.style.top = '0';
+            
+            widgetRafId = requestAnimationFrame(updateWidgetPosition);
+        }
+
+        function stopDragWidget() {
+            if (widgetRafId) {
+                cancelAnimationFrame(widgetRafId);
+                widgetRafId = null;
+            }
+            
+            if (draggedWidget) {
+                const widgetEl = document.getElementById(draggedWidget.id);
+                if (widgetEl) {
+                    widgetEl.style.left = draggedWidget.position.x + 'px';
+                    widgetEl.style.top = draggedWidget.position.y + 'px';
+                    widgetEl.style.transform = '';
+                }
+            }
+            
+            draggedWidget = null;
+            document.removeEventListener('mousemove', onWidgetMouseMove);
+            document.removeEventListener('mouseup', stopDragWidget);
+        }
+
+        function showCodeEditorModal() {
+            showNotification('Code Editor - Coming soon! Will connect to tunnels', 'info');
+        }
+
+        function showToolsMenu() {
+            showNotification('Tools menu - Coming soon!', 'info');
+        }
+
+        function showWidgetsMenu() {
+            showNotification('Widgets menu - Coming soon!', 'info');
+        }
 
         // Context menu for servers
         let contextMenuServerId = null;
@@ -5468,9 +5911,11 @@
             }
         }
 
-        // Portal Dragging
+        // Portal Dragging (60fps with requestAnimationFrame)
         let draggedPortal = null;
         let portalDragOffset = { x: 0, y: 0 };
+        let currentMousePos = { x: 0, y: 0 };
+        let rafId = null;
 
         function startDragPortal(event, portalId) {
             const portal = portals.find(p => p.id === portalId);
@@ -5484,28 +5929,74 @@
             portalDragOffset.x = event.clientX - rect.left;
             portalDragOffset.y = event.clientY - rect.top;
             
-            document.addEventListener('mousemove', dragPortal);
+            currentMousePos.x = event.clientX;
+            currentMousePos.y = event.clientY;
+            
+            document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', stopDragPortal);
             
             focusPortal(portalId);
+            updatePortalPosition();
         }
 
-        function dragPortal(event) {
+        function onMouseMove(event) {
+            currentMousePos.x = event.clientX;
+            currentMousePos.y = event.clientY;
+        }
+
+        function updatePortalPosition() {
             if (!draggedPortal) return;
             
-            draggedPortal.position.x = event.clientX - portalDragOffset.x;
-            draggedPortal.position.y = event.clientY - portalDragOffset.y;
-            
+            const container = document.getElementById('terminalContainer');
             const portalEl = document.getElementById(draggedPortal.id);
-            if (portalEl) {
-                portalEl.style.left = draggedPortal.position.x + 'px';
-                portalEl.style.top = draggedPortal.position.y + 'px';
-            }
+            if (!portalEl || !container) return;
+            
+            const containerRect = container.getBoundingClientRect();
+            const portalRect = portalEl.getBoundingClientRect();
+            
+            // Calculate new position
+            let newX = currentMousePos.x - portalDragOffset.x;
+            let newY = currentMousePos.y - portalDragOffset.y;
+            
+            // Constrain to workspace boundaries
+            const minX = containerRect.left;
+            const minY = containerRect.top;
+            const maxX = containerRect.right - portalRect.width;
+            const maxY = containerRect.bottom - portalRect.height;
+            
+            newX = Math.max(minX, Math.min(newX, maxX));
+            newY = Math.max(minY, Math.min(newY, maxY));
+            
+            // Convert to relative position
+            draggedPortal.position.x = newX - containerRect.left;
+            draggedPortal.position.y = newY - containerRect.top;
+            
+            // Apply transform for smooth 60fps animation
+            portalEl.style.transform = `translate(${draggedPortal.position.x}px, ${draggedPortal.position.y}px)`;
+            portalEl.style.left = '0';
+            portalEl.style.top = '0';
+            
+            rafId = requestAnimationFrame(updatePortalPosition);
         }
 
         function stopDragPortal() {
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+            
+            // Finalize position
+            if (draggedPortal) {
+                const portalEl = document.getElementById(draggedPortal.id);
+                if (portalEl) {
+                    portalEl.style.left = draggedPortal.position.x + 'px';
+                    portalEl.style.top = draggedPortal.position.y + 'px';
+                    portalEl.style.transform = '';
+                }
+            }
+            
             draggedPortal = null;
-            document.removeEventListener('mousemove', dragPortal);
+            document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', stopDragPortal);
         }
 
@@ -7625,10 +8116,10 @@ Swap:       2048000           0     2048000`
             console.log('[CMD LOG]', logEntry);
         }
 
-        // Pop-out Widget Functionality
+        // Pop-out Widget Functionality (Legacy - now using radial menu widgets)
         let poppedOutWidgets = new Set();
-        let draggedWidget = null;
-        let dragOffset = { x: 0, y: 0 };
+        let oldDraggedWidget = null;
+        let oldDragOffset = { x: 0, y: 0 };
         let dragHandlersAttached = new Set();
 
         function popoutWidget(widgetId) {
