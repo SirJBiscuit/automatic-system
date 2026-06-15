@@ -27,9 +27,12 @@ if (!PASSWORD_HASH && fs.existsSync(CONFIG_FILE)) {
     }
 }
 
-// Check if password is configured
-const isFirstTimeSetup = !PASSWORD_HASH;
-if (isFirstTimeSetup) {
+// Check if password is configured (function to allow dynamic checking)
+function isFirstTimeSetup() {
+    return !PASSWORD_HASH;
+}
+
+if (isFirstTimeSetup()) {
     console.log('🔧 First-time setup required - no password configured');
     console.log('📝 Visit the web interface to set up your password');
 }
@@ -60,7 +63,7 @@ app.use((req, res, next) => {
 // Authentication middleware
 function requireAuth(req, res, next) {
     // If first-time setup, redirect to setup page
-    if (isFirstTimeSetup && !req.path.startsWith('/api/setup')) {
+    if (isFirstTimeSetup() && !req.path.startsWith('/api/setup')) {
         if (req.path.startsWith('/api/')) {
             return res.status(401).json({ success: false, error: 'Setup required', setupRequired: true });
         }
@@ -85,7 +88,7 @@ app.use('/static', requireAuth, express.static(path.join(__dirname)));
 
 // First-time setup page
 app.get('/setup', (req, res) => {
-    if (!isFirstTimeSetup) {
+    if (!isFirstTimeSetup()) {
         return res.redirect('/login');
     }
     
@@ -434,7 +437,7 @@ app.get('/setup', (req, res) => {
 
 // Setup API
 app.post('/api/setup', async (req, res) => {
-    if (!isFirstTimeSetup) {
+    if (!isFirstTimeSetup()) {
         return res.json({ success: false, error: 'Setup already completed' });
     }
     
