@@ -22,11 +22,15 @@ let SESSION_SECRET = process.env.SESSION_SECRET;
 // Try to load from config file if not in environment
 if (fs.existsSync(CONFIG_FILE)) {
     const config = fs.readFileSync(CONFIG_FILE, 'utf8');
+    console.log('📁 Config file found:', CONFIG_FILE);
     
     if (!PASSWORD_HASH) {
         const hashMatch = config.match(/EST_PASSWORD_HASH="(.+)"/);
         if (hashMatch) {
             PASSWORD_HASH = hashMatch[1];
+            console.log('✅ Password hash loaded from config');
+        } else {
+            console.log('❌ Failed to extract password hash from config');
         }
     }
     
@@ -34,8 +38,13 @@ if (fs.existsSync(CONFIG_FILE)) {
         const secretMatch = config.match(/SESSION_SECRET="(.+)"/);
         if (secretMatch) {
             SESSION_SECRET = secretMatch[1];
+            console.log('✅ Session secret loaded from config');
+        } else {
+            console.log('❌ Failed to extract session secret from config');
         }
     }
+} else {
+    console.log('❌ Config file not found:', CONFIG_FILE);
 }
 
 // Check if password is configured (function to allow dynamic checking)
