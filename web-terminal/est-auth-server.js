@@ -71,12 +71,16 @@ if (isFirstTimeSetup()) {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Trust proxy (we're behind Nginx/Cloudflare)
+app.set('trust proxy', 1);
+
 app.use(session({
     secret: SESSION_SECRET || require('crypto').randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production',
+        secure: 'auto', // Auto-detect based on X-Forwarded-Proto header
         maxAge: 30 * 60 * 1000, // 30 minutes default (can be extended with "Remember Me")
         sameSite: 'lax',
         httpOnly: true
