@@ -768,15 +768,9 @@ app.get('/', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Serve any other static files - requires authentication
-app.get('*', requireAuth, (req, res) => {
-    const filePath = path.join(__dirname, req.path);
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-        res.sendFile(filePath);
-    } else {
-        res.status(404).send('Not found');
-    }
-});
+// Catch-all route for any other requests - requires authentication
+app.use(requireAuth);
+app.use(express.static(__dirname));
 
 // Start server
 app.listen(PORT, () => {
