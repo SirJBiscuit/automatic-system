@@ -46,7 +46,7 @@ app.use(session({
     saveUninitialized: false,
     cookie: { 
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        maxAge: 30 * 60 * 1000, // 30 minutes default (can be extended with "Remember Me")
         sameSite: 'lax',
         httpOnly: true
     }
@@ -496,7 +496,7 @@ SESSION_SECRET="${sessionSecret}"
 
 // Login API
 app.post('/api/login', async (req, res) => {
-    const { password } = req.body;
+    const { password, rememberMe } = req.body;
     
     if (!password) {
         return res.json({ success: false, error: 'Password required' });
@@ -508,6 +508,14 @@ app.post('/api/login', async (req, res) => {
         if (isValid) {
             req.session.authenticated = true;
             req.session.loginTime = Date.now();
+            
+            // Extend session if "Remember Me" is checked
+            if (rememberMe) {
+                req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+            } else {
+                req.session.cookie.maxAge = 30 * 60 * 1000; // 30 minutes
+            }
+            
             res.json({ success: true });
         } else {
             res.json({ success: false, error: 'Invalid password' });
@@ -538,6 +546,62 @@ app.post('/api/logout', (req, res) => {
         }
         res.json({ success: true });
     });
+});
+
+// Reset password API (requires current password for verification)
+app.post('/api/reset-password', async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+        return res.json({ success: false, error: 'Both passwords required' });
+    }
+    
+    if (newPassword.length < 6) {
+        return res.json({ success: false, error: 'New password must be at least 6 characters' });
+    }
+    
+    try {
+        // Verify current password (admin verification)
+        const isValid = await bcrypt.compare(currentPassword, PASSWORD_HASH);
+        
+        if (!isValid) {
+            return res.json({ success: false, error: 'Current password is incorrect' });
+        }
+        
+        // Generate new hash
+        const newHash = await bcrypt.hash(newPassword, 10);
+        
+        // Update config file
+        const configDir = path.dirname(CONFIG_FILE);
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
+        
+        const sessionSecret = require('crypto').randomBytes(32).toString('hex');
+        const configContent = `# Enhanced SSH Terminal Authentication Configuration
+# Updated: ${new Date().toISOString()}
+
+EST_PASSWORD_HASH="${newHash}"
+SESSION_SECRET="${sessionSecret}"
+`;
+        
+        fs.writeFileSync(CONFIG_FILE, configContent, { mode: 0o600 });
+        
+        // Update in-memory hash
+        PASSWORD_HASH = newHash;
+        
+        // Invalidate all sessions except current
+        req.session.authenticated = true;
+        req.session.loginTime = Date.now();
+        
+        console.log('✅ Password reset successfully');
+        
+        res.json({ success: true, message: 'Password reset successfully' });
+        
+    } catch (error) {
+        console.error('Password reset error:', error);
+        res.json({ success: false, error: 'Password reset failed' });
+    }
 });
 
 // Login page
@@ -690,6 +754,79 @@ app.get('/login', (req, res) => {
             color: #888;
             font-size: 13px;
         }
+        
+        .reset-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-block;
+            margin-top: 15px;
+            transition: all 0.3s;
+        }
+        
+        .reset-link:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal-box {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .modal-header h2 {
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        
+        .modal-header p {
+            color: #666;
+            margin: 0;
+            font-size: 14px;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .modal-close:hover {
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -715,6 +852,20 @@ app.get('/login', (req, res) => {
                     autofocus
                 >
             </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #666; font-size: 14px;">
+                    <input 
+                        type="checkbox" 
+                        id="rememberMe" 
+                        name="rememberMe"
+                        style="width: 18px; height: 18px; cursor: pointer;"
+                    >
+                    <span>Remember me for 30 days</span>
+                </label>
+                <small style="display: block; margin-top: 6px; color: #888; font-size: 12px;">
+                    <i class="fas fa-info-circle"></i> Without this, session expires in 30 minutes
+                </small>
+            </div>
             <button type="submit" class="btn">
                 <i class="fas fa-sign-in-alt"></i> Login
             </button>
@@ -726,6 +877,66 @@ app.get('/login', (req, res) => {
             <p>
                 <i class="fas fa-shield-alt"></i> Protected by server-side authentication
             </p>
+            <a href="#" class="reset-link" onclick="showResetModal(); return false;">
+                <i class="fas fa-key"></i> Reset Password
+            </a>
+        </div>
+    </div>
+    
+    <!-- Reset Password Modal -->
+    <div class="modal-overlay" id="resetModal">
+        <div class="modal-box" style="position: relative;">
+            <button class="modal-close" onclick="closeResetModal()">&times;</button>
+            <div class="modal-header">
+                <h2><i class="fas fa-key"></i> Reset Password</h2>
+                <p>Enter current password to verify admin access</p>
+            </div>
+            <form id="resetForm">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-lock"></i> Current Password (Admin Verification)
+                    </label>
+                    <input 
+                        type="password" 
+                        id="currentPassword" 
+                        class="form-input"
+                        placeholder="Enter current password"
+                        required
+                    >
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-key"></i> New Password
+                    </label>
+                    <input 
+                        type="password" 
+                        id="newPassword" 
+                        class="form-input"
+                        placeholder="Enter new password"
+                        required
+                        minlength="6"
+                    >
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-key"></i> Confirm New Password
+                    </label>
+                    <input 
+                        type="password" 
+                        id="confirmNewPassword" 
+                        class="form-input"
+                        placeholder="Confirm new password"
+                        required
+                        minlength="6"
+                    >
+                </div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-check"></i> Reset Password
+                </button>
+            </form>
+            <div id="resetError" class="login-error">
+                <i class="fas fa-exclamation-circle"></i> <span id="resetErrorText"></span>
+            </div>
         </div>
     </div>
     
@@ -733,6 +944,7 @@ app.get('/login', (req, res) => {
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
             const errorDiv = document.getElementById('error');
             const errorText = document.getElementById('errorText');
             
@@ -740,7 +952,7 @@ app.get('/login', (req, res) => {
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
+                    body: JSON.stringify({ password, rememberMe })
                 });
                 
                 const data = await response.json();
@@ -758,6 +970,72 @@ app.get('/login', (req, res) => {
                 errorText.textContent = 'Login failed. Please try again.';
                 errorDiv.classList.add('show');
                 setTimeout(() => errorDiv.classList.remove('show'), 3000);
+            }
+        });
+        
+        // Reset Password Modal Functions
+        function showResetModal() {
+            document.getElementById('resetModal').classList.add('active');
+            document.getElementById('currentPassword').focus();
+        }
+        
+        function closeResetModal() {
+            document.getElementById('resetModal').classList.remove('active');
+            document.getElementById('resetForm').reset();
+            document.getElementById('resetError').classList.remove('show');
+        }
+        
+        document.getElementById('resetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            const resetError = document.getElementById('resetError');
+            const resetErrorText = document.getElementById('resetErrorText');
+            
+            // Validate passwords match
+            if (newPassword !== confirmNewPassword) {
+                resetErrorText.textContent = 'New passwords do not match';
+                resetError.classList.add('show');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                resetErrorText.textContent = 'Password must be at least 6 characters';
+                resetError.classList.add('show');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ Password reset successfully! You can now login with your new password.');
+                    closeResetModal();
+                    window.location.reload();
+                } else {
+                    resetErrorText.textContent = data.error || 'Password reset failed';
+                    resetError.classList.add('show');
+                    setTimeout(() => resetError.classList.remove('show'), 3000);
+                }
+            } catch (error) {
+                resetErrorText.textContent = 'Password reset failed. Please try again.';
+                resetError.classList.add('show');
+                setTimeout(() => resetError.classList.remove('show'), 3000);
+            }
+        });
+        
+        // Close modal on overlay click
+        document.getElementById('resetModal').addEventListener('click', (e) => {
+            if (e.target.id === 'resetModal') {
+                closeResetModal();
             }
         });
     </script>
