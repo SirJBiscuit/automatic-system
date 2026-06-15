@@ -16,35 +16,46 @@ const PORT = process.env.PORT || 8085;
 
 // Load password from environment or config file
 const CONFIG_FILE = '/etc/automatic-system/est-auth.conf';
-let PASSWORD_HASH = process.env.EST_PASSWORD_HASH;
-let SESSION_SECRET = process.env.SESSION_SECRET;
+let PASSWORD_HASH = null;
+let SESSION_SECRET = null;
 
-// Try to load from config file if not in environment
+// Try to load from config file FIRST (preferred method)
 if (fs.existsSync(CONFIG_FILE)) {
     const config = fs.readFileSync(CONFIG_FILE, 'utf8');
     console.log('📁 Config file found:', CONFIG_FILE);
     
-    if (!PASSWORD_HASH) {
-        const hashMatch = config.match(/EST_PASSWORD_HASH="(.+)"/);
-        if (hashMatch) {
-            PASSWORD_HASH = hashMatch[1];
-            console.log('✅ Password hash loaded from config');
-        } else {
-            console.log('❌ Failed to extract password hash from config');
-        }
+    const hashMatch = config.match(/EST_PASSWORD_HASH="(.+)"/);
+    if (hashMatch) {
+        PASSWORD_HASH = hashMatch[1];
+        console.log('✅ Password hash loaded from config');
+    } else {
+        console.log('❌ Failed to extract password hash from config');
     }
     
-    if (!SESSION_SECRET) {
-        const secretMatch = config.match(/SESSION_SECRET="(.+)"/);
-        if (secretMatch) {
-            SESSION_SECRET = secretMatch[1];
-            console.log('✅ Session secret loaded from config');
-        } else {
-            console.log('❌ Failed to extract session secret from config');
-        }
+    const secretMatch = config.match(/SESSION_SECRET="(.+)"/);
+    if (secretMatch) {
+        SESSION_SECRET = secretMatch[1];
+        console.log('✅ Session secret loaded from config');
+    } else {
+        console.log('❌ Failed to extract session secret from config');
     }
 } else {
     console.log('❌ Config file not found:', CONFIG_FILE);
+}
+
+// Fallback to environment variables if config didn't load
+if (!PASSWORD_HASH) {
+    PASSWORD_HASH = process.env.EST_PASSWORD_HASH;
+    if (PASSWORD_HASH) {
+        console.log('📌 Using password hash from environment variable');
+    }
+}
+
+if (!SESSION_SECRET) {
+    SESSION_SECRET = process.env.SESSION_SECRET;
+    if (SESSION_SECRET) {
+        console.log('📌 Using session secret from environment variable');
+    }
 }
 
 // Check if password is configured (function to allow dynamic checking)
