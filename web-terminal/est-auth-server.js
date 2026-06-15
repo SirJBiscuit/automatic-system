@@ -17,13 +17,24 @@ const PORT = process.env.PORT || 8085;
 // Load password from environment or config file
 const CONFIG_FILE = '/etc/automatic-system/est-auth.conf';
 let PASSWORD_HASH = process.env.EST_PASSWORD_HASH;
+let SESSION_SECRET = process.env.SESSION_SECRET;
 
 // Try to load from config file if not in environment
-if (!PASSWORD_HASH && fs.existsSync(CONFIG_FILE)) {
+if (fs.existsSync(CONFIG_FILE)) {
     const config = fs.readFileSync(CONFIG_FILE, 'utf8');
-    const match = config.match(/PASSWORD_HASH="(.+)"/);
-    if (match) {
-        PASSWORD_HASH = match[1];
+    
+    if (!PASSWORD_HASH) {
+        const hashMatch = config.match(/EST_PASSWORD_HASH="(.+)"/);
+        if (hashMatch) {
+            PASSWORD_HASH = hashMatch[1];
+        }
+    }
+    
+    if (!SESSION_SECRET) {
+        const secretMatch = config.match(/SESSION_SECRET="(.+)"/);
+        if (secretMatch) {
+            SESSION_SECRET = secretMatch[1];
+        }
     }
 }
 
@@ -41,7 +52,7 @@ if (isFirstTimeSetup()) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-    secret: process.env.SESSION_SECRET || require('crypto').randomBytes(32).toString('hex'),
+    secret: SESSION_SECRET || require('crypto').randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
     cookie: { 
