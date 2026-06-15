@@ -27,10 +27,11 @@ if (!PASSWORD_HASH && fs.existsSync(CONFIG_FILE)) {
     }
 }
 
-// Default hash for 'admin' - CHANGE THIS!
-if (!PASSWORD_HASH) {
-    PASSWORD_HASH = '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
-    console.warn('⚠️  Using default password hash! Run setup script to change password.');
+// Check if password is configured
+const isFirstTimeSetup = !PASSWORD_HASH;
+if (isFirstTimeSetup) {
+    console.log('🔧 First-time setup required - no password configured');
+    console.log('📝 Visit the web interface to set up your password');
 }
 
 // Middleware
@@ -58,6 +59,14 @@ app.use((req, res, next) => {
 
 // Authentication middleware
 function requireAuth(req, res, next) {
+    // If first-time setup, redirect to setup page
+    if (isFirstTimeSetup && !req.path.startsWith('/api/setup')) {
+        if (req.path.startsWith('/api/')) {
+            return res.status(401).json({ success: false, error: 'Setup required', setupRequired: true });
+        }
+        return res.redirect('/setup');
+    }
+    
     if (req.session && req.session.authenticated) {
         return next();
     }
@@ -73,6 +82,414 @@ function requireAuth(req, res, next) {
 
 // Serve static files (index.html) - requires authentication
 app.use('/static', requireAuth, express.static(path.join(__dirname)));
+
+// First-time setup page
+app.get('/setup', (req, res) => {
+    if (!isFirstTimeSetup) {
+        return res.redirect('/login');
+    }
+    
+    res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced SSH Terminal - First Time Setup</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .setup-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .setup-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .setup-header i {
+            font-size: 64px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        
+        .setup-header h1 {
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .setup-header p {
+            color: #666;
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        
+        .alert {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            color: #1565c0;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: start;
+            gap: 10px;
+        }
+        
+        .alert i {
+            font-size: 20px;
+            margin-top: 2px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-label {
+            display: block;
+            color: #555;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 15px 20px;
+            background: #f5f5f5;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            color: #333;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+        }
+        
+        .password-strength {
+            margin-top: 8px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .password-strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s;
+        }
+        
+        .strength-weak { background: #f44336; width: 33%; }
+        .strength-medium { background: #ff9800; width: 66%; }
+        .strength-strong { background: #4caf50; width: 100%; }
+        
+        .password-hint {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .setup-error {
+            background: #fee;
+            border: 2px solid #f88;
+            color: #c33;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 20px;
+            text-align: center;
+            animation: shake 0.5s;
+            display: none;
+        }
+        
+        .setup-error.show {
+            display: block;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-header">
+            <i class="fas fa-shield-alt"></i>
+            <h1>First Time Setup</h1>
+            <p>Create a secure password to protect your Enhanced SSH Terminal</p>
+        </div>
+        
+        <div class="alert">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <strong>Important:</strong> This password will be required to access the terminal interface. 
+                Make sure to remember it or store it securely.
+            </div>
+        </div>
+        
+        <form id="setupForm">
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-lock"></i> Create Password
+                </label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input"
+                    placeholder="Enter a strong password"
+                    required 
+                    autofocus
+                    minlength="6"
+                >
+                <div class="password-strength">
+                    <div class="password-strength-bar" id="strengthBar"></div>
+                </div>
+                <div class="password-hint" id="strengthText">Minimum 6 characters</div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-lock"></i> Confirm Password
+                </label>
+                <input 
+                    type="password" 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    class="form-input"
+                    placeholder="Re-enter your password"
+                    required
+                    minlength="6"
+                >
+            </div>
+            
+            <button type="submit" class="btn" id="submitBtn">
+                <i class="fas fa-check"></i> Complete Setup
+            </button>
+        </form>
+        
+        <div id="error" class="setup-error">
+            <i class="fas fa-exclamation-circle"></i> <span id="errorText"></span>
+        </div>
+    </div>
+    
+    <script>
+        const passwordInput = document.getElementById('password');
+        const confirmInput = document.getElementById('confirmPassword');
+        const strengthBar = document.getElementById('strengthBar');
+        const strengthText = document.getElementById('strengthText');
+        
+        // Password strength checker
+        passwordInput.addEventListener('input', () => {
+            const password = passwordInput.value;
+            let strength = 0;
+            
+            if (password.length >= 6) strength++;
+            if (password.length >= 10) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+            
+            strengthBar.className = 'password-strength-bar';
+            
+            if (strength <= 2) {
+                strengthBar.classList.add('strength-weak');
+                strengthText.textContent = 'Weak password';
+                strengthText.style.color = '#f44336';
+            } else if (strength <= 4) {
+                strengthBar.classList.add('strength-medium');
+                strengthText.textContent = 'Medium strength';
+                strengthText.style.color = '#ff9800';
+            } else {
+                strengthBar.classList.add('strength-strong');
+                strengthText.textContent = 'Strong password!';
+                strengthText.style.color = '#4caf50';
+            }
+        });
+        
+        document.getElementById('setupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = passwordInput.value;
+            const confirmPassword = confirmInput.value;
+            const errorDiv = document.getElementById('error');
+            const errorText = document.getElementById('errorText');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // Validate
+            if (password.length < 6) {
+                errorText.textContent = 'Password must be at least 6 characters';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                errorText.textContent = 'Passwords do not match';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
+            // Submit
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Setting up...';
+            
+            try {
+                const response = await fetch('/api/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i> Success! Redirecting...';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    errorText.textContent = data.error || 'Setup failed';
+                    errorDiv.classList.add('show');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i> Complete Setup';
+                }
+            } catch (error) {
+                errorText.textContent = 'Setup failed. Please try again.';
+                errorDiv.classList.add('show');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> Complete Setup';
+            }
+        });
+    </script>
+</body>
+</html>
+    `);
+});
+
+// Setup API
+app.post('/api/setup', async (req, res) => {
+    if (!isFirstTimeSetup) {
+        return res.json({ success: false, error: 'Setup already completed' });
+    }
+    
+    const { password } = req.body;
+    
+    if (!password || password.length < 6) {
+        return res.json({ success: false, error: 'Password must be at least 6 characters' });
+    }
+    
+    try {
+        // Generate bcrypt hash
+        const hash = await bcrypt.hash(password, 10);
+        
+        // Create config directory if it doesn't exist
+        const configDir = path.dirname(CONFIG_FILE);
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
+        
+        // Generate session secret
+        const sessionSecret = require('crypto').randomBytes(32).toString('hex');
+        
+        // Save to config file
+        const configContent = `# Enhanced SSH Terminal Authentication Configuration
+# Generated: ${new Date().toISOString()}
+
+EST_PASSWORD_HASH="${hash}"
+SESSION_SECRET="${sessionSecret}"
+`;
+        
+        fs.writeFileSync(CONFIG_FILE, configContent, { mode: 0o600 });
+        
+        // Update in-memory password hash
+        PASSWORD_HASH = hash;
+        
+        // Authenticate the session
+        req.session.authenticated = true;
+        req.session.loginTime = Date.now();
+        
+        console.log('✅ First-time setup completed successfully');
+        console.log('📁 Configuration saved to:', CONFIG_FILE);
+        
+        res.json({ success: true, message: 'Setup completed successfully' });
+        
+        // Note: Server needs restart to fully apply changes
+        setTimeout(() => {
+            console.log('⚠️  Please restart the service for changes to take full effect:');
+            console.log('   sudo systemctl restart est-auth');
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Setup error:', error);
+        res.json({ success: false, error: 'Setup failed. Please try again.' });
+    }
+});
 
 // Login API
 app.post('/api/login', async (req, res) => {
