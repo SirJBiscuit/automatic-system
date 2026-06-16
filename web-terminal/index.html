@@ -3454,21 +3454,6 @@
                             <strong>Add Server</strong>
                             <small style="opacity: 0.8;">Connect to SSH</small>
                         </button>
-                        <button class="btn btn-secondary" onclick="createNewWidget()" style="padding: 20px; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                            <i class="fas fa-th" style="font-size: 32px;"></i>
-                            <strong>Create Widget</strong>
-                            <small style="opacity: 0.8;">Custom tools</small>
-                        </button>
-                        <button class="btn btn-secondary" onclick="createNewScript()" style="padding: 20px; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                            <i class="fas fa-file-code" style="font-size: 32px;"></i>
-                            <strong>New Script</strong>
-                            <small style="opacity: 0.8;">Automate tasks</small>
-                        </button>
-                        <button class="btn btn-secondary" onclick="startDemoTerminal()" style="padding: 20px; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                            <i class="fas fa-play-circle" style="font-size: 32px;"></i>
-                            <strong>Try Demo</strong>
-                            <small style="opacity: 0.8;">Interactive demo</small>
-                        </button>
                     </div>
                     
                     <div style="max-width: 600px; margin: 0 auto; padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.3);">
@@ -3775,10 +3760,6 @@
         <div class="context-menu-item" onclick="createNewTerminal()">
             <i class="fas fa-terminal"></i>
             <span>Terminal Window</span>
-        </div>
-        <div class="context-menu-item" onclick="createNewWidget()">
-            <i class="fas fa-th"></i>
-            <span>Widget</span>
         </div>
         <div class="context-menu-item" onclick="createNewScript()">
             <i class="fas fa-file-code"></i>
@@ -4427,6 +4408,11 @@
                 }
                 
                 renderTabs();
+                renderTerminal();
+            } else {
+                // No saved tabs - ensure workspace is empty
+                tabs = [];
+                activeTabId = null;
                 renderTerminal();
             }
 
