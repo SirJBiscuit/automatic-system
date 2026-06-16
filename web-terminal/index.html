@@ -7745,11 +7745,23 @@ Swap:       2048000           0     2048000`
                 `;
                 
                 if (isFolder) {
-                    item.onclick = () => {
-                        const subContainer = document.createElement('div');
-                        subContainer.style.marginLeft = '20px';
-                        item.after(subContainer);
-                        renderFileTree(path + name + '/', structure[name], subContainer);
+                    // Single click to expand/collapse folder
+                    item.onclick = (e) => {
+                        e.stopPropagation();
+                        const existing = item.nextElementSibling;
+                        if (existing && existing.style.marginLeft === '20px') {
+                            existing.remove();
+                        } else {
+                            const subContainer = document.createElement('div');
+                            subContainer.style.marginLeft = '20px';
+                            item.after(subContainer);
+                            renderFileTree(path + name + '/', structure[name], subContainer);
+                        }
+                    };
+                    // Double click to navigate to directory
+                    item.ondblclick = (e) => {
+                        e.stopPropagation();
+                        navigateToDirectory(path + name + '/');
                     };
                 } else {
                     item.onclick = () => {
@@ -7761,12 +7773,21 @@ Swap:       2048000           0     2048000`
             });
         }
 
+        function navigateToDirectory(dirPath) {
+            if (demoTerminalActive) {
+                executeDemoCommand(`cd ${dirPath}`);
+                document.getElementById('demoInput').focus();
+            } else {
+                showNotification(`Navigate to: ${dirPath}`, 'info');
+            }
+        }
+
         function openFileInTerminal(filePath) {
             if (demoTerminalActive) {
                 executeDemoCommand(`cat ${filePath}`);
                 document.getElementById('demoInput').focus();
             } else {
-                alert(`Would open file: ${filePath}\\n(Start demo terminal first)`);
+                showNotification(`Open file: ${filePath}`, 'info');
             }
         }
 
