@@ -66,15 +66,40 @@ const onMouseMove = (e) => {
 
 ## 📋 TESTING CHECKLIST
 
-- [ ] Widgets persist after refresh
-- [ ] Widget dragging works smoothly with correct positioning
-- [ ] Try Demo button creates demo session
-- [ ] Widget creation modal is dark
-- [ ] Script editor text is visible in dark mode
-- [ ] Workspace is empty on fresh load
+- [X] Widgets persist after refresh
+- [ ] Optimize Widget dragging works smoothly with correct positioning
+- [X] Fix Try Demo button creates demo session - needs to be removed ✅ REMOVED
+- [X] FixWidget creation modal is dark - needs removed ✅ REMOVED
+- [ ] Fix Script editor text isn't visible in dark mode
+- [X] Workspace needs to be empty on fresh load ✅ FIXED - shows empty state when no persisted sessions
 - [ ] Only persisted connections restore on refresh
 - [ ] Icons show correctly in server list
 - [ ] Icons show correctly in View menu
+- [ ] All buttons and inputs are properly styled
+- [ ] All widgets are properly positioned and draggable
+- [ ] All functionality works as expected
+- [ ] All error handling works correctly
+- [ ] All security measures are in place
+- [ ] All documentation is complete
+- [ ] All code is properly formatted and documented
+- [ ] All tests pass
+- [ ] All performance optimizations are in place
+- [ ] All accessibility features are implemented
+- [ ] Remove buttons that don't belong as before removing them
+- [ ] Remove Try Demo button
+- [ ] Remove any other unnecessary buttons or features
+- [ ] Remove any other unnecessary features
+- [ ] Fix Ai Assistant Connection to OpenAI API
+- [ ] Fix Buttons Overlapping UI Elements
+- [X] Fix File Browser adding directory code to terminal ✅ FIXED - single click expands, double click navigates (cd)
+- [ ] Fix Syntax Code Highlighting in Terminal
+- [ ] Fix Terminal Output Formatting
+- [ ] Fix Command History Properly
+- [X] Fix Rightclicking Workspace Functionalilty and make sure we can still open the developer inspector for the website ✅ FIXED - Shift+Right-Click opens dev tools
+- [ ] Work on Mobile Support / automatic layout switching
+- [ ] Remove Tabsystem and Just have a floating window system in the Workspace
+- [] Fix Popout buttton skips the Server Authentication password prompt
+
 
 ### 11. Host Discovery Implementation
 **Issue**: Network host discovery uses simulated data instead of real scanning
