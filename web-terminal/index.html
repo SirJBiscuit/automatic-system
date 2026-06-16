@@ -4166,23 +4166,12 @@
         }
 
         // Check if user is logged in
+        // NOTE: Authentication is now handled by the server (est-auth-server.js)
+        // This function is kept for compatibility but always returns true
         function checkAuth() {
-            const session = sessionStorage.getItem('ssh_terminal_session');
-            const savedHash = localStorage.getItem('ssh_terminal_password');
-            
-            // First time setup - no password set
-            if (!savedHash) {
-                showFirstTimeSetup();
-                return false;
-            }
-            
-            // Check if session is valid
-            if (session === 'authenticated') {
-                showMainApp();
-                return true;
-            }
-            
-            return false;
+            // Server-side auth handles login, so if we're here, we're authenticated
+            showMainApp();
+            return true;
         }
 
         // Show first-time password setup

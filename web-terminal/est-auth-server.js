@@ -81,9 +81,9 @@ app.use(session({
     saveUninitialized: false,
     proxy: true, // Trust the reverse proxy
     cookie: { 
-        secure: 'auto', // Auto-detect based on X-Forwarded-Proto header
+        secure: true, // Always use secure cookies (we're behind HTTPS via Cloudflare)
         maxAge: 30 * 60 * 1000, // 30 minutes default (can be extended with "Remember Me")
-        sameSite: 'lax',
+        sameSite: 'none', // Required for cookies to work through Cloudflare tunnel
         httpOnly: true
     }
 }));
