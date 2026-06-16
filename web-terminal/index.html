@@ -6240,6 +6240,11 @@
 
         // Global context menu - works everywhere except specific elements
         document.addEventListener('contextmenu', (e) => {
+            // Allow browser dev tools with Shift+Right-Click or Ctrl+Shift+Right-Click
+            if (e.shiftKey) {
+                return;
+            }
+
             // Allow default context menu on input fields and textareas
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
                 return;
