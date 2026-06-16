@@ -4548,38 +4548,46 @@
             const server = servers.find(s => s.id === serverId);
             if (!server) return;
             
-            // Create a new tab for this server
-            const tabId = 'tab_' + Date.now();
-            const protocol = server.protocol || 'https';
-            const tab = {
-                id: tabId,
-                serverId: serverId,
-                serverName: server.name,
-                serverIcon: server.icon,
-                url: `${protocol}://${server.host}${server.host.includes('.') ? '' : ':' + server.port}`
-            };
-            
-            tabs.push(tab);
-            activeTabId = tabId;
-            
-            // Create portal in floating mode
-            const portal = {
-                id: 'portal_' + (++portalCounter),
-                tabId: tab.id,
-                serverName: tab.serverName,
-                url: tab.url,
-                docked: false, // Start undocked
-                compact: false,
-                position: { x: 100 + (portals.length * 30), y: 100 + (portals.length * 30) },
-                size: { width: 900, height: 650 }
-            };
-            
-            portals.push(portal);
-            activePortalId = portal.id;
-            
-            renderTabs();
-            renderPortals();
-            showNotification(`Popped out ${server.name}`, 'success');
+            // Show password prompt before popping out
+            showServerPasswordPrompt(server, (authenticated) => {
+                if (!authenticated) {
+                    showNotification('Authentication failed', 'error');
+                    return;
+                }
+                
+                // Create a new tab for this server
+                const tabId = 'tab_' + Date.now();
+                const protocol = server.protocol || 'https';
+                const tab = {
+                    id: tabId,
+                    serverId: serverId,
+                    serverName: server.name,
+                    serverIcon: server.icon,
+                    url: `${protocol}://${server.host}:${server.port}`
+                };
+                
+                tabs.push(tab);
+                activeTabId = tabId;
+                
+                // Create portal in floating mode
+                const portal = {
+                    id: 'portal_' + (++portalCounter),
+                    tabId: tab.id,
+                    serverName: tab.serverName,
+                    url: tab.url,
+                    docked: false, // Start undocked
+                    compact: false,
+                    position: { x: 100 + (portals.length * 30), y: 100 + (portals.length * 30) },
+                    size: { width: 900, height: 650 }
+                };
+                
+                portals.push(portal);
+                activePortalId = portal.id;
+                
+                renderTabs();
+                renderPortals();
+                showNotification(`Popped out ${server.name}`, 'success');
+            });
         }
 
         // Drag server to workspace
