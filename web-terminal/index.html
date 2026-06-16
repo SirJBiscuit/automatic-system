@@ -620,36 +620,73 @@
 
         /* Tab Bar */
         .tab-bar {
-            background: #252525;
-            border-bottom: 1px solid #333;
+            background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+            border-bottom: 2px solid #667eea;
             display: flex;
             align-items: center;
-            padding: 0 10px;
-            min-height: 42px;
+            padding: 8px 12px;
+            min-height: 48px;
+            gap: 6px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        
+        .tab-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+        
+        .tab-bar::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 2px;
         }
 
         .tab {
-            background: transparent;
-            border: none;
-            padding: 10px 16px;
-            color: #888;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            padding: 8px 14px;
+            color: #999;
             cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s ease;
-            border-bottom: 2px solid transparent;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 8px 8px 0 0;
             display: flex;
             align-items: center;
             gap: 8px;
+            position: relative;
+            white-space: nowrap;
+            min-width: 140px;
+            max-width: 200px;
+        }
+        
+        .tab::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
         }
 
         .tab:hover {
             color: #fff;
-            background: rgba(255,255,255,0.05);
+            background: rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.5);
+            transform: translateY(-2px);
         }
 
         .tab.active {
             color: #fff;
-            border-bottom-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .tab.active::before {
+            transform: scaleX(1);
         }
 
         .tab-close {
@@ -707,6 +744,43 @@
             height: auto;
         }
 
+        /* Drop zones for dragging servers */
+        .drop-zone {
+            position: absolute;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 3999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        
+        .drop-zone::before {
+            content: '\f0b2';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            font-size: 48px;
+            color: #667eea;
+            opacity: 0.5;
+        }
+
+        .drop-zone.active {
+            opacity: 1;
+            transform: scale(1.02);
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+        }
+        
+        .drop-zone.hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.4) 0%, rgba(118, 75, 162, 0.4) 100%);
+            border-color: #764ba2;
+            transform: scale(1.05);
+        }
+        
         /* Snap zones */
         .snap-zone {
             position: fixed;
@@ -4569,7 +4643,7 @@
                 tabs.push(tab);
                 activeTabId = tabId;
                 
-                // Create portal in floating mode
+                // Create portal in floating mode with auto-layout
                 const portal = {
                     id: 'portal_' + (++portalCounter),
                     tabId: tab.id,
@@ -4577,12 +4651,15 @@
                     url: tab.url,
                     docked: false, // Start undocked
                     compact: false,
-                    position: { x: 100 + (portals.length * 30), y: 100 + (portals.length * 30) },
-                    size: { width: 900, height: 650 }
+                    position: { x: 0, y: 0 }, // Will be set by auto-layout
+                    size: { width: 0, height: 0 } // Will be set by auto-layout
                 };
                 
                 portals.push(portal);
                 activePortalId = portal.id;
+                
+                // Auto-layout all portals
+                autoLayoutPortals();
                 
                 renderTabs();
                 renderPortals();
@@ -4600,6 +4677,76 @@
             
             // Visual feedback
             event.target.style.opacity = '0.5';
+            
+            // Show drop zones
+            showDropZones();
+        }
+
+        // Show visual drop zones when dragging
+        function showDropZones() {
+            const workspace = document.querySelector('.terminal-area');
+            if (!workspace) return;
+            
+            // Calculate grid layout based on current portals
+            const numPortals = portals.length + 1; // +1 for the new one
+            const zones = calculateDropZoneLayout(numPortals);
+            
+            // Remove existing drop zones
+            document.querySelectorAll('.drop-zone').forEach(el => el.remove());
+            
+            // Create drop zones
+            zones.forEach((zone, index) => {
+                const dropZone = document.createElement('div');
+                dropZone.className = 'drop-zone';
+                dropZone.style.left = zone.x + 'px';
+                dropZone.style.top = zone.y + 'px';
+                dropZone.style.width = zone.width + 'px';
+                dropZone.style.height = zone.height + 'px';
+                dropZone.dataset.index = index;
+                workspace.appendChild(dropZone);
+                
+                // Animate in
+                setTimeout(() => dropZone.classList.add('active'), 50 * index);
+            });
+        }
+        
+        // Calculate optimal drop zone layout
+        function calculateDropZoneLayout(count) {
+            const workspace = document.querySelector('.terminal-area');
+            if (!workspace) return [];
+            
+            const rect = workspace.getBoundingClientRect();
+            const padding = 20;
+            const gap = 15;
+            
+            // Calculate grid dimensions
+            const cols = Math.ceil(Math.sqrt(count));
+            const rows = Math.ceil(count / cols);
+            
+            const zoneWidth = (rect.width - padding * 2 - gap * (cols - 1)) / cols;
+            const zoneHeight = (rect.height - padding * 2 - gap * (rows - 1)) / rows;
+            
+            const zones = [];
+            for (let i = 0; i < count; i++) {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                zones.push({
+                    x: padding + col * (zoneWidth + gap),
+                    y: padding + row * (zoneHeight + gap),
+                    width: zoneWidth,
+                    height: zoneHeight
+                });
+            }
+            
+            return zones;
+        }
+        
+        // Hide drop zones
+        function hideDropZones() {
+            document.querySelectorAll('.drop-zone').forEach(el => {
+                el.classList.remove('active');
+                setTimeout(() => el.remove(), 300);
+            });
         }
 
         // Setup workspace drop zone
@@ -4609,6 +4756,21 @@
                 workspace.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'copy';
+                    
+                    // Highlight nearest drop zone
+                    const zones = document.querySelectorAll('.drop-zone');
+                    zones.forEach(zone => {
+                        const rect = zone.getBoundingClientRect();
+                        const distance = Math.hypot(
+                            e.clientX - (rect.left + rect.width / 2),
+                            e.clientY - (rect.top + rect.height / 2)
+                        );
+                        if (distance < 200) {
+                            zone.classList.add('hover');
+                        } else {
+                            zone.classList.remove('hover');
+                        }
+                    });
                 });
                 
                 workspace.addEventListener('drop', (e) => {
@@ -4617,12 +4779,20 @@
                         popOutServer(draggedServerId);
                         draggedServerId = null;
                     }
+                    hideDropZones();
+                });
+                
+                workspace.addEventListener('dragleave', (e) => {
+                    if (e.target === workspace) {
+                        hideDropZones();
+                    }
                 });
             }
             
             // Reset opacity on drag end
             document.addEventListener('dragend', (e) => {
                 e.target.style.opacity = '';
+                hideDropZones();
             });
             
             // Radial menu on workspace right-click
@@ -5441,8 +5611,27 @@
 
                 tabs.push(tab);
                 activeTabId = tabId;
+                
+                // Auto-create portal for the connection
+                const portal = {
+                    id: 'portal_' + (++portalCounter),
+                    tabId: tab.id,
+                    serverName: tab.serverName,
+                    url: tab.url,
+                    docked: false,
+                    compact: false,
+                    position: { x: 0, y: 0 },
+                    size: { width: 0, height: 0 }
+                };
+                
+                portals.push(portal);
+                activePortalId = portal.id;
+                
+                // Auto-layout all portals
+                autoLayoutPortals();
+                
                 renderTabs();
-                renderTerminal();
+                renderPortals();
                 showNotification(`Connected to ${server.name}`, 'success');
             });
         }
@@ -5904,6 +6093,41 @@
             
             // Setup drag and drop
             setupFileDragDrop();
+        }
+
+        // Auto-layout portals in a grid
+        function autoLayoutPortals() {
+            if (portals.length === 0) return;
+            
+            const workspace = document.querySelector('.terminal-area');
+            if (!workspace) return;
+            
+            const rect = workspace.getBoundingClientRect();
+            const padding = 20;
+            const gap = 15;
+            
+            // Calculate grid dimensions
+            const cols = Math.ceil(Math.sqrt(portals.length));
+            const rows = Math.ceil(portals.length / cols);
+            
+            const portalWidth = (rect.width - padding * 2 - gap * (cols - 1)) / cols;
+            const portalHeight = (rect.height - padding * 2 - gap * (rows - 1)) / rows;
+            
+            // Layout each portal
+            portals.forEach((portal, index) => {
+                const col = index % cols;
+                const row = Math.floor(index / cols);
+                
+                portal.position = {
+                    x: padding + col * (portalWidth + gap),
+                    y: padding + row * (portalHeight + gap)
+                };
+                
+                portal.size = {
+                    width: portalWidth,
+                    height: portalHeight
+                };
+            });
         }
 
         // Portal Control Functions
