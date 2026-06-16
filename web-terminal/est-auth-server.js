@@ -77,15 +77,15 @@ app.set('trust proxy', 1);
 
 app.use(session({
     secret: SESSION_SECRET || require('crypto').randomBytes(32).toString('hex'),
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Force session save on every request
+    saveUninitialized: true, // Save new sessions immediately
     proxy: true, // Trust the reverse proxy
     cookie: { 
         secure: true, // Always use secure cookies (we're behind HTTPS via Cloudflare)
         maxAge: 30 * 60 * 1000, // 30 minutes default (can be extended with "Remember Me")
         sameSite: 'lax', // Lax mode - works for same-site navigation (better mobile support)
         httpOnly: true,
-        domain: undefined // Don't set domain, let browser handle it
+        path: '/' // Explicitly set cookie path
     }
 }));
 
@@ -553,7 +553,15 @@ app.post('/api/login', async (req, res) => {
                 req.session.cookie.maxAge = 30 * 60 * 1000; // 30 minutes
             }
             
-            res.json({ success: true });
+            // Force session save before responding
+            req.session.save((err) => {
+                if (err) {
+                    console.error('Session save error:', err);
+                    return res.json({ success: false, error: 'Session error' });
+                }
+                console.log('✅ Login successful, session saved');
+                res.json({ success: true });
+            });
         } else {
             res.json({ success: false, error: 'Invalid password' });
         }
