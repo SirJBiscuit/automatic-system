@@ -83,8 +83,9 @@ app.use(session({
     cookie: { 
         secure: true, // Always use secure cookies (we're behind HTTPS via Cloudflare)
         maxAge: 30 * 60 * 1000, // 30 minutes default (can be extended with "Remember Me")
-        sameSite: 'none', // Required for cookies to work through Cloudflare tunnel
-        httpOnly: true
+        sameSite: 'lax', // Lax mode - works for same-site navigation (better mobile support)
+        httpOnly: true,
+        domain: undefined // Don't set domain, let browser handle it
     }
 }));
 
