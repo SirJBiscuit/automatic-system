@@ -79,6 +79,7 @@ app.use(session({
     secret: SESSION_SECRET || require('crypto').randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
+    proxy: true, // Trust the reverse proxy
     cookie: { 
         secure: 'auto', // Auto-detect based on X-Forwarded-Proto header
         maxAge: 30 * 60 * 1000, // 30 minutes default (can be extended with "Remember Me")
