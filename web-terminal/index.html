@@ -3352,46 +3352,8 @@
     </style>
 </head>
 <body>
-    <!-- Login Screen -->
-    <div class="login-screen" id="loginScreen">
-        <div class="login-container">
-            <div class="login-header">
-                <i class="fas fa-terminal" style="font-size: 48px; color: #667eea; margin-bottom: 16px;"></i>
-                <h1 style="color: #fff; margin: 0 0 8px 0;">Enhanced SSH Terminal</h1>
-                <p style="color: #888; margin: 0;">Admin Access Required</p>
-            </div>
-            <form id="loginForm" onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label class="form-label">
-                        <i class="fas fa-lock"></i> Password
-                    </label>
-                    <input 
-                        type="password" 
-                        id="loginPassword" 
-                        class="form-input" 
-                        placeholder="Enter admin password"
-                        autocomplete="current-password"
-                        required
-                        autofocus
-                    >
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">
-                    <i class="fas fa-sign-in-alt"></i> Login
-                </button>
-            </form>
-            <div id="loginError" class="login-error" style="display: none;">
-                <i class="fas fa-exclamation-circle"></i> Incorrect password
-            </div>
-            <div class="login-footer">
-                <p style="color: #666; font-size: 12px; margin: 16px 0 0 0;">
-                    <i class="fas fa-info-circle"></i> First time? Set your password on first login
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Application (hidden until logged in) -->
-    <div id="mainApp" style="display: none;">
+    <!-- Main Application -->
+    <div id="mainApp">
     <!-- Toolbar -->
     <div class="toolbar">
         <div class="toolbar-left">
@@ -4269,36 +4231,18 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
-        // Check if user is logged in
-        // NOTE: Authentication is now handled by the server (est-auth-server.js)
-        // This function is kept for compatibility but always returns true
+        // Authentication is handled by the server (est-auth-server.js)
+        // Show main app immediately since server already authenticated
         function checkAuth() {
-            // Server-side auth handles login, so if we're here, we're authenticated
             showMainApp();
             return true;
         }
 
-        // Show first-time password setup
-        function showFirstTimeSetup() {
-            const loginForm = document.getElementById('loginForm');
-            const loginHeader = document.querySelector('.login-header p');
-            const loginFooter = document.querySelector('.login-footer p');
-            
-            loginHeader.innerHTML = '<strong style="color: #667eea;">First Time Setup</strong>';
-            loginFooter.innerHTML = '<i class="fas fa-shield-alt"></i> Create a secure password to protect your terminal';
-            document.getElementById('loginPassword').placeholder = 'Create admin password';
-        }
-
-        // Handle login form submission
+        // Legacy function - no longer used (kept for compatibility)
         async function handleLogin(event) {
             event.preventDefault();
-            
-            const password = document.getElementById('loginPassword').value;
-            const savedHash = localStorage.getItem('ssh_terminal_password');
-            const loginError = document.getElementById('loginError');
-            
-            // First time setup - save password
-            if (!savedHash) {
+            // Server handles authentication - this code never runs
+            if (false) {
                 if (password.length < 6) {
                     loginError.textContent = 'Password must be at least 6 characters';
                     loginError.style.display = 'block';
@@ -4480,10 +4424,8 @@
         // Check auth on page load
         window.addEventListener('DOMContentLoaded', () => {
             // If accessing term.cloudmc.online directly (not embedded in iframe), require fresh login
-            if (window.location.hostname === 'term.cloudmc.online' && window.self === window.top) {
-                sessionStorage.removeItem('ssh_terminal_session');
-            }
-            checkAuth();
+            // Server-side authentication only
+            showMainApp();
         });
 
         // ===== END AUTHENTICATION SYSTEM =====
@@ -9108,19 +9050,10 @@ Swap:       2048000           0     2048000`
             }
 
             list.innerHTML = filtered.map(item => `
-                <div class="history-item" onclick="runHistoryCommand('${item.id}')">
-                    <div class="history-item-command">${item.command}</div>
-                    <div class="history-item-actions">
-                        <button class="history-action-btn ${item.favorite ? 'favorite' : ''}" 
-                                onclick="event.stopPropagation(); toggleFavorite('${item.id}')" 
-                                title="${item.favorite ? 'Remove from favorites' : 'Add to favorites'}">
-                            <i class="fas fa-star"></i>
-                        </button>
-                        <button class="history-action-btn" 
-                                onclick="event.stopPropagation(); deleteHistoryItem('${item.id}')" 
-                                title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                <div class="history-item" onclick="runHistoryCommand('${item.id}')" title="Click to use this command">
+                    <div class="history-item-command">
+                        ${item.favorite ? '<i class="fas fa-star" style="color: #fbbf24; margin-right: 8px;"></i>' : ''}
+                        ${item.command}
                     </div>
                 </div>
             `).join('');
