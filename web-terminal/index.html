@@ -3773,7 +3773,7 @@
     </div>
 
     <!-- File Transfer Panel -->
-    <div class="file-transfer-panel" id="fileTransferPanel">
+    <div class="file-transfer-panel active" id="fileTransferPanel">
         <div class="file-transfer-header">
             <div class="file-transfer-title">
                 <i class="fas fa-exchange-alt"></i> File Transfers
@@ -3784,6 +3784,15 @@
         </div>
         <div class="file-transfer-list" id="fileTransferList">
             <!-- Transfer items will be added here -->
+            <div style="padding: 20px; text-align: center; color: #888;">
+                <p>Right-click on terminal and select "Upload File..." or "Download File..." to test</p>
+                <button onclick="uploadFile()" style="margin: 10px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    <i class="fas fa-upload"></i> Test Upload
+                </button>
+                <button onclick="downloadFile()" style="margin: 10px; padding: 8px 16px; background: #764ba2; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    <i class="fas fa-download"></i> Test Download
+                </button>
+            </div>
         </div>
     </div>
 
