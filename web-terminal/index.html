@@ -2735,17 +2735,68 @@
 
         .file-transfer-progress {
             width: 100%;
-            height: 4px;
+            height: 24px;
             background: #333;
-            border-radius: 2px;
+            border-radius: 6px;
             overflow: hidden;
-            margin-bottom: 6px;
+            margin-bottom: 12px;
+            position: relative;
         }
 
         .file-transfer-progress-bar {
             height: 100%;
             background: linear-gradient(90deg, #667eea, #764ba2);
             transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .progress-text {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+        
+        .file-transfer-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+        }
+        
+        .transfer-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .transfer-stat i {
+            color: #667eea;
+            font-size: 12px;
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            font-family: 'Courier New', monospace;
         }
 
         .file-transfer-status {
@@ -2753,6 +2804,8 @@
             color: #888;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
         }
 
         .file-transfer-status.complete {
@@ -6241,7 +6294,11 @@
                     size: file.size,
                     progress: 0,
                     status: 'uploading',
-                    type: 'upload'
+                    type: 'upload',
+                    startTime: Date.now(),
+                    bytesTransferred: 0,
+                    speed: 0,
+                    eta: 0
                 };
 
                 fileTransfers.push(transfer);
@@ -6251,18 +6308,45 @@
         }
 
         function simulateFileUpload(transfer) {
-            // Simulate upload progress
+            // Simulate upload progress with realistic speed
             let progress = 0;
+            let lastUpdate = Date.now();
+            let lastBytes = 0;
+            
             const interval = setInterval(() => {
-                progress += Math.random() * 15;
+                const now = Date.now();
+                const timeDelta = (now - lastUpdate) / 1000; // seconds
+                
+                // Simulate random speed between 5-20 MB/s
+                const speedMBps = 5 + Math.random() * 15;
+                const bytesPerTick = (speedMBps * 1024 * 1024 * timeDelta);
+                
+                progress += (bytesPerTick / transfer.size) * 100;
+                
                 if (progress >= 100) {
                     progress = 100;
                     transfer.progress = 100;
+                    transfer.bytesTransferred = transfer.size;
                     transfer.status = 'complete';
+                    transfer.speed = 0;
+                    transfer.eta = 0;
                     clearInterval(interval);
                 } else {
                     transfer.progress = progress;
+                    transfer.bytesTransferred = (progress / 100) * transfer.size;
+                    
+                    // Calculate speed
+                    const bytesDelta = transfer.bytesTransferred - lastBytes;
+                    transfer.speed = bytesDelta / timeDelta; // bytes per second
+                    
+                    // Calculate ETA
+                    const bytesRemaining = transfer.size - transfer.bytesTransferred;
+                    transfer.eta = transfer.speed > 0 ? bytesRemaining / transfer.speed : 0;
+                    
+                    lastBytes = transfer.bytesTransferred;
                 }
+                
+                lastUpdate = now;
                 updateFileTransfer(transfer);
             }, 200);
         }
@@ -6273,17 +6357,42 @@
             item.className = 'file-transfer-item';
             item.id = transfer.id;
             
+            const elapsed = formatTime((Date.now() - transfer.startTime) / 1000);
+            const eta = formatTime(transfer.eta);
+            const speed = formatSpeed(transfer.speed);
+            
             item.innerHTML = `
                 <div class="file-transfer-item-header">
-                    <div class="file-transfer-name">${transfer.name}</div>
+                    <div class="file-transfer-name">
+                        <i class="fas fa-${transfer.type === 'upload' ? 'upload' : 'download'}"></i>
+                        ${transfer.name}
+                    </div>
                     <div class="file-transfer-size">${formatFileSize(transfer.size)}</div>
                 </div>
                 <div class="file-transfer-progress">
-                    <div class="file-transfer-progress-bar" style="width: ${transfer.progress}%"></div>
+                    <div class="file-transfer-progress-bar" style="width: ${transfer.progress}%">
+                        <span class="progress-text">${Math.round(transfer.progress)}%</span>
+                    </div>
+                </div>
+                <div class="file-transfer-stats">
+                    <div class="transfer-stat">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span class="stat-label">Speed:</span>
+                        <span class="stat-value speed-value">${speed}</span>
+                    </div>
+                    <div class="transfer-stat">
+                        <i class="fas fa-clock"></i>
+                        <span class="stat-label">Elapsed:</span>
+                        <span class="stat-value elapsed-value">${elapsed}</span>
+                    </div>
+                    <div class="transfer-stat">
+                        <i class="fas fa-hourglass-half"></i>
+                        <span class="stat-label">Remaining:</span>
+                        <span class="stat-value eta-value">${eta}</span>
+                    </div>
                 </div>
                 <div class="file-transfer-status">
-                    <span>${transfer.type === 'upload' ? 'Uploading...' : 'Downloading...'}</span>
-                    <span>${Math.round(transfer.progress)}%</span>
+                    <span>${transfer.type === 'upload' ? 'Uploading to share.cloudmc.online...' : 'Downloading from share.cloudmc.online...'}</span>
                 </div>
             `;
             
@@ -6295,26 +6404,40 @@
             if (!item) return;
 
             const progressBar = item.querySelector('.file-transfer-progress-bar');
+            const progressText = item.querySelector('.progress-text');
             const status = item.querySelector('.file-transfer-status');
+            const speedValue = item.querySelector('.speed-value');
+            const elapsedValue = item.querySelector('.elapsed-value');
+            const etaValue = item.querySelector('.eta-value');
             
+            // Update progress bar
             progressBar.style.width = transfer.progress + '%';
+            if (progressText) progressText.textContent = Math.round(transfer.progress) + '%';
             
+            // Update stats
+            const elapsed = (Date.now() - transfer.startTime) / 1000;
+            if (speedValue) speedValue.textContent = formatSpeed(transfer.speed);
+            if (elapsedValue) elapsedValue.textContent = formatTime(elapsed);
+            if (etaValue) etaValue.textContent = formatTime(transfer.eta);
+            
+            // Update status
             if (transfer.status === 'complete') {
                 status.className = 'file-transfer-status complete';
                 status.innerHTML = `
-                    <span><i class="fas fa-check"></i> Complete</span>
-                    <span>100%</span>
+                    <span><i class="fas fa-check-circle"></i> Transfer complete! Uploaded to share.cloudmc.online</span>
                 `;
+                if (speedValue) speedValue.textContent = '-';
+                if (etaValue) etaValue.textContent = '0s';
             } else if (transfer.status === 'error') {
                 status.className = 'file-transfer-status error';
                 status.innerHTML = `
-                    <span><i class="fas fa-times"></i> Failed</span>
-                    <span>-</span>
+                    <span><i class="fas fa-exclamation-circle"></i> Transfer failed</span>
                 `;
+                if (speedValue) speedValue.textContent = '-';
+                if (etaValue) etaValue.textContent = '-';
             } else {
                 status.innerHTML = `
-                    <span>${transfer.type === 'upload' ? 'Uploading...' : 'Downloading...'}</span>
-                    <span>${Math.round(transfer.progress)}%</span>
+                    <span>${transfer.type === 'upload' ? 'Uploading to share.cloudmc.online...' : 'Downloading from share.cloudmc.online...'}</span>
                 `;
             }
         }
@@ -6326,23 +6449,48 @@
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
         }
+        
+        function formatSpeed(bytesPerSecond) {
+            if (bytesPerSecond === 0) return '0 B/s';
+            const k = 1024;
+            const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+            const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
+            return Math.round(bytesPerSecond / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        function formatTime(seconds) {
+            if (seconds === 0 || !isFinite(seconds)) return '0s';
+            if (seconds < 60) return Math.round(seconds) + 's';
+            if (seconds < 3600) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.round(seconds % 60);
+                return `${mins}m ${secs}s`;
+            }
+            const hours = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            return `${hours}h ${mins}m`;
+        }
 
         function closeFileTransferPanel() {
             document.getElementById('fileTransferPanel').classList.remove('active');
         }
 
         function downloadFile() {
-            const filename = prompt('Enter filename to download:', '/path/to/file');
+            const filename = prompt('Enter filename to download from share.cloudmc.online:', '/path/to/file');
             if (!filename) return;
 
             const transferId = 'transfer_' + (transferIdCounter++);
             const transfer = {
                 id: transferId,
                 name: filename.split('/').pop(),
-                size: Math.random() * 10000000, // Random size for demo
+                size: Math.random() * 50000000 + 10000000, // Random size 10-60 MB for demo
                 progress: 0,
                 status: 'downloading',
-                type: 'download'
+                type: 'download',
+                startTime: Date.now(),
+                bytesTransferred: 0,
+                speed: 0,
+                eta: 0
             };
 
             const panel = document.getElementById('fileTransferPanel');
