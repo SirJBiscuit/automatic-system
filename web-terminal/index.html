@@ -46,7 +46,7 @@
             align-items: center;
             color: white;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
+            z-index: 5000;
             position: relative;
             overflow: visible;
         }
@@ -197,12 +197,13 @@
         /* Main Container - Boundary System */
         .workspace {
             display: grid;
-            grid-template-columns: 250px 1fr;
+            grid-template-columns: 280px 1fr;
             height: calc(100vh - 60px);
             background: #1a1a1a;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            gap: 0;
         }
 
         .workspace.floating {
@@ -223,14 +224,12 @@
         .server-panel {
             grid-column: 1;
             background: #1e1e1e;
-            border-right: 1px solid #333;
+            border-right: 2px solid #333;
             display: flex;
             flex-direction: column;
             overflow: hidden;
             position: relative;
             z-index: 100;
-            width: 280px;
-            min-width: 280px;
         }
 
         .server-panel-header {
@@ -582,24 +581,7 @@
             opacity: 1;
         }
 
-        .history-action-btn {
-            background: transparent;
-            border: none;
-            color: #888;
-            cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 11px;
-        }
-
-        .history-action-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
-
-        .history-action-btn.favorite {
-            color: #f59e0b;
-        }
+        /* History action buttons removed - simplified UI */
 
         .history-empty {
             padding: 20px;
@@ -9070,29 +9052,7 @@ Swap:       2048000           0     2048000`
             showGhostCommand(item.command, 'From History');
         }
 
-        function toggleFavorite(historyId) {
-            const item = commandHistory.find(h => h.id === historyId);
-            if (!item) return;
-
-            item.favorite = !item.favorite;
-            
-            if (item.favorite) {
-                if (!favoriteCommands.includes(item.command)) {
-                    favoriteCommands.push(item.command);
-                }
-            } else {
-                favoriteCommands = favoriteCommands.filter(c => c !== item.command);
-            }
-
-            saveData();
-            renderHistory();
-        }
-
-        function deleteHistoryItem(historyId) {
-            commandHistory = commandHistory.filter(h => h.id !== historyId);
-            saveData();
-            renderHistory();
-        }
+        // History action functions removed - simplified UI
 
         // Demo function to add sample history
         function demoHistory() {
