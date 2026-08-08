@@ -9,3 +9,7 @@ backups/
 model-generator/venv311/
 **/venv/
 **/__pycache__/
+
+
+#Ignore windsurf AI rules
+.windsurfrules

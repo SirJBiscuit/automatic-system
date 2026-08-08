@@ -71,7 +71,7 @@ const onMouseMove = (e) => {
 - [X] Fix Try Demo button creates demo session - needs to be removed ✅ REMOVED
 - [X] FixWidget creation modal is dark - needs removed ✅ REMOVED
 - [ ] Fix Script editor text isn't visible in dark mode
-- [X] Workspace needs to be empty on fresh load ✅ FIXED - shows empty state when no persisted sessions
+- [ ] Workspace needs to be empty on fresh load, it's not empty, it still has add server it should be quick search and the add + button should be moved to the top right corner
 - [ ] Only persisted connections restore on refresh
 - [ ] Icons show correctly in server list
 - [ ] Icons show correctly in View menu
