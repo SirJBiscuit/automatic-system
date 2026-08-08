@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudflare Dynamic DNS Updater
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/root/CascadeProjects/pteroanyinstall/scripts/cloudflare-ddns.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
