@@ -80,7 +80,7 @@ done
 # 3. Test endpoints
 print_header "Endpoint Testing"
 test_endpoint "http://localhost:8082" "Panel (Port 8082)"
-test_endpoint "https://localhost:443" "Nginx HTTPS"
+test_endpoint "http://localhost:8080" "Web Console Proxy"
 test_endpoint "https://panel.cloudmc.online" "Panel (Public)"
 
 # 4. Check Cloudflare Tunnel Configuration
@@ -192,8 +192,8 @@ case $choice in
         echo "Testing local port 8082..."
         curl -I http://localhost:8082
         echo ""
-        echo "Testing HTTPS (443)..."
-        curl -k -I https://localhost:443 -H "Host: panel.cloudmc.online"
+        echo "Testing web console proxy (8080)..."
+        curl -I http://localhost:8080
         echo ""
         echo "Testing public domain..."
         curl -I https://panel.cloudmc.online
@@ -204,20 +204,14 @@ case $choice in
         sudo cat "$TUNNEL_CONFIG" | grep -A 2 "panel.cloudmc.online"
         echo ""
         echo "Available ports:"
-        echo "  8082 - Panel tunnel (current)"
+        echo "  8082 - Panel tunnel (recommended - HTTP)"
         echo "  8080 - Web console proxy"
-        echo "  443  - HTTPS (requires noTLSVerify)"
+        echo "  Custom - Enter any port number"
         echo ""
         read -p "Enter new port number: " new_port
-        read -p "Use HTTP or HTTPS? (http/https): " protocol
         
-        if [[ $protocol == "https" ]]; then
-            echo "Updating to https://localhost:$new_port with noTLSVerify..."
-            sudo sed -i "/hostname: panel.cloudmc.online/,/service:/ s|service:.*|service: https://localhost:$new_port|" "$TUNNEL_CONFIG"
-        else
-            echo "Updating to http://localhost:$new_port..."
-            sudo sed -i "/hostname: panel.cloudmc.online/,/service:/ s|service:.*|service: http://localhost:$new_port|" "$TUNNEL_CONFIG"
-        fi
+        echo "Updating to http://localhost:$new_port..."
+        sudo sed -i "/hostname: panel.cloudmc.online/,/service:/ s|service:.*|service: http://localhost:$new_port|" "$TUNNEL_CONFIG"
         
         echo -e "${GREEN}✓${NC} Tunnel config updated!"
         echo ""
