@@ -1,0 +1,14 @@
+[Unit]
+Description=Server Startup & Recovery Check
+After=network-online.target docker.service wings.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/root/CascadeProjects/pteroanyinstall/scripts/server-startup-check.sh
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
