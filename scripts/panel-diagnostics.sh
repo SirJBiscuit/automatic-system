@@ -117,7 +117,141 @@ echo "  • Nginx Error: /var/log/nginx/pterodactyl.app-error.log"
 echo "  • PHP-FPM: /var/log/php8.2-fpm.log"
 echo "  • Tunnel: sudo journalctl -u $TUNNEL_SERVICE -n 50"
 
-# 6. Quick fix menu
+# 6. Automatic Issue Detection
+print_header "Automatic Issue Detection"
+
+ISSUES_FOUND=0
+AUTO_FIXES=()
+
+# Check for port conflicts
+if ! check_port 8082 "Panel Tunnel" > /dev/null 2>&1; then
+    echo -e "${YELLOW}⚠${NC} Port 8082 not listening - nginx might be down"
+    ((ISSUES_FOUND++))
+    AUTO_FIXES+=("restart_nginx")
+fi
+
+if ! check_port 8080 "Web Console" > /dev/null 2>&1; then
+    # Check if something else is using 8080
+    PORT_USER=$(sudo netstat -tlnp | grep ":8080 " | awk '{print $7}' | head -1)
+    if [ -n "$PORT_USER" ]; then
+        echo -e "${YELLOW}⚠${NC} Port 8080 in use by: $PORT_USER"
+        if echo "$PORT_USER" | grep -q "filebrowser"; then
+            echo -e "${BLUE}ℹ${NC} Filebrowser is blocking port 8080"
+            ((ISSUES_FOUND++))
+            AUTO_FIXES+=("move_filebrowser")
+        fi
+    fi
+fi
+
+# Check if nginx failed to start
+if ! sudo systemctl is-active --quiet nginx; then
+    echo -e "${RED}✗${NC} Nginx is not running"
+    # Check nginx error logs for port conflicts
+    if sudo journalctl -u nginx --since "5 minutes ago" | grep -q "bind() to.*failed"; then
+        CONFLICT_PORT=$(sudo journalctl -u nginx --since "5 minutes ago" | grep "bind() to" | grep -oP '0\.0\.0\.0:\K[0-9]+' | head -1)
+        echo -e "${YELLOW}⚠${NC} Port conflict detected on port $CONFLICT_PORT"
+        ((ISSUES_FOUND++))
+        AUTO_FIXES+=("fix_port_conflict")
+    fi
+fi
+
+# Check if tunnel is running
+if ! sudo systemctl is-active --quiet "$TUNNEL_SERVICE"; then
+    echo -e "${RED}✗${NC} Cloudflare tunnel is not running"
+    ((ISSUES_FOUND++))
+    AUTO_FIXES+=("restart_tunnel")
+fi
+
+# Check if PHP-FPM is running
+if ! sudo systemctl is-active --quiet php8.2-fpm; then
+    echo -e "${RED}✗${NC} PHP-FPM is not running"
+    ((ISSUES_FOUND++))
+    AUTO_FIXES+=("restart_php")
+fi
+
+if [ $ISSUES_FOUND -eq 0 ]; then
+    echo -e "${GREEN}✓${NC} No issues detected!"
+else
+    echo -e "${YELLOW}Found $ISSUES_FOUND issue(s)${NC}"
+    echo ""
+    read -p "Would you like to automatically fix these issues? (y/n): " auto_fix
+    
+    if [[ $auto_fix == "y" ]]; then
+        print_header "Automatic Fixes"
+        
+        for fix in "${AUTO_FIXES[@]}"; do
+            case $fix in
+                move_filebrowser)
+                    echo -e "${BLUE}→${NC} Moving filebrowser from port 8080 to 8090..."
+                    sudo systemctl stop filebrowser 2>/dev/null || true
+                    
+                    # Update systemd service
+                    if [ -f /etc/systemd/system/filebrowser.service ]; then
+                        sudo sed -i 's|ExecStart=/usr/local/bin/filebrowser --database /etc/filebrowser/filebrowser.db|ExecStart=/usr/local/bin/filebrowser --database /etc/filebrowser/filebrowser.db --port 8090 --address 127.0.0.1|' /etc/systemd/system/filebrowser.service
+                        sudo systemctl daemon-reload
+                    fi
+                    
+                    sudo systemctl start filebrowser
+                    echo -e "${GREEN}✓${NC} Filebrowser moved to port 8090"
+                    ;;
+                    
+                fix_port_conflict)
+                    echo -e "${BLUE}→${NC} Fixing port conflicts..."
+                    
+                    # Kill processes on conflicting ports
+                    for port in 8080 8082; do
+                        PID=$(sudo lsof -ti :$port 2>/dev/null)
+                        if [ -n "$PID" ]; then
+                            PROCESS=$(ps -p $PID -o comm= 2>/dev/null)
+                            if [[ "$PROCESS" != "nginx" ]] && [[ "$PROCESS" != "php-fpm" ]]; then
+                                echo -e "${YELLOW}⚠${NC} Killing $PROCESS (PID: $PID) on port $port"
+                                sudo kill -9 $PID 2>/dev/null || true
+                            fi
+                        fi
+                    done
+                    
+                    echo -e "${GREEN}✓${NC} Port conflicts resolved"
+                    ;;
+                    
+                restart_nginx)
+                    echo -e "${BLUE}→${NC} Restarting nginx..."
+                    sudo systemctl restart nginx
+                    if sudo systemctl is-active --quiet nginx; then
+                        echo -e "${GREEN}✓${NC} Nginx restarted successfully"
+                    else
+                        echo -e "${RED}✗${NC} Nginx failed to start - check logs"
+                    fi
+                    ;;
+                    
+                restart_tunnel)
+                    echo -e "${BLUE}→${NC} Restarting Cloudflare tunnel..."
+                    sudo systemctl restart "$TUNNEL_SERVICE"
+                    sleep 2
+                    if sudo systemctl is-active --quiet "$TUNNEL_SERVICE"; then
+                        echo -e "${GREEN}✓${NC} Tunnel restarted successfully"
+                    else
+                        echo -e "${RED}✗${NC} Tunnel failed to start - check logs"
+                    fi
+                    ;;
+                    
+                restart_php)
+                    echo -e "${BLUE}→${NC} Restarting PHP-FPM..."
+                    sudo systemctl restart php8.2-fpm
+                    echo -e "${GREEN}✓${NC} PHP-FPM restarted"
+                    ;;
+            esac
+        done
+        
+        echo ""
+        echo -e "${GREEN}✓${NC} Automatic fixes complete!"
+        echo ""
+        echo "Testing panel connectivity..."
+        sleep 2
+        curl -I https://panel.cloudmc.online 2>/dev/null | head -1
+    fi
+fi
+
+# 7. Quick fix menu
 print_header "Quick Fix Options"
 echo "What would you like to do?"
 echo ""
@@ -129,10 +263,12 @@ echo "5) View nginx error logs"
 echo "6) Test panel connectivity"
 echo "7) Change panel tunnel port"
 echo "8) Show tunnel status"
-echo "9) Exit"
+echo "9) Fix port conflicts manually"
+echo "10) Move filebrowser to different port"
+echo "11) Exit"
 echo ""
 
-read -p "Enter your choice (1-9): " choice
+read -p "Enter your choice (1-11): " choice
 
 case $choice in
     1)
@@ -231,6 +367,67 @@ case $choice in
         sudo journalctl -u $TUNNEL_SERVICE --since "5 minutes ago" --no-pager | tail -20
         ;;
     9)
+        print_header "Fix Port Conflicts"
+        echo "Checking for port conflicts..."
+        echo ""
+        
+        for port in 8080 8082 443; do
+            PID=$(sudo lsof -ti :$port 2>/dev/null)
+            if [ -n "$PID" ]; then
+                PROCESS=$(ps -p $PID -o comm= 2>/dev/null)
+                echo -e "Port $port: ${YELLOW}$PROCESS${NC} (PID: $PID)"
+                
+                if [[ "$PROCESS" != "nginx" ]] && [[ "$PROCESS" != "php-fpm" ]]; then
+                    read -p "Kill $PROCESS on port $port? (y/n): " kill_it
+                    if [[ $kill_it == "y" ]]; then
+                        sudo kill -9 $PID
+                        echo -e "${GREEN}✓${NC} Process killed"
+                    fi
+                fi
+            else
+                echo -e "Port $port: ${GREEN}Available${NC}"
+            fi
+        done
+        
+        echo ""
+        read -p "Restart nginx now? (y/n): " restart
+        if [[ $restart == "y" ]]; then
+            sudo systemctl restart nginx
+            echo -e "${GREEN}✓${NC} Nginx restarted"
+        fi
+        ;;
+    10)
+        print_header "Move Filebrowser Port"
+        echo "Current filebrowser status:"
+        sudo systemctl status filebrowser --no-pager | head -10
+        echo ""
+        
+        CURRENT_PORT=$(sudo netstat -tlnp | grep filebrowser | grep -oP ':\K[0-9]+' | head -1)
+        if [ -n "$CURRENT_PORT" ]; then
+            echo "Current port: $CURRENT_PORT"
+        fi
+        
+        read -p "Enter new port for filebrowser (e.g., 8090): " new_fb_port
+        
+        echo "Updating filebrowser to port $new_fb_port..."
+        sudo systemctl stop filebrowser
+        
+        if [ -f /etc/systemd/system/filebrowser.service ]; then
+            sudo sed -i "s|--port [0-9]*|--port $new_fb_port|" /etc/systemd/system/filebrowser.service
+            sudo sed -i "s|ExecStart=/usr/local/bin/filebrowser --database /etc/filebrowser/filebrowser.db|ExecStart=/usr/local/bin/filebrowser --database /etc/filebrowser/filebrowser.db --port $new_fb_port --address 127.0.0.1|" /etc/systemd/system/filebrowser.service
+            sudo systemctl daemon-reload
+        fi
+        
+        sudo systemctl start filebrowser
+        
+        if sudo systemctl is-active --quiet filebrowser; then
+            echo -e "${GREEN}✓${NC} Filebrowser moved to port $new_fb_port"
+            sudo netstat -tlnp | grep filebrowser
+        else
+            echo -e "${RED}✗${NC} Failed to start filebrowser"
+        fi
+        ;;
+    11)
         echo "Exiting..."
         exit 0
         ;;
